@@ -67,7 +67,7 @@ export default function Dashboard() {
                     <h1 style={{ fontSize: "32px", marginBottom: "10px" }}>Welcome back, <span className="text-gradient">Runner</span></h1>
                     <p style={{ color: "var(--foreground-muted)" }}>Here's your weekly summary.</p>
                 </div>
-                <button className="btn-primary" onClick={() => router.push("/dashboard/activities")}>Start Run</button>
+                <button className="btn-primary" onClick={() => router.push("/dashboard/run?autostart=true")}>Start Run</button>
             </header>
 
             {/* Stats Grid */}

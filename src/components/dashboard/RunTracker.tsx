@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { MapContainer, TileLayer, Polyline, Marker, Popup, useMap } from "react-leaflet";
+import { useSearchParams } from "next/navigation";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 
@@ -23,14 +24,20 @@ function RecenterMap({ lat, lng }: { lat: number; lng: number }) {
 }
 
 export default function RunTracker() {
+    const searchParams = useSearchParams();
+    const shouldAutoStart = searchParams.get("autostart") === "true";
+
     const [isTracking, setIsTracking] = useState(false);
     const [path, setPath] = useState<[number, number][]>([]);
     const [currentPos, setCurrentPos] = useState<[number, number] | null>(null);
     const [distance, setDistance] = useState(0); // in km
     const [startTime, setStartTime] = useState<number | null>(null);
     const [elapsedTime, setElapsedTime] = useState(0); // in seconds
+    const [countdown, setCountdown] = useState<number | null>(null);
+
     const watchId = useRef<number | null>(null);
     const lastPos = useRef<[number, number] | null>(null);
+    const hasAutoStarted = useRef(false);
 
     // Get initial location
     useEffect(() => {
@@ -46,6 +53,14 @@ export default function RunTracker() {
         }
     }, []);
 
+    // Auto-start logic
+    useEffect(() => {
+        if (shouldAutoStart && !hasAutoStarted.current && currentPos) {
+            hasAutoStarted.current = true;
+            triggerCountdown();
+        }
+    }, [shouldAutoStart, currentPos]);
+
     // Timer logic
     useEffect(() => {
         let interval: NodeJS.Timeout;
@@ -56,6 +71,20 @@ export default function RunTracker() {
         }
         return () => clearInterval(interval);
     }, [isTracking, startTime]);
+
+    const triggerCountdown = () => {
+        setCountdown(3);
+        const timer = setInterval(() => {
+            setCountdown((prev) => {
+                if (prev === 1) {
+                    clearInterval(timer);
+                    startRun();
+                    return null;
+                }
+                return prev ? prev - 1 : null;
+            });
+        }, 1000);
+    };
 
     const startRun = () => {
         setIsTracking(true);
@@ -96,7 +125,7 @@ export default function RunTracker() {
             watchId.current = null;
         }
         // Ideally save to Firestore here
-        alert(`Run Finished! Distance: ${distance.toFixed(2)}km, Time: ${formatTime(elapsedTime)}`);
+        alert(`Run Finished! Distance: ${(distance * 0.621371).toFixed(2)} mi, Time: ${formatTime(elapsedTime)}`);
     };
 
     // Haversine formula for distance in km
@@ -120,11 +149,13 @@ export default function RunTracker() {
     };
 
     const calculatePace = () => {
-        if (distance === 0) return "0'00\"";
-        const paceSecondsPerKm = elapsedTime / distance;
-        const widthMin = Math.floor(paceSecondsPerKm / 60);
-        const widthSec = Math.floor(paceSecondsPerKm % 60);
-        return `${widthMin}'${widthSec < 10 ? '0' : ''}${widthSec}"/km`;
+        const distMiles = distance * 0.621371;
+        if (distMiles === 0) return "0'00\"";
+
+        const paceSecondsPerMile = elapsedTime / distMiles;
+        const widthMin = Math.floor(paceSecondsPerMile / 60);
+        const widthSec = Math.floor(paceSecondsPerMile % 60);
+        return `${widthMin}'${widthSec < 10 ? '0' : ''}${widthSec}"/mi`;
     };
 
     if (!currentPos) {
@@ -133,6 +164,24 @@ export default function RunTracker() {
 
     return (
         <div style={{ height: "100%", position: "relative", borderRadius: "var(--radius-lg)", overflow: "hidden" }}>
+            {/* Countdown Overlay */}
+            {countdown !== null && (
+                <div style={{
+                    position: "absolute",
+                    inset: 0,
+                    background: "rgba(0,0,0,0.8)",
+                    zIndex: 500,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexDirection: "column"
+                }}>
+                    <div style={{ fontSize: "120px", fontWeight: "bold", color: "var(--primary)", animation: "ping 1s infinite" }}>
+                        {countdown}
+                    </div>
+                </div>
+            )}
+
             {/* Stats Overlay */}
             <div className="glass-panel" style={{
                 position: "absolute",
@@ -148,7 +197,7 @@ export default function RunTracker() {
             }}>
                 <div>
                     <div style={{ fontSize: "12px", color: "var(--foreground-muted)" }}>DISTANCE</div>
-                    <div style={{ fontSize: "24px", fontWeight: "bold" }}>{distance.toFixed(2)} <span style={{ fontSize: "14px" }}>km</span></div>
+                    <div style={{ fontSize: "24px", fontWeight: "bold" }}>{(distance * 0.621371).toFixed(2)} <span style={{ fontSize: "14px" }}>mi</span></div>
                 </div>
                 <div>
                     <div style={{ fontSize: "12px", color: "var(--foreground-muted)" }}>TIME</div>
@@ -189,7 +238,7 @@ export default function RunTracker() {
             }}>
                 {!isTracking ? (
                     <button
-                        onClick={startRun}
+                        onClick={triggerCountdown}
                         className="btn-primary"
                         style={{ padding: "16px 48px", fontSize: "18px", borderRadius: "var(--radius-full)" }}
                     >
@@ -213,6 +262,14 @@ export default function RunTracker() {
                     </button>
                 )}
             </div>
+
+            <style jsx>{`
+                @keyframes ping {
+                    0% { transform: scale(0.8); opacity: 0.5; }
+                    50% { transform: scale(1.2); opacity: 1; }
+                    100% { transform: scale(0.8); opacity: 0.5; }
+                }
+            `}</style>
         </div>
     );
 }
