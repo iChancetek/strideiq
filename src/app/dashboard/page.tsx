@@ -1,6 +1,9 @@
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import StatCard from "@/components/dashboard/StatCard";
 
+import AICoach from "@/components/dashboard/AICoach";
+import DailyAffirmation from "@/components/dashboard/DailyAffirmation";
+
 export default function Dashboard() {
     return (
         <DashboardLayout>
@@ -25,7 +28,7 @@ export default function Dashboard() {
                 <StatCard title="Streak" value="4" unit="days" trend="neutral" />
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "30px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "30px", marginBottom: "30px" }}>
                 {/* Main Chart Area Placeholder */}
                 <section className="glass-panel" style={{ padding: "30px", borderRadius: "var(--radius-lg)", minHeight: "300px" }}>
                     <h3 style={{ marginBottom: "20px" }}>Activity Overview</h3>
@@ -58,6 +61,12 @@ export default function Dashboard() {
                         </div>
                     </div>
                 </section>
+            </div>
+
+            {/* AI Section */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "30px" }}>
+                <AICoach />
+                <DailyAffirmation />
             </div>
         </DashboardLayout>
     );
