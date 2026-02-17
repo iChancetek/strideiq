@@ -1,10 +1,6 @@
 import { OpenAI } from "openai";
 import { NextResponse } from "next/server";
 
-// Initialize OpenAI Client
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY, // Ensure this is set in Vercel/Netlify
-});
 
 const SYSTEM_PROMPT = `
 You are StrideIQ's Elite AI Running Coach.
@@ -23,6 +19,10 @@ export async function POST(req: Request) {
         if (!messages || !Array.isArray(messages)) {
             return NextResponse.json({ error: "Invalid messages format" }, { status: 400 });
         }
+
+        const openai = new OpenAI({
+            apiKey: process.env.OPENAI_API_KEY,
+        });
 
         const completion = await openai.chat.completions.create({
             model: "gpt-4o", // Or gpt-5.2 if available/configured
