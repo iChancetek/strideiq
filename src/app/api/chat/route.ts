@@ -16,6 +16,11 @@ export async function POST(req: Request) {
         const body = await req.json();
         const { messages } = body;
 
+        if (!process.env.OPENAI_API_KEY) {
+            console.error("OpenAI API Key missing");
+            return NextResponse.json({ error: "OpenAI API Key missing. Please set it in Firebase Console." }, { status: 500 });
+        }
+
         if (!messages || !Array.isArray(messages)) {
             return NextResponse.json({ error: "Invalid messages format" }, { status: 400 });
         }
@@ -25,7 +30,7 @@ export async function POST(req: Request) {
         });
 
         const completion = await openai.chat.completions.create({
-            model: "gpt-4o", // Or gpt-5.2 if available/configured
+            model: "gpt-4o",
             messages: [
                 { role: "system", content: SYSTEM_PROMPT },
                 ...messages
@@ -36,8 +41,8 @@ export async function POST(req: Request) {
 
         const reply = completion.choices[0].message;
         return NextResponse.json({ message: reply });
-    } catch (error) {
+    } catch (error: any) {
         console.error("OpenAI API Error:", error);
-        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+        return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
     }
 }
