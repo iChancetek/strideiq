@@ -3,9 +3,8 @@ import { NextResponse } from "next/server";
 
 export const maxDuration = 60; // Allow longer generation times
 
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-});
+// Initialize inside handler to avoid build-time errors
+// const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 export async function POST(req: Request) {
     try {
@@ -14,6 +13,10 @@ export async function POST(req: Request) {
         if (!process.env.OPENAI_API_KEY) {
             return NextResponse.json({ error: "OpenAI API Key missing" }, { status: 500 });
         }
+
+        const openai = new OpenAI({
+            apiKey: process.env.OPENAI_API_KEY,
+        });
 
         // 1. Generate the Script
         const completion = await openai.chat.completions.create({
