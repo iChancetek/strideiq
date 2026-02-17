@@ -41,7 +41,4 @@ env:
     availability:
       - BUILD
       - RUNTIME
-  - variable: OPENAI_API_KEY
-    # No value here, must be set in Firebase Console as a Secret
-    availability:
-      - RUNTIME
+
