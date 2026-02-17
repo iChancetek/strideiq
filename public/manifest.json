@@ -1,0 +1,17 @@
+{
+    "name": "StrideIQ",
+    "short_name": "StrideIQ",
+    "description": "AI-Driven Running Coach & Mindfulness Companion",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#000000",
+    "theme_color": "#000000",
+    "icons": [
+        {
+            "src": "/icon.svg",
+            "sizes": "any",
+            "type": "image/svg+xml"
+        }
+    ],
+    "orientation": "portrait"
+}
