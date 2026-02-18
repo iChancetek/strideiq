@@ -19,40 +19,75 @@ export default function LearnMorePage() {
 
             {/* Hero */}
             <section style={{ paddingTop: "140px", textAlign: "center", paddingBottom: "60px", paddingLeft: "20px", paddingRight: "20px" }}>
+                <div style={{ display: "inline-block", padding: "8px 16px", borderRadius: "20px", background: "rgba(204, 255, 0, 0.1)", color: "#CCFF00", marginBottom: "20px", fontSize: "14px", fontWeight: 600, letterSpacing: "1px" }}>
+                    🚀 POWERED BY AGENTIC AI
+                </div>
                 <h1 style={{ fontSize: "clamp(40px, 6vw, 64px)", lineHeight: 1.1, marginBottom: "20px" }}>
-                    The Future of <span className="text-gradient">Agentic Fitness</span>
+                    The World's First <br />
+                    <span className="text-gradient">Agentic Fitness System</span>
                 </h1>
-                <p style={{ fontSize: "20px", color: "var(--foreground-muted)", maxWidth: "700px", margin: "0 auto" }}>
-                    StrideIQ isn't just an app. It's an intelligent system composed of autonomous agents working in harmony to optimize your performance.
+                <p style={{ fontSize: "20px", color: "var(--foreground-muted)", maxWidth: "800px", margin: "0 auto", lineHeight: 1.6 }}>
+                    StrideIQ isn't just a tracker. It's a swarm of <strong>intelligent, autonomous agents</strong> working in harmony to optimize your health. From real-time coaching to predictive recovery, your AI team is always active.
                 </p>
             </section>
 
-            {/* Features Grid */}
-            <section style={{ maxWidth: "1200px", margin: "0 auto", padding: "40px 20px", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "40px" }}>
-                <FeatureCard
-                    icon="🧠"
-                    title="Agentic Core"
-                    desc="Our autonomous agents monitor speed, GPS accuracy, and movement patterns 10x per second to filter noise and deliver precision tracking."
-                />
-                <FeatureCard
-                    icon="🌤"
-                    title="Weather Intelligence"
-                    desc="Real-time environmental scanning alerts you to dangerous heat indexes, storms, or ideal PR conditions before you step out."
-                />
-                <FeatureCard
-                    icon="👟"
-                    title="Step Dynamics"
-                    desc="Advanced algorithms estimate stride count and cadence for both running and walking, helping you maintain optimal efficiency."
-                />
-                <FeatureCard
-                    icon="🎵"
-                    title="Immersive Audio"
-                    desc="Context-aware audio ducking ensures coaching cues are heard clearly over your music, with BPM-matched playlists."
-                />
-            </section>
+            {/* Feature Sections */}
+            <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 20px", display: "flex", flexDirection: "column", gap: "100px" }}>
 
-            {/* PWA Section */}
-            <section style={{ marginTop: "100px", maxWidth: "1000px", margin: "0 auto", padding: "20px" }}>
+                {/* 1. Active Performance */}
+                <Section
+                    title="Active Performance"
+                    desc="Track every move with precision using our multi-modal activity agents."
+                >
+                    <FeatureCard icon="🏃" title="Multi-Sport Tracking" desc="Specialized modes for Running, Walking, Biking, and HIIT workouts." />
+                    <FeatureCard icon="👟" title="Step Dynamics" desc="Advanced algorithms estimate stride count and cadence for optimal efficiency." />
+                    <FeatureCard icon="📊" title="Live Telemetry" desc="Real-time monitoring of pace, distance, heart rate zones, and calorie burn." />
+                </Section>
+
+                {/* 2. Intelligent Training */}
+                <Section
+                    title="Intelligent Training"
+                    desc="Your personal AI coach builds and adapts plans just for you."
+                >
+                    <FeatureCard icon="📅" title="Adaptive Plans" desc="Generate custom 8-16 week training schedules for 5Ks, Marathons, and more." />
+                    <FeatureCard icon="🤖" title="AI Coach" desc="Get real-time audio cues and post-workout analysis from your digital coach." />
+                    <FeatureCard icon="📈" title="Progress Analytics" desc="Visual insights into your training load, consistency, and performance trends." />
+                </Section>
+
+                {/* 3. Wellness & Recovery */}
+                <Section
+                    title="Wellness & Recovery"
+                    desc="Balance your effort with deep recovery tools managed by wellness agents."
+                >
+                    <FeatureCard icon="🧘" title="Meditation" desc="Guided sessions for Deep Focus, Sleep Aid, and Post-Run Recovery." />
+                    <FeatureCard icon="⏳" title="Fasting Tracker" desc="Seamless 16:8 and custom fasting timers with cloud synchronization." />
+                    <FeatureCard icon="📓" title="Cognitive Journal" desc="AI-assisted journaling with grammar fix, tone adjustment, and media support." />
+                </Section>
+
+                {/* 4. Social Community */}
+                <Section
+                    title="Social Community"
+                    desc="Connect, compete, and share with a global network of athletes."
+                >
+                    <FeatureCard icon="👥" title="Friends System" desc="Follow friends, view their activities, and stay motivated together." />
+                    <FeatureCard icon="🏆" title="Leaderboards" desc="Compete on weekly Distance and Step leaderboards for top rankings." />
+                    <FeatureCard icon="💬" title="Social Feed" desc="Share photos/videos and comment on activities in real-time." />
+                </Section>
+
+                {/* 5. Platform Experience */}
+                <Section
+                    title="Platform Experience"
+                    desc="A premium, app-like experience on any device."
+                >
+                    <FeatureCard icon="📱" title="Installable PWA" desc="Install directly to your home screen on iOS, Android, and Desktop." />
+                    <FeatureCard icon="🌓" title="Dark & Light Mode" desc="Beautifully designed themes that adapt to your environment." />
+                    <FeatureCard icon="🔒" title="Secure Cloud" desc="Your data is encrypted and instantly synced across all your devices." />
+                </Section>
+
+            </div>
+
+            {/* PWA Install Instructions */}
+            <section style={{ marginTop: "120px", maxWidth: "1000px", margin: "0 auto", padding: "20px" }}>
                 <h2 style={{ fontSize: "40px", textAlign: "center", marginBottom: "40px" }}>Install StrideIQ Everywhere</h2>
                 <div className="glass-panel" style={{ padding: "40px", borderRadius: "24px" }}>
                     <div style={{ display: "flex", justifyContent: "center", gap: "20px", marginBottom: "40px", borderBottom: "1px solid rgba(255,255,255,0.1)", paddingBottom: "20px" }}>
@@ -117,9 +152,23 @@ export default function LearnMorePage() {
     );
 }
 
+function Section({ title, desc, children }: { title: string, desc: string, children: React.ReactNode }) {
+    return (
+        <section>
+            <div style={{ marginBottom: "30px", paddingLeft: "10px", borderLeft: "4px solid var(--primary)" }}>
+                <h2 style={{ fontSize: "32px", marginBottom: "10px" }}>{title}</h2>
+                <p style={{ fontSize: "18px", color: "var(--foreground-muted)" }}>{desc}</p>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "20px" }}>
+                {children}
+            </div>
+        </section>
+    );
+}
+
 function FeatureCard({ icon, title, desc }: { icon: string, title: string, desc: string }) {
     return (
-        <div className="glass-panel" style={{ padding: "30px", borderRadius: "16px" }}>
+        <div className="glass-panel" style={{ padding: "30px", borderRadius: "16px", height: "100%" }}>
             <div style={{ fontSize: "40px", marginBottom: "20px" }}>{icon}</div>
             <h3 style={{ fontSize: "24px", marginBottom: "10px" }}>{title}</h3>
             <p style={{ color: "var(--foreground-muted)", lineHeight: 1.6 }}>{desc}</p>
