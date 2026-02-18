@@ -1,3 +1,6 @@
+import { adminDb } from "@/lib/firebase/admin";
+import { FieldValue } from "firebase-admin/firestore";
+
 const MILESTONE_BADGES = [
     { id: "25_miles", limit: 25 },
     { id: "50_miles", limit: 50 },
