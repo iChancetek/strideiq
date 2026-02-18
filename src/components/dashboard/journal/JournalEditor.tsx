@@ -12,6 +12,7 @@ interface JournalEditorProps {
         content: string;
         mood?: string;
         tags?: string[];
+        imageUrls?: string[];
     };
     isNew?: boolean;
 }
@@ -24,6 +25,8 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
     const [content, setContent] = useState(initialData?.content || "");
     const [isSaving, setIsSaving] = useState(false);
     const [isProcessingAI, setIsProcessingAI] = useState(false);
+    const [uploading, setUploading] = useState(false);
+    const [imageUrls, setImageUrls] = useState<string[]>(initialData?.imageUrls || []);
 
     const handleAI = async (command: string, tone?: string) => {
         if (!content.trim()) return;
@@ -50,8 +53,8 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
         }
     };
 
-    const handleSave = async () => {
-        if (!title.trim() && !content.trim()) return;
+    const handleSaveWithImages = async () => {
+        if (!title.trim() && !content.trim() && imageUrls.length === 0) return;
         setIsSaving(true);
         try {
             const token = await user?.getIdToken();
@@ -64,7 +67,8 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
                 body: JSON.stringify({
                     id: initialData?.id, // if editing
                     title,
-                    content
+                    content,
+                    imageUrls
                 })
             });
 
@@ -80,21 +84,57 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
         }
     };
 
+    const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        setUploading(true);
+        try {
+            const formData = new FormData();
+            formData.append("file", file);
+
+            const token = await user?.getIdToken();
+            const res = await fetch("/api/upload", {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${token}`
+                },
+                body: formData
+            });
+
+            const data = await res.json();
+            if (data.url) {
+                setImageUrls(prev => [...prev, data.url]);
+            } else {
+                alert("Image upload failed.");
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Image upload failed.");
+        } finally {
+            setUploading(false);
+        }
+    };
+
     const handleDelete = async () => {
         if (!initialData?.id || !confirm("Are you sure you want to delete this entry?")) return;
-        setIsSaving(true);
+
+        setIsSaving(true); // Use saving state for delete as well
         try {
             const token = await user?.getIdToken();
             const res = await fetch("/api/journal/delete", {
-                method: "POST",
+                method: "DELETE",
                 headers: {
                     "Content-Type": "application/json",
                     "Authorization": `Bearer ${token}`
                 },
                 body: JSON.stringify({ id: initialData.id })
             });
+
             if (res.ok) {
                 router.push("/dashboard/journal");
+            } else {
+                alert("Failed to delete entry");
             }
         } catch (e) {
             console.error(e);
@@ -121,7 +161,7 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
                         </button>
                     )}
                     <button
-                        onClick={handleSave}
+                        onClick={handleSaveWithImages} // Changed to handleSaveWithImages
                         disabled={isSaving}
                         className="btn-primary flex items-center gap-2"
                     >
@@ -140,8 +180,8 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
                     onChange={e => setTitle(e.target.value)}
                 />
 
-                {/* AI Toolbar */}
-                <div className="flex gap-2 mb-4 overflow-x-auto pb-2 scrollbar-hide">
+                {/* AI & Media Toolbar */} {/* Updated comment */}
+                <div className="flex gap-2 mb-4 overflow-x-auto pb-2 scrollbar-hide items-center">
                     <button onClick={() => handleAI("grammar")} disabled={isProcessingAI} className="btn-secondary text-xs flex items-center gap-1 whitespace-nowrap">
                         <Wand2 size={12} /> Fix Grammar
                     </button>
@@ -149,19 +189,44 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
                         ✨ Expand
                     </button>
                     <button onClick={() => handleAI("concise")} disabled={isProcessingAI} className="btn-secondary text-xs flex items-center gap-1 whitespace-nowrap">
-                        ✂️ Make Concise
+                        ✂️ Simplify {/* Changed text */}
                     </button>
                     <button onClick={() => handleAI("tone", "positive")} disabled={isProcessingAI} className="btn-secondary text-xs flex items-center gap-1 whitespace-nowrap">
-                        😊 Make Positive
+                        😊 Positive {/* Changed text */}
                     </button>
+
+                    <div className="h-4 w-px bg-white/10 mx-2" /> {/* Separator */}
+
+                    <label className={`btn-secondary text-xs flex items-center gap-1 whitespace-nowrap cursor-pointer ${uploading ? 'opacity-50' : ''}`}>
+                        {uploading ? <Loader2 size={12} className="animate-spin" /> : "📷 Add Image"}
+                        <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={uploading} />
+                    </label>
                 </div>
 
                 <textarea
-                    className="flex-1 bg-transparent resize-none focus:outline-none text-lg leading-relaxed placeholder:text-foreground-muted/30"
+                    className="flex-1 bg-transparent resize-none focus:outline-none text-lg leading-relaxed placeholder:text-foreground-muted/30 mb-4" // Added mb-4
                     placeholder="Start writing your thoughts..."
                     value={content}
                     onChange={e => setContent(e.target.value)}
                 />
+
+                {/* Image Grid */}
+                {imageUrls.length > 0 && (
+                    <div className="flex gap-4 overflow-x-auto py-2">
+                        {imageUrls.map((url, i) => (
+                            <div key={i} className="relative group flex-shrink-0 h-32 w-32 rounded-lg overflow-hidden border border-white/10">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={url} alt="Attachment" className="h-full w-full object-cover" />
+                                <button
+                                    onClick={() => setImageUrls(prev => prev.filter((_, idx) => idx !== i))}
+                                    className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                    ✕
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
             {isProcessingAI && (
                 <div className="fixed inset-0 bg-background/50 backdrop-blur-sm z-50 flex items-center justify-center">

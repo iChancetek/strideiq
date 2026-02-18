@@ -2,10 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
-// Client-side component handles UI and API calls
-
-// Correcting to use client SDK or pass via props. For now, we will use a server action or API route for saving.
-// Actually, let's use the pattern of client-side logic + API call.
+import { db } from "@/lib/firebase/config";
+import { doc, onSnapshot, setDoc, deleteDoc } from "firebase/firestore";
 
 export default function FastingTimer() {
     const { user } = useAuth();
@@ -13,17 +11,26 @@ export default function FastingTimer() {
     const [startTime, setStartTime] = useState<number | null>(null);
     const [elapsed, setElapsed] = useState(0);
     const [goalHours, setGoalHours] = useState(16);
+    const [loading, setLoading] = useState(true);
 
-    // Hydrate from local storage
+    // Sync with Firestore
     useEffect(() => {
-        const storedStart = localStorage.getItem("fasting_start");
-        const storedGoal = localStorage.getItem("fasting_goal");
-        if (storedStart) {
-            setStartTime(parseInt(storedStart));
-            setIsFasting(true);
-            setGoalHours(storedGoal ? parseInt(storedGoal) : 16);
-        }
-    }, []);
+        if (!user) return;
+        const unsub = onSnapshot(doc(db, "users", user.uid, "fasting_status", "active"), (doc) => {
+            if (doc.exists()) {
+                const data = doc.data();
+                setStartTime(data.startTime);
+                setGoalHours(data.goalHours);
+                setIsFasting(true);
+            } else {
+                setIsFasting(false);
+                setStartTime(null);
+                setElapsed(0);
+            }
+            setLoading(false);
+        });
+        return () => unsub();
+    }, [user]);
 
     // Timer tick
     useEffect(() => {
@@ -35,21 +42,27 @@ export default function FastingTimer() {
     }, [isFasting, startTime]);
 
     const toggleFasting = async () => {
+        if (!user) return;
+        const statusRef = doc(db, "users", user.uid, "fasting_status", "active");
+
         if (isFasting) {
             // End Fast
             const endTime = Date.now();
             const durationMinutes = (endTime - (startTime || 0)) / 1000 / 60;
 
-            // Save to DB via API
+            // 1. Log completed fast via API
             try {
                 await fetch("/api/fasting/log", {
                     method: "POST",
-                    headers: { "Content-Type": "application/json" },
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${await user.getIdToken()}`
+                    },
                     body: JSON.stringify({
                         startTime,
                         endTime,
                         durationMinutes,
-                        type: `${goalHours}:8`, // simplistic type
+                        type: `${goalHours}:8`,
                         goalHours
                     })
                 });
@@ -57,19 +70,17 @@ export default function FastingTimer() {
                 console.error("Failed to save fast", e);
             }
 
-            // Reset
-            setIsFasting(false);
-            setStartTime(null);
-            setElapsed(0);
-            localStorage.removeItem("fasting_start");
-            localStorage.removeItem("fasting_goal");
+            // 2. Clear active status in Firestore
+            await deleteDoc(statusRef);
+
         } else {
             // Start Fast
             const now = Date.now();
-            setStartTime(now);
-            setIsFasting(true);
-            localStorage.setItem("fasting_start", now.toString());
-            localStorage.setItem("fasting_goal", goalHours.toString());
+            await setDoc(statusRef, {
+                startTime: now,
+                goalHours,
+                startedAt: new Date().toISOString()
+            });
         }
     };
 
@@ -82,7 +93,9 @@ export default function FastingTimer() {
         return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
     };
 
-    const progress = Math.min((elapsed / (goalHours * 3600 * 1000)) * 100, 100);
+    const progress = startTime ? Math.min((elapsed / (goalHours * 3600 * 1000)) * 100, 100) : 0;
+
+    if (loading) return <div className="glass-panel p-6 h-64 flex items-center justify-center animate-pulse">Loading Timer...</div>;
 
     return (
         <div className="glass-panel p-6 flex flex-col items-center justify-center text-center">
