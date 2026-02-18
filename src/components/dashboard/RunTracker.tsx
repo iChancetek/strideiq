@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { MapContainer, TileLayer, Polyline, Marker, Popup, useMap } from "react-leaflet";
 import { useSearchParams } from "next/navigation";
+import { useActivities } from "@/hooks/useActivities";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 
@@ -118,15 +119,39 @@ export default function RunTracker() {
         }
     };
 
-    const stopRun = () => {
+    const { addActivity } = useActivities();
+
+    const stopRun = async () => {
         setIsTracking(false);
         if (watchId.current !== null) {
             navigator.geolocation.clearWatch(watchId.current);
             watchId.current = null;
         }
-        // Ideally save to Firestore here
-        alert(`Run Finished! Distance: ${(distance * 0.621371).toFixed(2)} mi, Time: ${formatTime(elapsedTime)}`);
+
+        // Save to Firestore via API
+        try {
+            const miles = distance * 0.621371;
+            const minutes = elapsedTime / 60;
+
+            if (miles > 0.05) { // Only save if meaningful distance
+                await addActivity({
+                    type: "Run",
+                    distance: parseFloat(miles.toFixed(2)),
+                    duration: parseFloat(minutes.toFixed(2)),
+                    calories: Math.round(miles * 100), // Approx
+                    date: new Date(),
+                    notes: "GPS Run"
+                });
+                alert(`Run Saved! Distance: ${miles.toFixed(2)} mi`);
+            } else {
+                alert("Run too short to save.");
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Failed to save run.");
+        }
     };
+
 
     // Haversine formula for distance in km
     const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {

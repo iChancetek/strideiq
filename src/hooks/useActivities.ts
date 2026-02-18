@@ -65,20 +65,41 @@ export function useActivities() {
     const addActivity = async (activity: Omit<Activity, "id" | "date" | "pace"> & { date: Date }) => {
         if (!user) throw new Error("User not authenticated");
 
-        // Calculate Pace (min/mi)
-        const totalMinutes = activity.duration;
-        const paceDecimal = activity.distance > 0 ? totalMinutes / activity.distance : 0;
-        const paceMin = Math.floor(paceDecimal);
-        const paceSec = Math.round((paceDecimal - paceMin) * 60);
-        const pace = `${paceMin}:${paceSec.toString().padStart(2, '0')}`;
+        try {
+            const response = await fetch("/api/activity/create", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    userId: user.uid,
+                    ...activity,
+                    // Ensure duration is in seconds for the API schema if needed, 
+                    // Interface says duration is in minutes? 
+                    // Schema: duration z.number().min(0) // in seconds
+                    // activity.duration comes from UI. 
+                    // Let's check UI usage.
+                    // UI likely passes minutes. API expects seconds? 
+                    // Wait, Activity interface says "duration: number; // in minutes".
+                    // Zod schema says "duration: z.number().min(0), // in seconds".
+                    // I need to convert.
+                    duration: activity.duration * 60,
+                }),
+            });
 
-        await addDoc(collection(db, "users", user.uid, "activities"), {
-            ...activity,
-            pace,
-            date: Timestamp.fromDate(activity.date),
-            createdAt: serverTimestamp(),
-        });
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || "Failed to create activity");
+            }
+
+            // Optimistic update or wait for snapshot?
+            // Snapshot listener will pick up the new doc added by server.
+        } catch (err) {
+            console.error("Failed to add activity:", err);
+            throw err;
+        }
     };
+
 
     return { activities, loading, error, addActivity };
 }
