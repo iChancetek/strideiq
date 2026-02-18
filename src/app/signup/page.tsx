@@ -9,26 +9,57 @@ export default function SignupPage() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
+    const [loading, setLoading] = useState(false);
     const router = useRouter();
 
     const handleGoogleSignIn = async () => {
+        setLoading(true);
+        setError("");
         try {
             await signInWithGoogle();
             router.push("/dashboard");
-        } catch (err) {
+        } catch (err: any) {
             setError("Failed to sign up with Google.");
             console.error(err);
+        } finally {
+            setLoading(false);
         }
     };
 
     const handleEmailSignUp = async (e: React.FormEvent) => {
         e.preventDefault();
+        setLoading(true);
+        setError("");
+
+        if (password.length < 6) {
+            setError("Password must be at least 6 characters.");
+            setLoading(false);
+            return;
+        }
+
         try {
             await signUpWithEmail(email, password);
-            router.push("/dashboard");
-        } catch (err) {
-            setError("Failed to create account. Try again.");
+            // Verification email is sent automatically inside signUpWithEmail
+            // Redirect to verify-email — they must verify before accessing dashboard
+            router.push("/verify-email");
+        } catch (err: any) {
+            const code = err?.code;
+            switch (code) {
+                case "auth/email-already-in-use":
+                    setError("An account with this email already exists. Try logging in.");
+                    break;
+                case "auth/invalid-email":
+                    setError("Please enter a valid email address.");
+                    break;
+                case "auth/weak-password":
+                    setError("Password is too weak. Use at least 6 characters.");
+                    break;
+                default:
+                    setError("Failed to create account. Please try again.");
+            }
             console.error(err);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -74,6 +105,7 @@ export default function SignupPage() {
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             required
+                            disabled={loading}
                             style={{
                                 width: "100%",
                                 padding: "12px",
@@ -81,7 +113,8 @@ export default function SignupPage() {
                                 background: "rgba(255,255,255,0.05)",
                                 border: "1px solid rgba(255,255,255,0.1)",
                                 color: "#fff",
-                                outline: "none"
+                                outline: "none",
+                                opacity: loading ? 0.5 : 1
                             }}
                         />
                     </div>
@@ -92,6 +125,7 @@ export default function SignupPage() {
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             required
+                            disabled={loading}
                             style={{
                                 width: "100%",
                                 padding: "12px",
@@ -99,13 +133,19 @@ export default function SignupPage() {
                                 background: "rgba(255,255,255,0.05)",
                                 border: "1px solid rgba(255,255,255,0.1)",
                                 color: "#fff",
-                                outline: "none"
+                                outline: "none",
+                                opacity: loading ? 0.5 : 1
                             }}
                         />
                     </div>
 
-                    <button type="submit" className="btn-primary" style={{ marginTop: "10px", width: "100%", justifyContent: "center" }}>
-                        Create Account
+                    <button
+                        type="submit"
+                        className="btn-primary"
+                        disabled={loading}
+                        style={{ marginTop: "10px", width: "100%", justifyContent: "center", opacity: loading ? 0.6 : 1 }}
+                    >
+                        {loading ? "Creating Account..." : "Create Account"}
                     </button>
                 </form>
 
@@ -122,6 +162,7 @@ export default function SignupPage() {
 
                 <button
                     onClick={handleGoogleSignIn}
+                    disabled={loading}
                     style={{
                         width: "100%",
                         padding: "12px",
@@ -130,11 +171,12 @@ export default function SignupPage() {
                         color: "#000",
                         fontWeight: 600,
                         border: "none",
-                        cursor: "pointer",
+                        cursor: loading ? "not-allowed" : "pointer",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        gap: "10px"
+                        gap: "10px",
+                        opacity: loading ? 0.6 : 1
                     }}
                 >
                     <span style={{ fontSize: "18px" }}>G</span> Sign up with Google

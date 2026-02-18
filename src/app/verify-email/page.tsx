@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { sendEmailVerification, reload } from "firebase/auth";
+import { auth } from "@/lib/firebase/config";
+import { sendEmailVerification } from "firebase/auth";
+import { logOut } from "@/lib/firebase/auth";
 import { useRouter } from "next/navigation";
 
 export default function VerifyEmailPage() {
@@ -10,49 +12,80 @@ export default function VerifyEmailPage() {
     const router = useRouter();
     const [sending, setSending] = useState(false);
     const [message, setMessage] = useState("");
+    const [checking, setChecking] = useState(false);
 
-    // Check status on mount and interval
+    // Poll for email verification — reads fresh user from auth.currentUser
+    // instead of the stale React `user` object (which won't re-render on reload)
+    const checkVerification = useCallback(async () => {
+        const current = auth.currentUser;
+        if (!current) return;
+
+        try {
+            await current.reload();
+            // After reload, re-read from auth.currentUser (fresh reference)
+            const refreshed = auth.currentUser;
+            if (refreshed?.emailVerified) {
+                // Force the auth state to update so AuthContext picks it up
+                await refreshed.getIdToken(true);
+                router.push("/dashboard");
+            }
+        } catch (err) {
+            // Silently ignore — will retry on next poll
+            console.debug("Verification poll error:", err);
+        }
+    }, [router]);
+
     useEffect(() => {
         if (!user) {
             router.push("/login");
             return;
         }
 
+        // Already verified — go straight to dashboard
         if (user.emailVerified) {
             router.push("/dashboard");
+            return;
         }
 
-        const interval = setInterval(async () => {
-            await reload(user);
-            if (user.emailVerified) {
-                router.push("/dashboard");
-            }
-        }, 3000);
-
+        // Poll every 2 seconds
+        const interval = setInterval(checkVerification, 2000);
         return () => clearInterval(interval);
-    }, [user, router]);
+    }, [user, router, checkVerification]);
 
     const handleResend = async () => {
-        if (!user) return;
+        const current = auth.currentUser;
+        if (!current) return;
         setSending(true);
+        setMessage("");
         try {
-            await sendEmailVerification(user);
-            setMessage("Verification email sent! Check your inbox (and spam).");
+            await sendEmailVerification(current);
+            setMessage("Verification email sent! Check your inbox and spam folder.");
         } catch (error: any) {
-            setMessage("Error: " + error.message);
+            if (error?.code === "auth/too-many-requests") {
+                setMessage("Please wait a moment before requesting another email.");
+            } else {
+                setMessage("Error: " + error.message);
+            }
         } finally {
             setSending(false);
         }
     };
 
     const handleManualCheck = async () => {
-        if (!user) return;
-        await reload(user);
-        if (user.emailVerified) {
-            router.push("/dashboard");
-        } else {
+        setChecking(true);
+        setMessage("");
+        await checkVerification();
+        // If we're still here, it wasn't verified
+        const current = auth.currentUser;
+        if (current && !current.emailVerified) {
             setMessage("Email not verified yet. Please click the link in your email.");
         }
+        setChecking(false);
+    };
+
+    const handleLogout = async () => {
+        await logOut();
+        router.push("/login");
     };
 
     if (!user) return null;
@@ -77,10 +110,25 @@ export default function VerifyEmailPage() {
             }}>
                 <div style={{ fontSize: "60px", marginBottom: "20px" }}>📧</div>
                 <h1 style={{ fontSize: "28px", fontWeight: 700, marginBottom: "15px" }}>Verify your email</h1>
-                <p style={{ color: "var(--foreground-muted)", marginBottom: "30px", lineHeight: "1.6" }}>
+                <p style={{ color: "var(--foreground-muted)", marginBottom: "10px", lineHeight: "1.6" }}>
                     We've sent a verification link to <strong>{user.email}</strong>.<br />
                     Please click the link to unlock your account.
                 </p>
+
+                {/* Auto-check indicator */}
+                <div style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "8px",
+                    marginBottom: "25px",
+                    fontSize: "13px",
+                    color: "var(--primary)",
+                    opacity: 0.7
+                }}>
+                    <span style={{ display: "inline-block", width: "8px", height: "8px", borderRadius: "50%", background: "var(--primary)", animation: "pulse 1.5s infinite" }} />
+                    Auto-checking every 2 seconds...
+                </div>
 
                 {message && (
                     <div style={{
@@ -99,9 +147,10 @@ export default function VerifyEmailPage() {
                     <button
                         onClick={handleManualCheck}
                         className="btn-primary"
-                        style={{ width: "100%", padding: "16px" }}
+                        disabled={checking}
+                        style={{ width: "100%", padding: "16px", opacity: checking ? 0.6 : 1 }}
                     >
-                        I've Verified My Email
+                        {checking ? "Checking..." : "I've Verified My Email"}
                     </button>
 
                     <button
@@ -121,7 +170,7 @@ export default function VerifyEmailPage() {
                     </button>
 
                     <button
-                        onClick={() => router.push("/")} // Or logout
+                        onClick={handleLogout}
                         style={{
                             background: "transparent",
                             border: "none",
@@ -135,6 +184,10 @@ export default function VerifyEmailPage() {
                     </button>
                 </div>
             </div>
+
+            <style jsx>{`
+                @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+            `}</style>
         </div>
     );
 }
