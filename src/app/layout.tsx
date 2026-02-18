@@ -7,8 +7,8 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" });
 
 export const metadata: Metadata = {
-  title: "StrideIQ | AI-Driven Running Coach",
-  description: "Advanced AI-driven fitness and mindfulness ecosystem for runners.",
+  title: "StrideIQ by ChanceTEK Fitness | Intelligent Agentic AI Coaching",
+  description: "Intelligent Movement. Agentic Performance. The AI-powered fitness platform with autonomous coaching agents.",
   manifest: "/manifest.json",
 };
 

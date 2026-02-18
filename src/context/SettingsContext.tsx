@@ -8,6 +8,12 @@ import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 interface Settings {
     theme: "light" | "dark";
     units: "imperial" | "metric";
+    activityMode: "run" | "walk" | "bike";
+    environment: "outdoor" | "indoor";
+    voiceCoaching: boolean;
+    weatherAnnouncements: boolean;
+    autoPause: boolean;
+    autoPauseSensitivity: "low" | "medium" | "high";
 }
 
 interface SettingsContextType {
@@ -19,6 +25,12 @@ interface SettingsContextType {
 const defaultSettings: Settings = {
     theme: "dark",
     units: "imperial",
+    activityMode: "run",
+    environment: "outdoor",
+    voiceCoaching: true,
+    weatherAnnouncements: true,
+    autoPause: true,
+    autoPauseSensitivity: "medium",
 };
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);

@@ -47,6 +47,9 @@ export default function Sidebar() {
                     <h2 style={{ fontSize: "24px", letterSpacing: "-0.5px" }}>
                         Stride<span className="text-gradient">IQ</span>
                     </h2>
+                    <div style={{ fontSize: "10px", color: "var(--foreground-muted)", marginTop: "2px", letterSpacing: "0.5px" }}>
+                        by ChanceTEK Fitness
+                    </div>
                 </div>
 
                 <nav style={{ flex: 1 }}>

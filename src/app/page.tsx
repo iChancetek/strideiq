@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 
 export default function Home() {
@@ -16,10 +15,13 @@ export default function Home() {
         alignItems: "center",
         zIndex: 100
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: "10px" }}>
           <h1 style={{ fontSize: "24px", letterSpacing: "-0.5px" }}>
             Stride<span className="text-gradient">IQ</span>
           </h1>
+          <span style={{ fontSize: "12px", color: "var(--foreground-muted)", fontWeight: 400, letterSpacing: "0.5px" }}>
+            by ChanceTEK Fitness
+          </span>
         </div>
         <div style={{ display: "flex", gap: "20px" }}>
           <Link href="/login" style={{ fontWeight: 500, opacity: 0.8 }}>Log In</Link>
@@ -38,9 +40,12 @@ export default function Home() {
         padding: "0 20px",
         background: "radial-gradient(circle at center, rgba(0, 229, 255, 0.1) 0%, rgba(5, 5, 5, 0) 70%)"
       }}>
+        <div style={{ fontSize: "14px", color: "var(--secondary)", textTransform: "uppercase", letterSpacing: "3px", marginBottom: "20px", fontWeight: 600 }}>
+          Powered by Agentic AI
+        </div>
         <h1 style={{ fontSize: "clamp(40px, 8vw, 80px)", lineHeight: 1.1, marginBottom: "20px" }}>
-          Run Smarter.<br />
-          <span className="text-gradient">Train Harder.</span>
+          Intelligent Movement.<br />
+          <span className="text-gradient">Agentic Performance.</span>
         </h1>
         <p style={{
           fontSize: "clamp(18px, 4vw, 24px)",
@@ -48,7 +53,7 @@ export default function Home() {
           maxWidth: "700px",
           marginBottom: "40px"
         }}>
-          The first AI-adaptive running coach that combines elite performance tracking with mindfulness.
+          The first AI-powered fitness platform with autonomous coaching agents that perceive your movement, adapt in real-time, and evolve with you.
         </p>
         <div style={{ display: "flex", gap: "20px", flexWrap: "wrap", justifyContent: "center" }}>
           <Link href="/signup" className="btn-primary" style={{ padding: "16px 48px", fontSize: "18px" }}>
@@ -67,35 +72,59 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Value Props */}
+      {/* Value Props — AI Agents */}
       <section style={{ padding: "100px 20px", maxWidth: "1200px", margin: "0 auto", width: "100%" }}>
-        <h2 style={{ fontSize: "40px", marginBottom: "60px", textAlign: "center" }}>
-          Why StrideIQ?
+        <h2 style={{ fontSize: "40px", marginBottom: "16px", textAlign: "center" }}>
+          6 Autonomous AI Agents
         </h2>
+        <p style={{ textAlign: "center", color: "var(--foreground-muted)", marginBottom: "60px", maxWidth: "600px", margin: "0 auto 60px" }}>
+          StrideIQ deploys a team of intelligent agents that work together to deliver a personalized, real-time coaching experience.
+        </p>
         <div style={{
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
           gap: "30px"
         }}>
-          {/* Feature 1 */}
           <div className="glass-panel" style={{ padding: "40px", borderRadius: "var(--radius-lg)" }}>
-            <h3 style={{ fontSize: "24px", marginBottom: "10px", color: "var(--primary)" }}>AI Coaching</h3>
+            <div style={{ fontSize: "32px", marginBottom: "12px" }}>🏃</div>
+            <h3 style={{ fontSize: "22px", marginBottom: "10px", color: "var(--primary)" }}>Movement Intelligence</h3>
             <p style={{ color: "var(--foreground-muted)", lineHeight: 1.6 }}>
-              Real-time pace adjustments and training plans that adapt to your fatigue and progress.
+              Detects stop/start movement using GPS + accelerometer analysis. Auto-pauses when truly stopped, prevents false pauses on hills.
             </p>
           </div>
-          {/* Feature 2 */}
           <div className="glass-panel" style={{ padding: "40px", borderRadius: "var(--radius-lg)" }}>
-            <h3 style={{ fontSize: "24px", marginBottom: "10px", color: "var(--secondary)" }}>Advanced Analytics</h3>
+            <div style={{ fontSize: "32px", marginBottom: "12px" }}>🎤</div>
+            <h3 style={{ fontSize: "22px", marginBottom: "10px", color: "var(--secondary)" }}>Adaptive Coaching</h3>
             <p style={{ color: "var(--foreground-muted)", lineHeight: 1.6 }}>
-              Deep dive into your cadence, stride length, and heart rate zones with elite-level precision.
+              Voice announcements at every mile with split times, pace trends, and motivational encouragement that evolves based on your performance.
             </p>
           </div>
-          {/* Feature 3 */}
           <div className="glass-panel" style={{ padding: "40px", borderRadius: "var(--radius-lg)" }}>
-            <h3 style={{ fontSize: "24px", marginBottom: "10px", color: "var(--accent)" }}>Mindful Movement</h3>
+            <div style={{ fontSize: "32px", marginBottom: "12px" }}>🌦</div>
+            <h3 style={{ fontSize: "22px", marginBottom: "10px", color: "var(--accent)" }}>Environmental Awareness</h3>
             <p style={{ color: "var(--foreground-muted)", lineHeight: 1.6 }}>
-              Integrated guided meditations and breathwork to keep your mind as strong as your legs.
+              Real-time weather intelligence with safety advice. Alerts for extreme heat, rain, and storm conditions at outdoor session start.
+            </p>
+          </div>
+          <div className="glass-panel" style={{ padding: "40px", borderRadius: "var(--radius-lg)" }}>
+            <div style={{ fontSize: "32px", marginBottom: "12px" }}>🎵</div>
+            <h3 style={{ fontSize: "22px", marginBottom: "10px", color: "var(--primary)" }}>Media Coordination</h3>
+            <p style={{ color: "var(--foreground-muted)", lineHeight: 1.6 }}>
+              Smart audio ducking during voice prompts and BPM-matched playlist suggestions tailored to your activity mode.
+            </p>
+          </div>
+          <div className="glass-panel" style={{ padding: "40px", borderRadius: "var(--radius-lg)" }}>
+            <div style={{ fontSize: "32px", marginBottom: "12px" }}>🚶</div>
+            <h3 style={{ fontSize: "22px", marginBottom: "10px", color: "var(--secondary)" }}>Mode Intelligence</h3>
+            <p style={{ color: "var(--foreground-muted)", lineHeight: 1.6 }}>
+              Automatically adjusts speed thresholds, coaching style, and display metrics for Running, Walking, and Biking modes.
+            </p>
+          </div>
+          <div className="glass-panel" style={{ padding: "40px", borderRadius: "var(--radius-lg)" }}>
+            <div style={{ fontSize: "32px", marginBottom: "12px" }}>🏠</div>
+            <h3 style={{ fontSize: "22px", marginBottom: "10px", color: "var(--accent)" }}>Indoor / Outdoor Context</h3>
+            <p style={{ color: "var(--foreground-muted)", lineHeight: 1.6 }}>
+              Seamless transition between indoor and outdoor sessions. GPS-free treadmill mode with battery optimization.
             </p>
           </div>
         </div>
@@ -108,7 +137,8 @@ export default function Home() {
         textAlign: "center",
         color: "var(--foreground-muted)"
       }}>
-        <p>© 2026 StrideIQ by ChanceTEK. All rights reserved.</p>
+        <p>© 2026 StrideIQ by ChanceTEK Fitness. All rights reserved.</p>
+        <p style={{ fontSize: "12px", marginTop: "8px", opacity: 0.6 }}>Intelligent Movement. Agentic Performance.</p>
       </footer>
     </main>
   );

@@ -15,13 +15,23 @@ import { useAuthState } from "react-firebase-hooks/auth";
 
 export interface Activity {
     id: string;
-    type: "Run" | "Walk" | "HIIT";
+    type: "Run" | "Walk" | "Bike" | "HIIT";
     distance: number; // in miles
     duration: number; // in minutes
     pace: string; // calculated: time/distance
     date: Date;
     calories: number;
     notes?: string;
+    mode?: "run" | "walk" | "bike";
+    environment?: "outdoor" | "indoor";
+    mileSplits?: number[];            // split time in seconds for each completed mile
+    pausedDuration?: number;          // total paused time in seconds
+    weatherSnapshot?: {
+        temp: number;                  // degrees F
+        condition: string;             // e.g. "Partly Cloudy"
+        humidity: number;              // percentage
+        wind: number;                  // mph
+    };
 }
 
 export function useActivities() {
