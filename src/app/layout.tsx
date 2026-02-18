@@ -21,7 +21,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} ${outfit.variable}`}>
+      <body className={`${inter.variable} ${outfit.variable}`} suppressHydrationWarning>
         <AuthContextProvider>
           <SettingsProvider>
             {children}

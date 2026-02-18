@@ -20,7 +20,7 @@ export async function POST(req: Request) {
 
         // 1. Generate the Script
         const completion = await openai.chat.completions.create({
-            model: "gpt-4o",
+            model: "gpt-5.2",
             messages: [
                 {
                     role: "system",
@@ -34,6 +34,7 @@ export async function POST(req: Request) {
                     content: `Create a ${duration}-minute meditation script for a runner focusing on: ${type}.`
                 }
             ],
+            max_completion_tokens: 300,
         });
 
         const script = completion.choices[0].message.content;

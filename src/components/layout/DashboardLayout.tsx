@@ -2,20 +2,35 @@
 
 import Sidebar from "./Sidebar";
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-    return (
-        <div style={{ display: "flex", minHeight: "100vh" }}>
-            <Sidebar />
-            <main style={{
-                flex: 1,
-                marginLeft: "250px", // Desktop Sidebar width
-                padding: "40px",
-                width: "calc(100% - 250px)"
-            }} className="main-content">
-                {children}
-            </main>
+import { useAuth } from "@/context/AuthContext";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
-            <style jsx global>{`
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && user && !user.emailVerified) {
+      router.push("/verify-email");
+    }
+  }, [user, loading, router]);
+
+  if (loading) return null; // Or a spinner
+
+  return (
+    <div style={{ display: "flex", minHeight: "100vh" }}>
+      <Sidebar />
+      <main style={{
+        flex: 1,
+        marginLeft: "250px", // Desktop Sidebar width
+        padding: "40px",
+        width: "calc(100% - 250px)"
+      }} className="main-content">
+        {children}
+      </main>
+
+      <style jsx global>{`
         @media (max-width: 768px) {
           .main-content {
             margin-left: 0 !important;
@@ -25,6 +40,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           }
         }
       `}</style>
-        </div>
-    );
+    </div >
+  );
 }
