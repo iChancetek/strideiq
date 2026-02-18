@@ -63,7 +63,7 @@ export default function ShareActivityModal({ activity, onClose }: ShareActivityM
 
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "10px" }}>
                     {/* Native Share (Mobile) */}
-                    {typeof navigator !== "undefined" && navigator.share && (
+                    {typeof navigator !== "undefined" && typeof navigator.share === "function" && (
                         <button onClick={handleNativeShare} className="btn-primary" style={{ gridColumn: "1 / -1", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", width: "100%" }}>
                             <Share2 size={18} /> Share via...
                         </button>
