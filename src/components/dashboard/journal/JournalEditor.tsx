@@ -28,6 +28,22 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
     const [uploading, setUploading] = useState(false);
     const [imageUrls, setImageUrls] = useState<string[]>(initialData?.imageUrls || []);
 
+    // Safety Check: Track unsaved changes
+    const [isDirty, setIsDirty] = useState(false);
+
+    useEffect(() => {
+        const initialTitle = initialData?.title || "";
+        const initialContent = initialData?.content || "";
+        const initialImages = initialData?.imageUrls || [];
+
+        const isTitleChanged = title !== initialTitle;
+        const isContentChanged = content !== initialContent;
+        // Simple array comparison (order matters, but good enough for append-only mostly)
+        const isImagesChanged = JSON.stringify(imageUrls) !== JSON.stringify(initialImages);
+
+        setIsDirty(isTitleChanged || isContentChanged || isImagesChanged);
+    }, [title, content, imageUrls, initialData]);
+
     const handleAI = async (command: string, tone?: string) => {
         if (!content.trim()) return;
         setIsProcessingAI(true);
@@ -73,6 +89,7 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
             });
 
             if (res.ok) {
+                setIsDirty(false); // Reset dirty state so we don't prompt on exit
                 router.push("/dashboard/journal");
             } else {
                 alert("Failed to save entry");
@@ -81,6 +98,49 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
             console.error(e);
         } finally {
             setIsSaving(false);
+        }
+    };
+
+    const handleBack = async () => {
+        if (!isDirty) {
+            router.back();
+            return;
+        }
+
+        const choice = confirm("You have unsaved changes.\n\nClick OK to SAVE before leaving.\nClick Cancel to DISCARD changes and leave.");
+
+        // This standard confirm is binary (OK/Cancel). 
+        // To implement "Save", "Discard", "Cancel" (3-way), we need a custom modal or use standard standard window.confirm cleverly.
+        // User request: "recieve message asking if you want to save before exiting"
+        // Let's use a clearer approach compatible with standard browser alert:
+        // "Unsaved changes. OK to Save & Exit. Cancel to keep editing?" -> No that doesn't allow discard.
+
+        // Better:
+        // 1. "Do you want to save your changes?" -> OK = Yes, Cancel = No.
+        // If OK: Save -> exit.
+        // If Cancel: "Do you want to discard changes?" -> OK = Yes (exit), Cancel = No (stay).
+
+        // Actually, let's keep it simple for MVP as requested:
+        // "You have unsaved changes. Press OK to Save and Exit, or Cancel to Stay."
+        // Wait, user might want to discard. 
+
+        // "You have unsaved changes. Do you want to save them?"
+        // If we want a true 3-way, we need a custom dialog. 
+        // For now, let's use the browser confirm for "Are you sure you want to discard?" if they try to leave.
+        // AND maybe a explicit "Save & Exit" button is better.
+
+        // Let's try this flow:
+        // User clicks Back.
+        // Alert: "You have unsaved changes!"
+        // Confirm: "Save changes before leaving?" (OK=Yes, Cancel=No)
+
+        if (confirm("You have unsaved changes. Do you want to SAVE them before leaving?")) {
+            await handleSaveWithImages();
+        } else {
+            // User said NO to saving.
+            if (confirm("Are you sure you want to DISCARD changes?")) {
+                router.back();
+            }
         }
     };
 
@@ -132,6 +192,7 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
             });
 
             if (res.ok) {
+                setIsDirty(false); // Valid exit
                 router.push("/dashboard/journal");
             } else {
                 alert("Failed to delete entry");
@@ -147,7 +208,7 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
         <div className="max-w-3xl mx-auto h-[calc(100vh-100px)] flex flex-col">
             {/* Toolbar */}
             <div className="flex items-center justify-between mb-4">
-                <button onClick={() => router.back()} className="text-foreground-muted hover:text-foreground">
+                <button onClick={handleBack} className="text-foreground-muted hover:text-foreground">
                     <ArrowLeft size={20} />
                 </button>
                 <div className="flex gap-2">
