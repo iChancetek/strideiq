@@ -10,6 +10,13 @@ const CALORIE_RATES: Record<string, number> = {
     HIIT: 150,
 };
 
+const STEPS_PER_MILE: Record<string, number> = {
+    Run: 1400,
+    Walk: 2100,
+    Bike: 0,
+    HIIT: 800,
+};
+
 export default function LogActivityForm({ onSuccess }: { onSuccess?: () => void }) {
     const { addActivity } = useActivities();
     const [type, setType] = useState<"Run" | "Walk" | "Bike" | "HIIT">("Run");
@@ -17,6 +24,7 @@ export default function LogActivityForm({ onSuccess }: { onSuccess?: () => void 
     const [durationMin, setDurationMin] = useState("");
     const [durationSec, setDurationSec] = useState("");
     const [notes, setNotes] = useState("");
+    const [stepsInput, setStepsInput] = useState("");
     const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
@@ -43,18 +51,24 @@ export default function LogActivityForm({ onSuccess }: { onSuccess?: () => void 
         }
 
         try {
+            const estimatedSteps = stepsInput
+                ? parseInt(stepsInput)
+                : Math.round(dist * (STEPS_PER_MILE[type] || 1400));
+
             await addActivity({
                 type,
                 distance: dist,
                 duration: durSec, // seconds — matches Zod schema
                 date: new Date(date + "T12:00:00"),
                 calories: Math.round(dist * (CALORIE_RATES[type] || 100)),
+                steps: estimatedSteps,
                 notes,
             });
             setDistance("");
             setDurationMin("");
             setDurationSec("");
             setNotes("");
+            setStepsInput("");
             setDate(new Date().toISOString().split("T")[0]);
             setSuccess(true);
             setTimeout(() => setSuccess(false), 3000);
@@ -162,6 +176,23 @@ export default function LogActivityForm({ onSuccess }: { onSuccess?: () => void 
                         rows={3}
                         style={{ ...inputStyle, resize: "none" }}
                     />
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                    <div>
+                        <label style={{ display: "block", marginBottom: "8px", fontSize: "14px", color: "var(--foreground-muted)" }}>Steps (optional)</label>
+                        <input
+                            type="number"
+                            value={stepsInput}
+                            onChange={(e) => setStepsInput(e.target.value)}
+                            placeholder={distance ? String(Math.round(parseFloat(distance) * (STEPS_PER_MILE[type] || 1400))) : "Auto"}
+                            min="0"
+                            style={inputStyle}
+                        />
+                    </div>
+                    <div style={{ display: "flex", alignItems: "flex-end", paddingBottom: "12px", fontSize: "13px", color: "var(--foreground-muted)" }}>
+                        {!stepsInput && distance ? `≈ ${Math.round(parseFloat(distance) * (STEPS_PER_MILE[type] || 1400)).toLocaleString()} estimated` : ""}
+                    </div>
                 </div>
 
                 <div style={{ fontSize: "13px", color: "var(--foreground-muted)", textAlign: "right" }}>

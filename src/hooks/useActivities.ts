@@ -31,6 +31,7 @@ export interface Activity {
         wind: number;                  // mph
     };
     path?: [number, number][];         // GPS path for map display
+    steps?: number;                    // estimated step count
 }
 
 export function useActivities() {

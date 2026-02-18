@@ -17,6 +17,7 @@ export async function updateUserStats(userId: string, activity: any) {
                 totalMiles: FieldValue.increment(activity.distance),
                 totalRuns: FieldValue.increment(1),
                 totalTime: FieldValue.increment(activity.duration),
+                totalSteps: FieldValue.increment(activity.steps || 0),
                 lastUpdated: FieldValue.serverTimestamp()
             }, { merge: true });
 
@@ -25,6 +26,7 @@ export async function updateUserStats(userId: string, activity: any) {
                 totalMiles: FieldValue.increment(activity.distance),
                 totalRuns: FieldValue.increment(1),
                 totalTime: FieldValue.increment(activity.duration),
+                totalSteps: FieldValue.increment(activity.steps || 0),
                 month: monthKey,
                 year: dateObj.getFullYear(),
                 lastUpdated: FieldValue.serverTimestamp()
@@ -46,6 +48,7 @@ export async function updateUserStats(userId: string, activity: any) {
             const newTotalMiles = (currentData.totalMiles || 0) + activity.distance;
             const newTotalRuns = (currentData.totalRuns || 0) + 1;
             const newTotalTime = (currentData.totalTime || 0) + activity.duration;
+            const newTotalSteps = (currentData.totalSteps || 0) + (activity.steps || 0);
             const newAvgPace = newTotalMiles > 0 ? (newTotalTime / newTotalMiles) : 0;
 
             // Get User Profile
@@ -60,7 +63,20 @@ export async function updateUserStats(userId: string, activity: any) {
                 totalMiles: newTotalMiles,
                 totalRuns: newTotalRuns,
                 totalTime: newTotalTime,
+                totalSteps: newTotalSteps,
                 avgPace: newAvgPace, // seconds per mile
+                month: monthKey,
+                updatedAt: FieldValue.serverTimestamp()
+            }, { merge: true });
+
+            // 4. Update Steps Leaderboard (separate collection)
+            const stepsLeaderboardRef = adminDb.collection("stepsLeaderboards").doc(monthKey).collection("entries").doc(userId);
+            transaction.set(stepsLeaderboardRef, {
+                userId,
+                displayName: userData.displayName || "Anonymous Runner",
+                photoURL: userData.photoURL,
+                totalSteps: newTotalSteps,
+                totalRuns: newTotalRuns,
                 month: monthKey,
                 updatedAt: FieldValue.serverTimestamp()
             }, { merge: true });

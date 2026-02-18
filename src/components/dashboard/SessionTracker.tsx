@@ -24,6 +24,13 @@ const MIN_DISTANCE_THRESHOLD = 0.003; // km (~3 m) — ignore micro-jitter
 const MAX_SPEED_KMH = 72;            // ~45 mph — reject teleportation glitches
 const SMOOTHING_FACTOR = 0.35;        // exponential moving average weight for new readings
 
+// ─── Step estimation constants (steps per MILE) ──────────────────────────────
+const STEPS_PER_MILE: Record<string, number> = {
+    run: 1400,
+    walk: 2100,
+    bike: 0, // bikes don't count steps
+};
+
 function RecenterMap({ lat, lng }: { lat: number; lng: number }) {
     const map = useMap();
     useEffect(() => {
@@ -71,6 +78,8 @@ export default function SessionTracker() {
     const smoothedPos = useRef<[number, number] | null>(null);
     const agentCoreRef = useRef<AgentCore | null>(null);
     const distanceRef = useRef(0); // mirror of distance state for use in refs
+    const stepsRef = useRef(0);    // estimated step count
+    const [steps, setSteps] = useState(0);
 
     // ── Accumulated-segment timer (backgrounding-safe) ────────────────────────
     const activeTimeRef = useRef(0);       // total active seconds
@@ -182,6 +191,13 @@ export default function SessionTracker() {
             // Accumulate distance
             distanceRef.current += segmentKm;
             setDistance(distanceRef.current);
+
+            // Estimate steps from distance delta
+            const segmentMiles = segmentKm * 0.621371;
+            const stepsPerMile = STEPS_PER_MILE[mode] ?? STEPS_PER_MILE.run;
+            stepsRef.current += Math.round(segmentMiles * stepsPerMile);
+            setSteps(stepsRef.current);
+
             setPath((prev) => [...prev, newPos]);
 
             // Feed agent core
@@ -288,6 +304,7 @@ export default function SessionTracker() {
                     distance: parseFloat(miles.toFixed(2)),
                     duration: parseFloat(durationSeconds.toFixed(0)),
                     calories: Math.round(miles * modeConfig.caloriesPerMile),
+                    steps: stepsRef.current,
                     date: new Date(),
                     notes: `${getActivityLabel(mode)} — ${environment}`,
                     mode,
@@ -314,6 +331,8 @@ export default function SessionTracker() {
             setSaving(false);
             lastAcceptedPos.current = null;
             smoothedPos.current = null;
+            stepsRef.current = 0;
+            setSteps(0);
         }
     };
 
@@ -363,7 +382,7 @@ export default function SessionTracker() {
 
                     <div style={{ fontSize: "64px", fontWeight: "bold" }}>{formatTime(elapsedTime)}</div>
 
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "30px", textAlign: "center" }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "20px", textAlign: "center" }}>
                         <div>
                             <div style={{ fontSize: "12px", color: "var(--foreground-muted)" }}>DISTANCE</div>
                             <div style={{ fontSize: "28px", fontWeight: "bold" }}>{(distance * 0.621371).toFixed(2)} <span style={{ fontSize: "14px" }}>mi</span></div>
@@ -371,6 +390,10 @@ export default function SessionTracker() {
                         <div>
                             <div style={{ fontSize: "12px", color: "var(--foreground-muted)" }}>{modeConfig.displayMetric === "mph" ? "SPEED" : "PACE"}</div>
                             <div style={{ fontSize: "28px", fontWeight: "bold" }}>{displayMetric()}</div>
+                        </div>
+                        <div>
+                            <div style={{ fontSize: "12px", color: "var(--foreground-muted)" }}>STEPS</div>
+                            <div style={{ fontSize: "28px", fontWeight: "bold" }}>{steps.toLocaleString()}</div>
                         </div>
                     </div>
 
@@ -448,18 +471,22 @@ export default function SessionTracker() {
             )}
 
             {/* Stats Overlay */}
-            <div className="glass-panel" style={{ position: "absolute", top: 20, left: 20, right: 20, zIndex: 400, padding: "20px", display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "10px", textAlign: "center" }}>
+            <div className="glass-panel" style={{ position: "absolute", top: 20, left: 20, right: 20, zIndex: 400, padding: "16px", display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "8px", textAlign: "center" }}>
                 <div>
-                    <div style={{ fontSize: "12px", color: "var(--foreground-muted)" }}>DISTANCE</div>
-                    <div style={{ fontSize: "24px", fontWeight: "bold" }}>{(distance * 0.621371).toFixed(2)} <span style={{ fontSize: "14px" }}>mi</span></div>
+                    <div style={{ fontSize: "11px", color: "var(--foreground-muted)" }}>DISTANCE</div>
+                    <div style={{ fontSize: "20px", fontWeight: "bold" }}>{(distance * 0.621371).toFixed(2)} <span style={{ fontSize: "12px" }}>mi</span></div>
                 </div>
                 <div>
-                    <div style={{ fontSize: "12px", color: "var(--foreground-muted)" }}>TIME</div>
-                    <div style={{ fontSize: "24px", fontWeight: "bold" }}>{formatTime(elapsedTime)}</div>
+                    <div style={{ fontSize: "11px", color: "var(--foreground-muted)" }}>TIME</div>
+                    <div style={{ fontSize: "20px", fontWeight: "bold" }}>{formatTime(elapsedTime)}</div>
                 </div>
                 <div>
-                    <div style={{ fontSize: "12px", color: "var(--foreground-muted)" }}>{modeConfig.displayMetric === "mph" ? "SPEED" : "PACE"}</div>
-                    <div style={{ fontSize: "24px", fontWeight: "bold" }}>{displayMetric()}</div>
+                    <div style={{ fontSize: "11px", color: "var(--foreground-muted)" }}>{modeConfig.displayMetric === "mph" ? "SPEED" : "PACE"}</div>
+                    <div style={{ fontSize: "20px", fontWeight: "bold" }}>{displayMetric()}</div>
+                </div>
+                <div>
+                    <div style={{ fontSize: "11px", color: "var(--foreground-muted)" }}>STEPS</div>
+                    <div style={{ fontSize: "20px", fontWeight: "bold" }}>{steps.toLocaleString()}</div>
                 </div>
             </div>
 
