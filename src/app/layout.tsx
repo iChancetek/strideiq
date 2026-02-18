@@ -12,6 +12,8 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
 };
 
+import { SettingsProvider } from "@/context/SettingsContext";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -21,7 +23,9 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${inter.variable} ${outfit.variable}`}>
         <AuthContextProvider>
-          {children}
+          <SettingsProvider>
+            {children}
+          </SettingsProvider>
         </AuthContextProvider>
       </body>
     </html>
