@@ -54,7 +54,10 @@ const syncUserToFirestore = async (user: any) => {
 export const signInWithGoogle = async () => {
     try {
         const result = await signInWithPopup(auth, googleProvider);
-        await syncUserToFirestore(result.user);
+        // Sync in background - do not await
+        syncUserToFirestore(result.user).catch(err =>
+            console.error("Background sync failed for Google login:", err)
+        );
         return result.user;
     } catch (error) {
         console.error("Error signing in with Google", error);
@@ -65,7 +68,10 @@ export const signInWithGoogle = async () => {
 export const signUpWithEmail = async (email: string, pass: string) => {
     try {
         const result = await createUserWithEmailAndPassword(auth, email, pass);
-        await syncUserToFirestore(result.user);
+        // Sync in background
+        syncUserToFirestore(result.user).catch(err =>
+            console.error("Background sync failed for Email signup:", err)
+        );
 
         // Send verification email immediately
         await sendEmailVerification(result.user);
@@ -88,7 +94,10 @@ export const signInWithEmail = async (email: string, pass: string) => {
             throw err;
         }
 
-        await syncUserToFirestore(result.user);
+        // Sync in background
+        syncUserToFirestore(result.user).catch(err =>
+            console.error("Background sync failed for Email login:", err)
+        );
         return result.user;
     } catch (error) {
         console.error("Error signing in with email", error);

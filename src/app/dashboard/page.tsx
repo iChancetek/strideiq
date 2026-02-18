@@ -11,8 +11,6 @@ import { useMemo, useEffect, useState } from "react";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth, db } from "@/lib/firebase/config";
 import { doc, getDoc } from "firebase/firestore";
-import BadgesSection from "@/components/dashboard/BadgesSection";
-import PersonalRecords from "@/components/dashboard/PersonalRecords";
 
 export default function Dashboard() {
     const { activities, loading } = useActivities();
@@ -89,10 +87,10 @@ export default function Dashboard() {
 
     return (
         <DashboardLayout>
-            <header style={{ marginBottom: "40px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <header style={{ marginBottom: "30px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div>
-                    <h1 style={{ fontSize: "32px", marginBottom: "10px" }}>Welcome back, <span className="text-gradient">{user?.displayName || "Runner"}</span></h1>
-                    <p style={{ color: "var(--foreground-muted)" }}>Here's your weekly summary.</p>
+                    <h1 style={{ fontSize: "32px", marginBottom: "5px" }}>Dashboard</h1>
+                    <p style={{ color: "var(--foreground-muted)" }}>Your daily fitness command center.</p>
                 </div>
                 <button className="btn-primary" onClick={() => router.push("/dashboard/run?autostart=true")}>Start Run</button>
             </header>
@@ -102,7 +100,7 @@ export default function Dashboard() {
                 display: "grid",
                 gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
                 gap: "20px",
-                marginBottom: "40px"
+                marginBottom: "30px"
             }}>
                 <StatCard title="Weekly Distance" value={stats.weeklyDistance.toFixed(1)} unit="mi" trend="neutral" />
                 <StatCard title="Avg Pace" value={stats.avgPace} unit="/mi" trend="neutral" />
@@ -110,110 +108,130 @@ export default function Dashboard() {
                 <StatCard title="Streak" value={stats.streak} unit="days" trend="up" trendLabel="Keep it up!" />
             </div>
 
-            {/* Gamification Row (Badges & Records) */}
-            <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "20px", marginBottom: "30px" }}>
-                <BadgesSection badges={userStats?.badges} />
-                <PersonalRecords records={userStats?.records} />
-            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: "25px", alignItems: "start" }}>
 
-            <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "30px", marginBottom: "30px" }}>
-                {/* Recent Activities List */}
-                <section className="glass-panel" style={{ padding: "30px", borderRadius: "var(--radius-lg)", minHeight: "300px" }}>
-                    <h3 style={{ marginBottom: "20px" }}>Recent Activity</h3>
-                    {loading ? (
-                        <p style={{ color: "var(--foreground-muted)" }}>Loading...</p>
-                    ) : activities.length === 0 ? (
-                        <div style={{ textAlign: "center", padding: "40px", color: "var(--foreground-muted)" }}>
-                            No activities yet. Go for a run!
+                {/* Left Column: Coach & Mindset */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "25px" }}>
+                    {/* Expanded AI Coach */}
+                    <div style={{ height: "600px" }}>
+                        <AICoach />
+                    </div>
+
+                    {/* Compact Daily Mindset */}
+                    <DailyAffirmation />
+                </div>
+
+                {/* Right Column: Activity & Plan */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "25px" }}>
+                    {/* Recent Activities List */}
+                    <section className="glass-panel" style={{ padding: "25px", borderRadius: "var(--radius-lg)", minHeight: "300px" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+                            <h3 style={{ margin: 0 }}>Recent Activity</h3>
+                            <button onClick={() => router.push("/dashboard/activities")} style={{ fontSize: "12px", color: "var(--primary)", background: "none", border: "none", cursor: "pointer" }}>View All</button>
                         </div>
-                    ) : (
-                        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                            {activities.slice(0, 5).map(activity => (
-                                <div key={activity.id} style={{
-                                    padding: "15px",
-                                    background: "rgba(255,255,255,0.05)",
-                                    borderRadius: "var(--radius-sm)",
-                                    display: "flex",
-                                    justifyContent: "space-between",
-                                    alignItems: "center"
-                                }}>
-                                    <div>
-                                        <div style={{ fontWeight: 600 }}>{activity.type}</div>
-                                        <div style={{ fontSize: "12px", color: "var(--foreground-muted)" }}>{activity.date.toLocaleDateString()}</div>
-                                    </div>
-                                    <div style={{ textAlign: "right" }}>
-                                        <div style={{ fontWeight: 600 }}>{activity.distance} mi</div>
-                                        <div style={{ fontSize: "12px", color: "var(--foreground-muted)" }}>{activity.pace} /mi</div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </section>
 
-                {/* Upcoming Training - Dynamic */}
-                <section className="glass-panel" style={{ padding: "30px", borderRadius: "var(--radius-lg)" }}>
-                    <h3 style={{ marginBottom: "20px" }}>Up Next</h3>
-                    {planLoading ? (
-                        <p style={{ color: "var(--foreground-muted)" }}>Loading plan...</p>
-                    ) : !plan ? (
-                        <div style={{ textAlign: "center", padding: "20px", color: "var(--foreground-muted)" }}>
-                            <p style={{ marginBottom: "10px" }}>No active training plan.</p>
-                            <button
-                                onClick={() => router.push("/dashboard/training")}
-                                style={{ color: "var(--primary)", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}
-                            >
-                                Create one now →
-                            </button>
-                        </div>
-                    ) : (
-                        <div style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
-                            {(() => {
-                                // Calculate upcoming workouts
-                                const start = new Date(plan.startDate);
-                                const today = new Date();
-                                today.setHours(0, 0, 0, 0);
-
-                                const allWorkouts = plan.weeks.flatMap((week, wIndex) =>
-                                    week.workouts.map((workout, dIndex) => {
-                                        const workoutDate = new Date(start);
-                                        workoutDate.setDate(start.getDate() + (wIndex * 7) + dIndex);
-                                        return { ...workout, date: workoutDate };
-                                    })
-                                );
-
-                                const upcoming = allWorkouts
-                                    .filter(w => w.date >= today && w.type !== "Rest")
-                                    .slice(0, 2);
-
-                                if (upcoming.length === 0) return <p style={{ color: "var(--foreground-muted)" }}>Plan completed! 🎉</p>;
-
-                                return upcoming.map((workout, i) => {
-                                    const isToday = workout.date.toDateString() === today.toDateString();
-                                    const dateLabel = isToday ? "TODAY" : workout.date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase();
-
-                                    return (
-                                        <div key={i} style={{ padding: "15px", background: "rgba(255,255,255,0.05)", borderRadius: "var(--radius-md)", borderLeft: `3px solid ${isToday ? "var(--primary)" : "rgba(255,255,255,0.2)"}` }}>
-                                            <div style={{ fontSize: "12px", color: isToday ? "var(--primary)" : "var(--foreground-muted)", fontWeight: 600, marginBottom: "4px" }}>
-                                                {dateLabel}
-                                            </div>
-                                            <div style={{ fontWeight: 600, fontSize: "16px" }}>{workout.distance || workout.type}</div>
-                                            <div style={{ fontSize: "14px", color: "var(--foreground-muted)" }}>
-                                                {workout.description}
+                        {loading ? (
+                            <p style={{ color: "var(--foreground-muted)" }}>Loading...</p>
+                        ) : activities.length === 0 ? (
+                            <div style={{ textAlign: "center", padding: "40px", color: "var(--foreground-muted)" }}>
+                                No activities yet. Go for a run!
+                            </div>
+                        ) : (
+                            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                                {activities.slice(0, 4).map(activity => (
+                                    <div key={activity.id} style={{
+                                        padding: "15px",
+                                        background: "rgba(255,255,255,0.03)",
+                                        borderRadius: "var(--radius-sm)",
+                                        display: "flex",
+                                        justifyContent: "space-between",
+                                        alignItems: "center",
+                                        border: "1px solid rgba(255,255,255,0.05)"
+                                    }}>
+                                        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                                            <div style={{ background: "rgba(255,255,255,0.1)", padding: "8px", borderRadius: "50%" }}>🏃</div>
+                                            <div>
+                                                <div style={{ fontWeight: 600, fontSize: "14px" }}>{activity.type}</div>
+                                                <div style={{ fontSize: "12px", color: "var(--foreground-muted)" }}>{activity.date.toLocaleDateString()}</div>
                                             </div>
                                         </div>
-                                    );
-                                });
-                            })()}
-                        </div>
-                    )}
-                </section>
-            </div>
+                                        <div style={{ textAlign: "right" }}>
+                                            <div style={{ fontWeight: 600, fontSize: "14px" }}>{activity.distance} mi</div>
+                                            <div style={{ fontSize: "12px", color: "var(--foreground-muted)" }}>{activity.pace} /mi</div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </section>
 
-            {/* AI Section */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "30px" }}>
-                <AICoach />
-                <DailyAffirmation />
+                    {/* Upcoming Training */}
+                    <section className="glass-panel" style={{ padding: "25px", borderRadius: "var(--radius-lg)" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+                            <h3 style={{ margin: 0 }}>Up Next</h3>
+                            <button onClick={() => router.push("/dashboard/training")} style={{ fontSize: "12px", color: "var(--primary)", background: "none", border: "none", cursor: "pointer" }}>Full Plan</button>
+                        </div>
+
+                        {planLoading ? (
+                            <p style={{ color: "var(--foreground-muted)" }}>Loading plan...</p>
+                        ) : !plan ? (
+                            <div style={{ textAlign: "center", padding: "20px", color: "var(--foreground-muted)" }}>
+                                <p style={{ marginBottom: "10px" }}>No active training plan.</p>
+                                <button
+                                    onClick={() => router.push("/dashboard/training")}
+                                    style={{ color: "var(--primary)", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}
+                                >
+                                    Create one now →
+                                </button>
+                            </div>
+                        ) : (
+                            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                                {(() => {
+                                    const start = new Date(plan.startDate);
+                                    const today = new Date();
+                                    today.setHours(0, 0, 0, 0);
+
+                                    const allWorkouts = plan.weeks.flatMap((week, wIndex) =>
+                                        week.workouts.map((workout, dIndex) => {
+                                            const workoutDate = new Date(start);
+                                            workoutDate.setDate(start.getDate() + (wIndex * 7) + dIndex);
+                                            return { ...workout, date: workoutDate };
+                                        })
+                                    );
+
+                                    const upcoming = allWorkouts
+                                        .filter(w => w.date >= today && w.type !== "Rest")
+                                        .slice(0, 2);
+
+                                    if (upcoming.length === 0) return <p style={{ color: "var(--foreground-muted)" }}>Plan completed! 🎉</p>;
+
+                                    return upcoming.map((workout, i) => {
+                                        const isToday = workout.date.toDateString() === today.toDateString();
+                                        const dateLabel = isToday ? "TODAY" : workout.date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase();
+
+                                        return (
+                                            <div key={i} style={{
+                                                padding: "15px",
+                                                background: isToday ? "rgba(204, 255, 0, 0.05)" : "rgba(255,255,255,0.03)",
+                                                borderRadius: "var(--radius-md)",
+                                                borderLeft: `3px solid ${isToday ? "var(--primary)" : "rgba(255,255,255,0.2)"}`,
+                                                border: isToday ? "1px solid rgba(204, 255, 0, 0.2)" : "1px solid rgba(255,255,255,0.05)"
+                                            }}>
+                                                <div style={{ fontSize: "11px", color: isToday ? "var(--primary)" : "var(--foreground-muted)", fontWeight: 700, marginBottom: "4px", letterSpacing: "1px" }}>
+                                                    {dateLabel}
+                                                </div>
+                                                <div style={{ fontWeight: 600, fontSize: "15px", marginBottom: "2px" }}>{workout.distance || workout.type}</div>
+                                                <div style={{ fontSize: "13px", color: "var(--foreground-muted)" }}>
+                                                    {workout.description}
+                                                </div>
+                                            </div>
+                                        );
+                                    });
+                                })()}
+                            </div>
+                        )}
+                    </section>
+                </div>
             </div>
         </DashboardLayout>
     );

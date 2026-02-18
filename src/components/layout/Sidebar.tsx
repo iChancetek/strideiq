@@ -20,7 +20,11 @@ const navItems = [
     { name: "Settings", href: "/dashboard/settings", icon: "⚙️" },
 ];
 
-export default function Sidebar() {
+interface SidebarProps {
+    onLogout?: () => void;
+}
+
+export default function Sidebar({ onLogout }: SidebarProps) {
     const { user } = useAuth();
     const pathname = usePathname();
     const [isOpen, setIsOpen] = useState(false);
@@ -82,10 +86,46 @@ export default function Sidebar() {
                                 </li>
                             );
                         })}
+                        {/* New Achievements Page Link (Temporary placement in list, or dedicated below) */}
+                        <li>
+                            <Link
+                                href="/dashboard/achievements"
+                                style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "12px",
+                                    padding: "12px 16px",
+                                    borderRadius: "var(--radius-md)",
+                                    background: pathname === "/dashboard/achievements" ? "rgba(204, 255, 0, 0.1)" : "transparent",
+                                    color: pathname === "/dashboard/achievements" ? "var(--primary)" : "var(--foreground-muted)",
+                                    fontWeight: pathname === "/dashboard/achievements" ? 600 : 400,
+                                    transition: "var(--transition-fast)"
+                                }}
+                            >
+                                <span>🏅</span>
+                                Achievements
+                            </Link>
+                        </li>
                     </ul>
                 </nav>
 
                 <div style={{ paddingTop: "20px", borderTop: "1px solid rgba(255,255,255,0.1)" }}>
+                    {onLogout && (
+                        <button
+                            onClick={onLogout}
+                            style={{
+                                display: "flex", alignItems: "center", gap: "12px",
+                                padding: "10px 16px", borderRadius: "12px",
+                                color: "var(--error)", background: "rgba(255, 50, 50, 0.1)",
+                                border: "none", cursor: "pointer",
+                                width: "100%", textAlign: "left", fontSize: "14px", fontWeight: 600,
+                                marginBottom: "15px"
+                            }}
+                        >
+                            <span>🚪</span> Log Out
+                        </button>
+                    )}
+
                     {/* User Profile Snippet */}
                     <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                         <div style={{
