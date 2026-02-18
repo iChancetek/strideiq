@@ -4,6 +4,7 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import LogActivityForm from "@/components/dashboard/LogActivityForm";
 import { useActivities } from "@/hooks/useActivities";
 import Link from "next/link";
+import ActivityHistoryCharts from "@/components/dashboard/ActivityHistoryCharts";
 
 export default function ActivitiesPage() {
     const { activities, loading } = useActivities();
@@ -16,8 +17,10 @@ export default function ActivitiesPage() {
             </header>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 350px", gap: "30px" }}>
-                {/* Activity List */}
+                {/* Activity List & Charts */}
                 <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+                    {!loading && <ActivityHistoryCharts activities={activities} />}
+
                     {loading ? (
                         <div style={{ color: "var(--foreground-muted)" }}>Loading activities...</div>
                     ) : activities.length === 0 ? (
