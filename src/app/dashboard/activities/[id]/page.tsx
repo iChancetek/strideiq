@@ -4,9 +4,10 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useActivities } from "@/hooks/useActivities";
-import ShareButton from "@/components/common/ShareButton";
+import ShareActivityModal from "@/components/dashboard/ShareActivityModal"; // NEW
 import Link from "next/link";
 import dynamic from "next/dynamic";
+import { Share2 } from "lucide-react"; // NEW
 
 const MapContainer = dynamic(() => import("react-leaflet").then(mod => mod.MapContainer), { ssr: false });
 const TileLayer = dynamic(() => import("react-leaflet").then(mod => mod.TileLayer), { ssr: false });
@@ -22,6 +23,7 @@ export default function ActivityDetailPage() {
     const [saving, setSaving] = useState(false);
     const [deleting, setDeleting] = useState(false);
     const [confirmDelete, setConfirmDelete] = useState(false);
+    const [showShareModal, setShowShareModal] = useState(false); // NEW
 
     // Edit form state
     const [editDistance, setEditDistance] = useState("");
@@ -111,7 +113,6 @@ export default function ActivityDetailPage() {
 
     const hasMapData = activity.path && activity.path.length > 0;
     const center = hasMapData ? activity.path![0] : [37.7749, -122.4194] as [number, number];
-    const shareText = `Check out my ${activity.distance} mile ${activity.type} on StrideIQ! Time: ${formatDuration(activity.duration)}, Pace: ${activity.pace}/mi.`;
 
     const inputStyle: React.CSSProperties = {
         width: "100%",
@@ -163,7 +164,13 @@ export default function ActivityDetailPage() {
                                 ✏️ Edit
                             </button>
                         )}
-                        <ShareButton title="StrideIQ Activity" text={shareText} />
+                        <button
+                            onClick={() => setShowShareModal(true)}
+                            className="btn-primary"
+                            style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 16px", borderRadius: "20px" }}
+                        >
+                            <Share2 size={16} /> Share
+                        </button>
                     </div>
                 </header>
 
@@ -374,6 +381,14 @@ export default function ActivityDetailPage() {
                         </div>
                     )}
                 </div>
+
+                {/* Share Modal */}
+                {showShareModal && (
+                    <ShareActivityModal
+                        activity={activity}
+                        onClose={() => setShowShareModal(false)}
+                    />
+                )}
             </div>
         </DashboardLayout>
     );

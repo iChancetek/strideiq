@@ -7,12 +7,37 @@ import DailyAffirmation from "@/components/dashboard/DailyAffirmation";
 import { useActivities, Activity } from "@/hooks/useActivities";
 import { useTrainingPlan } from "@/hooks/useTrainingPlan";
 import { useRouter } from "next/navigation";
-import { useMemo } from "react";
+import { useMemo, useEffect, useState } from "react";
+import { useAuthState } from "react-firebase-hooks/auth";
+import { auth, db } from "@/lib/firebase/config";
+import { doc, getDoc } from "firebase/firestore";
+import BadgesSection from "@/components/dashboard/BadgesSection";
+import PersonalRecords from "@/components/dashboard/PersonalRecords";
 
 export default function Dashboard() {
     const { activities, loading } = useActivities();
     const { plan, loading: planLoading } = useTrainingPlan();
     const router = useRouter();
+    const [user] = useAuthState(auth);
+    const [userStats, setUserStats] = useState<any>(null);
+
+    // Fetch User Stats (Badges/Records)
+    useEffect(() => {
+        if (user) {
+            const fetchStats = async () => {
+                try {
+                    const statsRef = doc(db, "users", user.uid, "stats", "allTime");
+                    const snap = await getDoc(statsRef);
+                    if (snap.exists()) {
+                        setUserStats(snap.data());
+                    }
+                } catch (e) {
+                    console.error("Error fetching stats:", e);
+                }
+            };
+            fetchStats();
+        }
+    }, [user]);
 
     // Calculate Stats
     const stats = useMemo(() => {
@@ -27,8 +52,8 @@ export default function Dashboard() {
         // Avg Pace (weighted by distance)
         const totalDuration = recentActivities.reduce((sum, a) => sum + a.duration, 0);
         const avgPaceDecimal = weeklyDistance > 0 ? totalDuration / weeklyDistance : 0;
-        const paceMin = Math.floor(avgPaceDecimal);
-        const paceSec = Math.round((avgPaceDecimal - paceMin) * 60);
+        const paceMin = Math.floor(avgPaceDecimal / 60);
+        const paceSec = Math.round(avgPaceDecimal % 60);
         const avgPace = `${paceMin}:${paceSec.toString().padStart(2, '0')}`;
 
         // Simple Streak Calculation (Consecutive days ending today/yesterday)
@@ -66,7 +91,7 @@ export default function Dashboard() {
         <DashboardLayout>
             <header style={{ marginBottom: "40px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div>
-                    <h1 style={{ fontSize: "32px", marginBottom: "10px" }}>Welcome back, <span className="text-gradient">Runner</span></h1>
+                    <h1 style={{ fontSize: "32px", marginBottom: "10px" }}>Welcome back, <span className="text-gradient">{user?.displayName || "Runner"}</span></h1>
                     <p style={{ color: "var(--foreground-muted)" }}>Here's your weekly summary.</p>
                 </div>
                 <button className="btn-primary" onClick={() => router.push("/dashboard/run?autostart=true")}>Start Run</button>
@@ -85,8 +110,14 @@ export default function Dashboard() {
                 <StatCard title="Streak" value={stats.streak} unit="days" trend="up" trendLabel="Keep it up!" />
             </div>
 
+            {/* Gamification Row (Badges & Records) */}
+            <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "20px", marginBottom: "30px" }}>
+                <BadgesSection badges={userStats?.badges} />
+                <PersonalRecords records={userStats?.records} />
+            </div>
+
             <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "30px", marginBottom: "30px" }}>
-                {/* Recent Activities List (Replaces Chart for MVP) */}
+                {/* Recent Activities List */}
                 <section className="glass-panel" style={{ padding: "30px", borderRadius: "var(--radius-lg)", minHeight: "300px" }}>
                     <h3 style={{ marginBottom: "20px" }}>Recent Activity</h3>
                     {loading ? (
