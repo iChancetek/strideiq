@@ -266,9 +266,10 @@ export default function SessionTracker() {
 
     const activityLabel = getActivityLabel(mode);
     const isIndoor = environment === "indoor";
+    const showMapView = !isIndoor && settings.showMap;
 
-    // Indoor mode — no map needed
-    if (isIndoor) {
+    // If indoor OR map is off — render stats-only view
+    if (isIndoor || !showMapView) {
         return (
             <div style={{ height: "100%", position: "relative", borderRadius: "var(--radius-lg)", overflow: "hidden", background: "var(--surface)" }}>
                 {/* Countdown */}
@@ -287,7 +288,7 @@ export default function SessionTracker() {
 
                 {/* Indoor Stats */}
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", padding: "40px", gap: "30px" }}>
-                    <div style={{ fontSize: "14px", color: "var(--foreground-muted)", textTransform: "uppercase", letterSpacing: "2px" }}>🏠 Indoor {activityLabel}</div>
+                    <div style={{ fontSize: "14px", color: "var(--foreground-muted)", textTransform: "uppercase", letterSpacing: "2px" }}>{isIndoor ? "🏠 Indoor" : "📡 Outdoor"} {activityLabel}</div>
 
                     <div style={{ fontSize: "64px", fontWeight: "bold" }}>{formatTime(elapsedTime)}</div>
 

@@ -14,6 +14,7 @@ interface Settings {
     weatherAnnouncements: boolean;
     autoPause: boolean;
     autoPauseSensitivity: "low" | "medium" | "high";
+    showMap: boolean;
 }
 
 interface SettingsContextType {
@@ -31,6 +32,7 @@ const defaultSettings: Settings = {
     weatherAnnouncements: true,
     autoPause: true,
     autoPauseSensitivity: "medium",
+    showMap: true,
 };
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);

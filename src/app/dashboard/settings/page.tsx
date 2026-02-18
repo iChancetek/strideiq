@@ -150,6 +150,19 @@ export default function SettingsPage() {
                         </div>
                     )}
 
+                    {/* Show Map Toggle — only for outdoor */}
+                    {settings.environment === "outdoor" && (
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+                            <div>
+                                <span>Show Map</span>
+                                <div style={{ fontSize: "12px", color: "var(--foreground-muted)" }}>Display live map during session</div>
+                            </div>
+                            <button onClick={() => updateSettings({ showMap: !settings.showMap })} style={toggleStyle(settings.showMap)}>
+                                <div style={toggleKnob(settings.showMap)} />
+                            </button>
+                        </div>
+                    )}
+
                     {/* Auto-Pause Toggle */}
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: settings.autoPause ? "20px" : "0" }}>
                         <div>
