@@ -18,6 +18,12 @@ L.Icon.Default.mergeOptions({
     shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
+// ─── GPS Constants (Nike/Strava standard thresholds) ─────────────────────────
+const GPS_ACCURACY_THRESHOLD = 20;    // metres — reject readings worse than this
+const MIN_DISTANCE_THRESHOLD = 0.003; // km (~3 m) — ignore micro-jitter
+const MAX_SPEED_KMH = 72;            // ~45 mph — reject teleportation glitches
+const SMOOTHING_FACTOR = 0.35;        // exponential moving average weight for new readings
+
 function RecenterMap({ lat, lng }: { lat: number; lng: number }) {
     const map = useMap();
     useEffect(() => {
@@ -26,6 +32,19 @@ function RecenterMap({ lat, lng }: { lat: number; lng: number }) {
     return null;
 }
 
+// ─── Haversine distance (km) ─────────────────────────────────────────────────
+function haversine(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * (Math.PI / 180);
+    const dLon = (lon2 - lon1) * (Math.PI / 180);
+    const a =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+        Math.sin(dLon / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+// ─── Component ───────────────────────────────────────────────────────────────
 export default function SessionTracker() {
     const { settings } = useSettings();
     const { addActivity } = useActivities();
@@ -38,35 +57,53 @@ export default function SessionTracker() {
     const [path, setPath] = useState<[number, number][]>([]);
     const [currentPos, setCurrentPos] = useState<[number, number] | null>(null);
     const [distance, setDistance] = useState(0); // km
-    const [startTime, setStartTime] = useState<number | null>(null);
-    const [elapsedTime, setElapsedTime] = useState(0); // seconds
+    const [elapsedTime, setElapsedTime] = useState(0); // active seconds
     const [countdown, setCountdown] = useState<number | null>(null);
     const [isPaused, setIsPaused] = useState(false);
     const [mileSplits, setMileSplits] = useState<MileSplit[]>([]);
     const [weatherBanner, setWeatherBanner] = useState<string | null>(null);
     const [agentMessages, setAgentMessages] = useState<string[]>([]);
+    const [saving, setSaving] = useState(false);
 
     const watchId = useRef<number | null>(null);
-    const lastPos = useRef<[number, number] | null>(null);
+    const lastAcceptedPos = useRef<[number, number] | null>(null);
+    const lastPosTimestamp = useRef<number>(0);
+    const smoothedPos = useRef<[number, number] | null>(null);
     const agentCoreRef = useRef<AgentCore | null>(null);
-    const hasAutoStartedRef = useRef(false);
+    const distanceRef = useRef(0); // mirror of distance state for use in refs
 
-    // Timer — only runs when active AND not paused
+    // ── Accumulated-segment timer (backgrounding-safe) ────────────────────────
+    const activeTimeRef = useRef(0);       // total active seconds
+    const lastTickRef = useRef<number>(0); // last Date.now() when tick ran
+    const timerRef = useRef<NodeJS.Timeout | null>(null);
+    const isPausedRef = useRef(false);
+    const isTrackingRef = useRef(false);
+
+    useEffect(() => { isPausedRef.current = isPaused; }, [isPaused]);
+    useEffect(() => { isTrackingRef.current = isTracking; }, [isTracking]);
+
     useEffect(() => {
-        let interval: NodeJS.Timeout;
-        if (isTracking && startTime && !isPaused) {
-            interval = setInterval(() => {
-                const pausedSec = agentCoreRef.current?.getPausedSeconds() ?? 0;
-                const rawElapsed = Math.floor((Date.now() - startTime) / 1000);
-                setElapsedTime(rawElapsed - pausedSec);
+        if (isTracking && !isPaused) {
+            lastTickRef.current = Date.now();
+            timerRef.current = setInterval(() => {
+                if (isPausedRef.current || !isTrackingRef.current) return;
+                const now = Date.now();
+                const delta = Math.round((now - lastTickRef.current) / 1000);
+                // Cap delta to 2s to prevent huge jumps when waking from background
+                const safeDelta = Math.min(delta, 2);
+                activeTimeRef.current += safeDelta;
+                lastTickRef.current = now;
+                setElapsedTime(activeTimeRef.current);
             }, 1000);
         }
-        return () => clearInterval(interval);
-    }, [isTracking, startTime, isPaused]);
+        return () => {
+            if (timerRef.current) clearInterval(timerRef.current);
+        };
+    }, [isTracking, isPaused]);
 
     // Get initial location
     useEffect(() => {
-        if (environment === "indoor") return; // No GPS needed indoors
+        if (environment === "indoor") return;
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 (pos) => setCurrentPos([pos.coords.latitude, pos.coords.longitude]),
@@ -96,13 +133,74 @@ export default function SessionTracker() {
                 if (event.message) setWeatherBanner(event.message);
                 break;
         }
-        // Show all messages briefly in the UI
         if (event.message) {
             setAgentMessages((prev) => [...prev.slice(-2), event.message!]);
             setTimeout(() => {
                 setAgentMessages((prev) => prev.slice(1));
             }, 8000);
         }
+    }, []);
+
+    // ── GPS Position Handler (production-grade filtering) ─────────────────────
+    const handlePosition = useCallback((pos: GeolocationPosition) => {
+        const { latitude, longitude, speed, accuracy } = pos.coords;
+        const now = Date.now();
+
+        // 1. Accuracy gate — reject poor readings
+        if (accuracy > GPS_ACCURACY_THRESHOLD) return;
+
+        // 2. Apply exponential moving average smoothing
+        let smoothLat: number, smoothLng: number;
+        if (smoothedPos.current) {
+            smoothLat = smoothedPos.current[0] + SMOOTHING_FACTOR * (latitude - smoothedPos.current[0]);
+            smoothLng = smoothedPos.current[1] + SMOOTHING_FACTOR * (longitude - smoothedPos.current[1]);
+        } else {
+            smoothLat = latitude;
+            smoothLng = longitude;
+        }
+        smoothedPos.current = [smoothLat, smoothLng];
+
+        const newPos: [number, number] = [smoothLat, smoothLng];
+        setCurrentPos(newPos);
+
+        if (lastAcceptedPos.current) {
+            const segmentKm = haversine(
+                lastAcceptedPos.current[0], lastAcceptedPos.current[1],
+                smoothLat, smoothLng
+            );
+
+            // 3. Minimum distance threshold — ignore stationary jitter
+            if (segmentKm < MIN_DISTANCE_THRESHOLD) return;
+
+            // 4. Speed sanity check — reject teleportation
+            const dtSec = (now - lastPosTimestamp.current) / 1000;
+            if (dtSec > 0) {
+                const speedKmh = (segmentKm / dtSec) * 3600;
+                if (speedKmh > MAX_SPEED_KMH) return;
+            }
+
+            // Accumulate distance
+            distanceRef.current += segmentKm;
+            setDistance(distanceRef.current);
+            setPath((prev) => [...prev, newPos]);
+
+            // Feed agent core
+            const geoPos: GeoPosition = {
+                lat: smoothLat,
+                lng: smoothLng,
+                speed,
+                accuracy,
+                timestamp: now,
+            };
+            agentCoreRef.current?.onPositionUpdate(geoPos, distanceRef.current * 0.621371);
+        } else {
+            // First accepted position — add to path, trigger session start
+            setPath([newPos]);
+            agentCoreRef.current?.onSessionStart(smoothLat, smoothLng);
+        }
+
+        lastAcceptedPos.current = newPos;
+        lastPosTimestamp.current = now;
     }, []);
 
     const triggerCountdown = () => {
@@ -121,14 +219,18 @@ export default function SessionTracker() {
 
     const startSession = async () => {
         setIsTracking(true);
-        setStartTime(Date.now());
         setPath([]);
         setDistance(0);
+        distanceRef.current = 0;
         setElapsedTime(0);
+        activeTimeRef.current = 0;
         setIsPaused(false);
         setMileSplits([]);
         setWeatherBanner(null);
         setAgentMessages([]);
+        lastAcceptedPos.current = null;
+        smoothedPos.current = null;
+        lastPosTimestamp.current = 0;
 
         // Initialize Agent Core
         const core = new AgentCore({
@@ -143,46 +245,15 @@ export default function SessionTracker() {
         agentCoreRef.current = core;
 
         if (environment === "outdoor" && navigator.geolocation) {
-            // Start GPS tracking
             watchId.current = navigator.geolocation.watchPosition(
-                (pos) => {
-                    const { latitude, longitude, speed, accuracy } = pos.coords;
-                    const newPos: [number, number] = [latitude, longitude];
-
-                    setCurrentPos(newPos);
-                    setPath((prev) => [...prev, newPos]);
-
-                    // Calculate distance
-                    if (lastPos.current) {
-                        const dist = calculateDistance(
-                            lastPos.current[0], lastPos.current[1],
-                            latitude, longitude
-                        );
-                        setDistance((prev) => {
-                            const newDist = prev + dist;
-                            // Feed agent core
-                            const geoPos: GeoPosition = {
-                                lat: latitude,
-                                lng: longitude,
-                                speed,
-                                accuracy,
-                                timestamp: Date.now(),
-                            };
-                            core.onPositionUpdate(geoPos, newDist * 0.621371); // km to miles
-                            return newDist;
-                        });
-                    } else {
-                        // First position — trigger session start (weather etc)
-                        core.onSessionStart(latitude, longitude);
-                    }
-                    lastPos.current = newPos;
-                },
-                (err) => console.error(err),
-                { enableHighAccuracy: true }
+                handlePosition,
+                (err) => console.error("GPS Error:", err),
+                {
+                    enableHighAccuracy: true,
+                    maximumAge: 0,
+                    timeout: 5000,
+                }
             );
-        } else if (environment === "indoor") {
-            // Indoor: no GPS, just run the timer
-            // Motion could be tracked via DeviceMotion API in future
         }
     };
 
@@ -193,70 +264,73 @@ export default function SessionTracker() {
             navigator.geolocation.clearWatch(watchId.current);
             watchId.current = null;
         }
-        lastPos.current = null;
 
         const core = agentCoreRef.current;
-        const pausedSec = core?.getPausedSeconds() ?? 0;
         const splits = core?.getMileSplits() ?? [];
+        const pausedSec = core?.getPausedSeconds() ?? 0;
         const weather = core?.getWeather();
 
         core?.destroy();
         agentCoreRef.current = null;
 
-        // Save activity
-        try {
-            const miles = distance * 0.621371;
-            const minutes = elapsedTime / 60;
+        // Capture final values from refs (not stale state)
+        const finalDistanceKm = distanceRef.current;
+        const finalActiveSeconds = activeTimeRef.current;
+        const miles = finalDistanceKm * 0.621371;
+        const durationSeconds = finalActiveSeconds;
 
+        setSaving(true);
+
+        try {
             if (miles > 0.05) {
                 await addActivity({
                     type: getActivityType(mode),
                     distance: parseFloat(miles.toFixed(2)),
-                    duration: parseFloat(minutes.toFixed(2)),
+                    duration: parseFloat(durationSeconds.toFixed(0)),
                     calories: Math.round(miles * modeConfig.caloriesPerMile),
                     date: new Date(),
                     notes: `${getActivityLabel(mode)} — ${environment}`,
-                    /* Extended fields stored via Firestore merge */
+                    mode,
+                    environment,
+                    mileSplits: splits.map(s => Math.round(s.splitSeconds)),
+                    pausedDuration: Math.round(pausedSec),
+                    ...(weather ? {
+                        weatherSnapshot: {
+                            temp: weather.temp,
+                            condition: weather.condition,
+                            humidity: weather.humidity,
+                            wind: weather.wind,
+                        }
+                    } : {}),
                 });
-                alert(`${getActivityLabel(mode)} Saved! Distance: ${miles.toFixed(2)} mi`);
+                alert(`${getActivityLabel(mode)} Saved! ${miles.toFixed(2)} mi in ${formatTime(durationSeconds)}`);
             } else {
                 alert("Session too short to save.");
             }
-        } catch (e) {
-            console.error(e);
-            alert("Failed to save session.");
+        } catch (e: any) {
+            console.error("Save error:", e);
+            alert(`Failed to save session: ${e.message || "Unknown error"}`);
+        } finally {
+            setSaving(false);
+            lastAcceptedPos.current = null;
+            smoothedPos.current = null;
         }
-    };
-
-    // Haversine formula
-    const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-        const R = 6371;
-        const dLat = (lat2 - lat1) * (Math.PI / 180);
-        const dLon = (lon2 - lon1) * (Math.PI / 180);
-        const a =
-            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-            Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
-            Math.sin(dLon / 2) * Math.sin(dLon / 2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        return R * c;
     };
 
     const formatTime = (seconds: number) => {
         const h = Math.floor(seconds / 3600);
         const m = Math.floor((seconds % 3600) / 60);
-        const s = seconds % 60;
+        const s = Math.floor(seconds % 60);
         return `${h > 0 ? h + ':' : ''}${m < 10 && h > 0 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
     };
 
     const displayMetric = () => {
         const distMiles = distance * 0.621371;
         if (modeConfig.displayMetric === "mph") {
-            // Speed in mph
             if (elapsedTime === 0) return "0.0 mph";
             const hours = elapsedTime / 3600;
             return `${(distMiles / hours).toFixed(1)} mph`;
         }
-        // Pace in min/mile
         if (distMiles === 0) return "0'00\"/mi";
         const paceSecondsPerMile = elapsedTime / distMiles;
         const pMin = Math.floor(paceSecondsPerMile / 60);
@@ -268,25 +342,22 @@ export default function SessionTracker() {
     const isIndoor = environment === "indoor";
     const showMapView = !isIndoor && settings.showMap;
 
-    // If indoor OR map is off — render stats-only view
+    // ── Stats-only view (indoor or map off) ───────────────────────────────────
     if (isIndoor || !showMapView) {
         return (
             <div style={{ height: "100%", position: "relative", borderRadius: "var(--radius-lg)", overflow: "hidden", background: "var(--surface)" }}>
-                {/* Countdown */}
                 {countdown !== null && (
                     <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 500, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column" }}>
                         <div style={{ fontSize: "120px", fontWeight: "bold", color: "var(--primary)", animation: "ping 1s infinite" }}>{countdown}</div>
                     </div>
                 )}
 
-                {/* Paused Overlay */}
                 {isPaused && isTracking && (
                     <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 450, display: "flex", alignItems: "center", justifyContent: "center" }}>
                         <div style={{ fontSize: "32px", fontWeight: "bold", color: "var(--warning)", animation: "pulse 2s infinite" }}>⏸ PAUSED</div>
                     </div>
                 )}
 
-                {/* Indoor Stats */}
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", padding: "40px", gap: "30px" }}>
                     <div style={{ fontSize: "14px", color: "var(--foreground-muted)", textTransform: "uppercase", letterSpacing: "2px" }}>{isIndoor ? "🏠 Indoor" : "📡 Outdoor"} {activityLabel}</div>
 
@@ -303,7 +374,6 @@ export default function SessionTracker() {
                         </div>
                     </div>
 
-                    {/* Mile Splits */}
                     {mileSplits.length > 0 && (
                         <div style={{ width: "100%", maxWidth: "300px" }}>
                             <div style={{ fontSize: "12px", color: "var(--foreground-muted)", marginBottom: "8px" }}>MILE SPLITS</div>
@@ -316,7 +386,6 @@ export default function SessionTracker() {
                         </div>
                     )}
 
-                    {/* Agent Messages */}
                     {agentMessages.length > 0 && (
                         <div style={{ position: "absolute", bottom: 100, left: 20, right: 20, zIndex: 400 }}>
                             {agentMessages.map((msg, i) => (
@@ -327,15 +396,14 @@ export default function SessionTracker() {
                         </div>
                     )}
 
-                    {/* Controls */}
                     <div style={{ position: "absolute", bottom: 30, left: "50%", transform: "translateX(-50%)", display: "flex", gap: "20px" }}>
                         {!isTracking ? (
                             <button onClick={triggerCountdown} className="btn-primary" style={{ padding: "16px 48px", fontSize: "18px", borderRadius: "var(--radius-full)" }}>
                                 START {activityLabel.toUpperCase()}
                             </button>
                         ) : (
-                            <button onClick={stopSession} style={{ background: "#ff4444", color: "white", border: "none", padding: "16px 48px", fontSize: "18px", borderRadius: "var(--radius-full)", fontWeight: "bold", cursor: "pointer" }}>
-                                STOP
+                            <button onClick={stopSession} disabled={saving} style={{ background: saving ? "#888" : "#ff4444", color: "white", border: "none", padding: "16px 48px", fontSize: "18px", borderRadius: "var(--radius-full)", fontWeight: "bold", cursor: saving ? "not-allowed" : "pointer" }}>
+                                {saving ? "SAVING..." : "STOP"}
                             </button>
                         )}
                     </div>
@@ -358,23 +426,21 @@ export default function SessionTracker() {
         </div>;
     }
 
+    // ── Map view ──────────────────────────────────────────────────────────────
     return (
         <div style={{ height: "100%", position: "relative", borderRadius: "var(--radius-lg)", overflow: "hidden" }}>
-            {/* Countdown Overlay */}
             {countdown !== null && (
                 <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.8)", zIndex: 500, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column" }}>
                     <div style={{ fontSize: "120px", fontWeight: "bold", color: "var(--primary)", animation: "ping 1s infinite" }}>{countdown}</div>
                 </div>
             )}
 
-            {/* Paused Overlay */}
             {isPaused && isTracking && (
                 <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 450, display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <div style={{ fontSize: "36px", fontWeight: "bold", color: "var(--warning)", animation: "pulse 2s infinite" }}>⏸ PAUSED</div>
                 </div>
             )}
 
-            {/* Weather Banner */}
             {weatherBanner && isTracking && (
                 <div style={{ position: "absolute", top: 90, left: 20, right: 20, zIndex: 401, padding: "10px 16px", borderRadius: "var(--radius-md)", background: "rgba(0,229,255,0.15)", border: "1px solid rgba(0,229,255,0.3)", fontSize: "13px", color: "var(--secondary)" }}>
                     🌤 {weatherBanner.slice(0, 120)}{weatherBanner.length > 120 ? "..." : ""}
@@ -397,7 +463,6 @@ export default function SessionTracker() {
                 </div>
             </div>
 
-            {/* Mile Splits Sidebar */}
             {mileSplits.length > 0 && (
                 <div className="glass-panel" style={{ position: "absolute", top: 140, right: 20, zIndex: 400, padding: "12px", borderRadius: "var(--radius-md)", maxHeight: "200px", overflowY: "auto", minWidth: "140px" }}>
                     <div style={{ fontSize: "10px", color: "var(--foreground-muted)", marginBottom: "6px", textTransform: "uppercase" }}>Splits</div>
@@ -410,7 +475,6 @@ export default function SessionTracker() {
                 </div>
             )}
 
-            {/* Agent Messages Toast */}
             {agentMessages.length > 0 && (
                 <div style={{ position: "absolute", bottom: 100, left: 20, right: 20, zIndex: 401 }}>
                     {agentMessages.map((msg, i) => (
@@ -441,8 +505,8 @@ export default function SessionTracker() {
                         START {activityLabel.toUpperCase()}
                     </button>
                 ) : (
-                    <button onClick={stopSession} style={{ background: "#ff4444", color: "white", border: "none", padding: "16px 48px", fontSize: "18px", borderRadius: "var(--radius-full)", fontWeight: "bold", cursor: "pointer" }}>
-                        STOP
+                    <button onClick={stopSession} disabled={saving} style={{ background: saving ? "#888" : "#ff4444", color: "white", border: "none", padding: "16px 48px", fontSize: "18px", borderRadius: "var(--radius-full)", fontWeight: "bold", cursor: saving ? "not-allowed" : "pointer" }}>
+                        {saving ? "SAVING..." : "STOP"}
                     </button>
                 )}
             </div>

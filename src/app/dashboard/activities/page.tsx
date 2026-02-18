@@ -47,7 +47,7 @@ export default function ActivitiesPage() {
                                                 {activity.date.toLocaleDateString()}
                                             </span>
                                         </div>
-                                        <div style={{ fontWeight: 600, fontSize: "18px" }}>{activity.distance} mi <span style={{ color: "var(--foreground-muted)", fontWeight: 400 }}>in</span> {activity.duration} min</div>
+                                        <div style={{ fontWeight: 600, fontSize: "18px" }}>{activity.distance} mi <span style={{ color: "var(--foreground-muted)", fontWeight: 400 }}>in</span> {Math.floor(activity.duration / 60)}:{String(Math.floor(activity.duration % 60)).padStart(2, "0")}</div>
                                         {activity.notes && <p style={{ fontSize: "14px", color: "var(--foreground-muted)", marginTop: "5px" }}>"{activity.notes}"</p>}
                                     </div>
                                     <div style={{ textAlign: "right" }}>

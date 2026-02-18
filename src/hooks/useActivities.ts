@@ -6,8 +6,6 @@ import {
     query,
     orderBy,
     onSnapshot,
-    addDoc,
-    serverTimestamp,
     Timestamp
 } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase/config";
@@ -17,8 +15,8 @@ export interface Activity {
     id: string;
     type: "Run" | "Walk" | "Bike" | "HIIT";
     distance: number; // in miles
-    duration: number; // in minutes
-    pace: string; // calculated: time/distance
+    duration: number; // in seconds (stored) — displayed as minutes
+    pace: string; // calculated: min:sec /mi
     date: Date;
     calories: number;
     notes?: string;
@@ -32,6 +30,7 @@ export interface Activity {
         humidity: number;              // percentage
         wind: number;                  // mph
     };
+    path?: [number, number][];         // GPS path for map display
 }
 
 export function useActivities() {
@@ -58,7 +57,7 @@ export function useActivities() {
                 return {
                     id: doc.id,
                     ...d,
-                    date: d.date?.toDate() || new Date(), // Handle Firestore Timestamp
+                    date: d.date?.toDate() || new Date(),
                 } as Activity;
             });
             setActivities(data);
@@ -75,41 +74,64 @@ export function useActivities() {
     const addActivity = async (activity: Omit<Activity, "id" | "date" | "pace"> & { date: Date }) => {
         if (!user) throw new Error("User not authenticated");
 
-        try {
-            const response = await fetch("/api/activity/create", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    userId: user.uid,
-                    ...activity,
-                    // Ensure duration is in seconds for the API schema if needed, 
-                    // Interface says duration is in minutes? 
-                    // Schema: duration z.number().min(0) // in seconds
-                    // activity.duration comes from UI. 
-                    // Let's check UI usage.
-                    // UI likely passes minutes. API expects seconds? 
-                    // Wait, Activity interface says "duration: number; // in minutes".
-                    // Zod schema says "duration: z.number().min(0), // in seconds".
-                    // I need to convert.
-                    duration: activity.duration * 60,
-                }),
-            });
+        const response = await fetch("/api/activity/create", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                userId: user.uid,
+                ...activity,
+                // Duration is passed in seconds directly (matches Zod schema)
+            }),
+        });
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || "Failed to create activity");
-            }
-
-            // Optimistic update or wait for snapshot?
-            // Snapshot listener will pick up the new doc added by server.
-        } catch (err) {
-            console.error("Failed to add activity:", err);
-            throw err;
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || "Failed to create activity");
         }
+
+        return response.json();
     };
 
+    const updateActivity = async (activityId: string, updates: Partial<Pick<Activity, "distance" | "duration" | "calories" | "notes" | "type">>) => {
+        if (!user) throw new Error("User not authenticated");
 
-    return { activities, loading, error, addActivity };
+        const response = await fetch("/api/activity/update", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                userId: user.uid,
+                activityId,
+                ...updates,
+            }),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || "Failed to update activity");
+        }
+
+        return response.json();
+    };
+
+    const deleteActivity = async (activityId: string) => {
+        if (!user) throw new Error("User not authenticated");
+
+        const response = await fetch("/api/activity/delete", {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                userId: user.uid,
+                activityId,
+            }),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || "Failed to delete activity");
+        }
+
+        return response.json();
+    };
+
+    return { activities, loading, error, addActivity, updateActivity, deleteActivity };
 }
