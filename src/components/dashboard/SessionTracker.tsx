@@ -220,6 +220,13 @@ export default function SessionTracker() {
     }, []);
 
     const triggerCountdown = () => {
+        // Unlock Audio (Warmup)
+        if (typeof window !== "undefined" && window.speechSynthesis) {
+            const u = new SpeechSynthesisUtterance(" ");
+            u.volume = 0;
+            window.speechSynthesis.speak(u);
+        }
+
         setCountdown(3);
         const timer = setInterval(() => {
             setCountdown((prev) => {

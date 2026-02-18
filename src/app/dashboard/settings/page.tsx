@@ -13,6 +13,13 @@ export default function SettingsPage() {
     const { settings, updateSettings, toggleTheme } = useSettings();
     const [uploading, setUploading] = useState(false);
 
+    const handleTestVoice = () => {
+        if (typeof window !== "undefined" && window.speechSynthesis) {
+            const u = new SpeechSynthesisUtterance("Voice coaching is active. Audio volume check.");
+            window.speechSynthesis.speak(u);
+        }
+    };
+
     const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!user || !e.target.files || !e.target.files[0]) return;
         const file = e.target.files[0];
@@ -136,6 +143,14 @@ export default function SettingsPage() {
                             <div style={toggleKnob(settings.voiceCoaching)} />
                         </button>
                     </div>
+
+                    {settings.voiceCoaching && (
+                        <div style={{ marginBottom: "20px", marginTop: "-10px" }}>
+                            <button onClick={handleTestVoice} style={{ fontSize: "12px", color: "var(--primary)", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline" }}>
+                                🔊 Test Voice Volume
+                            </button>
+                        </div>
+                    )}
 
                     {/* Weather Announcements Toggle — only for outdoor */}
                     {settings.environment === "outdoor" && (

@@ -94,6 +94,13 @@ export class AgentCore {
         this.lastMileCompleted = 0;
         this.weatherAnnounced = false;
 
+        // Announce start
+        this.emit({
+            type: "coaching:encouragement",
+            message: `Starting ${this.mode} session.`,
+            timestamp: Date.now()
+        });
+
         // Fetch weather for outdoor sessions
         if (this.environment === "outdoor" && this.weatherEnabled) {
             const weather = await this.environmentAgent.fetchWeather(lat, lng);

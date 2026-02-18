@@ -10,11 +10,11 @@ const BPM_RECOMMENDATIONS: Record<ActivityMode, { min: number; max: number; labe
 };
 
 export class MediaAgent {
-    private originalVolumes: Map<HTMLMediaElement, number> = new Map();
+    private pausedElements: Set<HTMLMediaElement> = new Set();
     private isDucked = false;
 
     /**
-     * Duck all audio/video elements on the page (lower volume during voice prompts).
+     * Pause all audio/video elements on the page (music should pause).
      */
     duck(): void {
         if (this.isDucked) return;
@@ -23,26 +23,28 @@ export class MediaAgent {
         const elements = document.querySelectorAll("audio, video");
         elements.forEach((el) => {
             const media = el as HTMLMediaElement;
-            this.originalVolumes.set(media, media.volume);
-            media.volume = Math.max(0, media.volume * 0.2); // Drop to 20%
+            if (!media.paused) {
+                this.pausedElements.add(media);
+                media.pause();
+            }
         });
     }
 
     /**
-     * Restore all audio/video elements to their original volume.
+     * Resume all paused audio/video elements.
      */
     restore(): void {
         if (!this.isDucked) return;
         this.isDucked = false;
 
-        this.originalVolumes.forEach((vol, media) => {
+        this.pausedElements.forEach((media) => {
             try {
-                media.volume = vol;
+                media.play().catch(e => console.warn("Failed to resume media:", e));
             } catch {
                 // Element may have been removed
             }
         });
-        this.originalVolumes.clear();
+        this.pausedElements.clear();
     }
 
     /**
