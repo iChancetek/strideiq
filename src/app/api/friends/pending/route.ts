@@ -20,6 +20,8 @@ export async function GET(req: Request) {
             return NextResponse.json({ requests: [] });
         }
 
+        // Explicitly map properties to avoid TS build errors
+        // (Re-triggering build with comment)
         const requestDocs = requestsSnap.docs.map(doc => {
             const data = doc.data();
             return {
