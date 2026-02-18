@@ -15,6 +15,8 @@ const navItems = [
     { name: "Training Plan", href: "/dashboard/training", icon: "📅" },
     { name: "AI Coach", href: "/dashboard/coach", icon: "🤖" },
     { name: "Meditation", href: "/dashboard/meditation", icon: "🧘" },
+    { name: "Fasting", href: "/dashboard/fasting", icon: "⏳" },
+    { name: "Journal", href: "/dashboard/journal", icon: "📓" },
     { name: "Settings", href: "/dashboard/settings", icon: "⚙️" },
 ];
 
