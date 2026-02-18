@@ -32,6 +32,12 @@ export interface Activity {
     };
     path?: [number, number][];         // GPS path for map display
     steps?: number;                    // estimated step count
+    media?: {
+        type: "image" | "video";
+        url: string;
+        path: string;
+        createdAt: string;
+    }[];
 }
 
 export function useActivities() {
@@ -93,7 +99,7 @@ export function useActivities() {
         return response.json();
     };
 
-    const updateActivity = async (activityId: string, updates: Partial<Pick<Activity, "distance" | "duration" | "calories" | "notes" | "type">>) => {
+    const updateActivity = async (activityId: string, updates: Partial<Activity>) => {
         if (!user) throw new Error("User not authenticated");
 
         const response = await fetch("/api/activity/update", {

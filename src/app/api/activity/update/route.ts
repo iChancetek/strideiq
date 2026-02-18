@@ -10,6 +10,12 @@ const updateActivitySchema = z.object({
     calories: z.number().min(0).optional(),
     notes: z.string().optional(),
     type: z.enum(["Run", "Walk", "Bike", "Treadmill", "HIIT"]).optional(),
+    media: z.array(z.object({
+        type: z.enum(["image", "video"]),
+        url: z.string(),
+        path: z.string(),
+        createdAt: z.string()
+    })).optional(),
 });
 
 export async function PUT(req: Request) {
@@ -30,6 +36,7 @@ export async function PUT(req: Request) {
         if (updates.calories !== undefined) updateData.calories = updates.calories;
         if (updates.notes !== undefined) updateData.notes = updates.notes;
         if (updates.type !== undefined) updateData.type = updates.type;
+        if (updates.media !== undefined) updateData.media = updates.media;
 
         // Recalculate pace if distance or duration changed
         const docRef = adminDb.collection("users").doc(userId).collection("activities").doc(activityId);

@@ -21,6 +21,12 @@ export const createActivitySchema = z.object({
         humidity: z.number(),
         wind: z.number(),
     }).optional(),
+    media: z.array(z.object({
+        type: z.enum(["image", "video"]),
+        url: z.string(),
+        path: z.string(),
+        createdAt: z.string().datetime()
+    })).optional().default([]),
 });
 
 export type CreateActivityInput = z.infer<typeof createActivitySchema>;

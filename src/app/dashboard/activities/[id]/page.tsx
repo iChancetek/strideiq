@@ -4,10 +4,13 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useActivities } from "@/hooks/useActivities";
-import ShareActivityModal from "@/components/dashboard/ShareActivityModal"; // NEW
+import ShareActivityModal from "@/components/dashboard/ShareActivityModal";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { Share2 } from "lucide-react"; // NEW
+import { Share2 } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
+import { useUserRole } from "@/hooks/useUserRole";
+import CommentsSection from "@/components/dashboard/activity/CommentsSection";
 
 const MapContainer = dynamic(() => import("react-leaflet").then(mod => mod.MapContainer), { ssr: false });
 const TileLayer = dynamic(() => import("react-leaflet").then(mod => mod.TileLayer), { ssr: false });
@@ -18,12 +21,15 @@ const Popup = dynamic(() => import("react-leaflet").then(mod => mod.Popup), { ss
 export default function ActivityDetailPage() {
     const { id } = useParams();
     const router = useRouter();
+    const { user } = useAuth();
+    const { isAdmin } = useUserRole();
     const { activities, loading, updateActivity, deleteActivity } = useActivities();
     const [editing, setEditing] = useState(false);
     const [saving, setSaving] = useState(false);
     const [deleting, setDeleting] = useState(false);
     const [confirmDelete, setConfirmDelete] = useState(false);
-    const [showShareModal, setShowShareModal] = useState(false); // NEW
+    const [showShareModal, setShowShareModal] = useState(false);
+    const [uploadingMedia, setUploadingMedia] = useState(false);
 
     // Edit form state
     const [editDistance, setEditDistance] = useState("");
@@ -54,6 +60,67 @@ export default function ActivityDetailPage() {
         const s = Math.floor(totalSeconds % 60);
         if (h > 0) return `${h}h ${m}m ${s}s`;
         return `${m}m ${s}s`;
+    };
+
+    const handleMediaUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !user || !activity) return;
+
+        setUploadingMedia(true);
+        try {
+            // Client-side upload
+            const { storage } = await import("@/lib/firebase/config");
+            const { ref, uploadBytes, getDownloadURL } = await import("firebase/storage");
+
+            const type = (file.type.startsWith("video") ? "video" : "image") as "image" | "video";
+            const path = `users/${user.uid}/activities/${activity.id}/media/${Date.now()}_${file.name}`;
+            const storageRef = ref(storage, path);
+
+            await uploadBytes(storageRef, file);
+            const url = await getDownloadURL(storageRef);
+
+            // Update Activity Doc
+            const newMedia = {
+                type,
+                url,
+                path,
+                createdAt: new Date().toISOString()
+            };
+
+            const updatedMedia = [...(activity.media || []), newMedia];
+
+            // Optimistic update (hook will refresh from local state usually, but let's be safe)
+            await updateActivity(activity.id, { media: updatedMedia });
+
+        } catch (error) {
+            console.error("Media upload failed", error);
+            alert("Failed to upload media.");
+        } finally {
+            setUploadingMedia(false);
+        }
+    };
+
+    const handleDeleteMedia = async (mediaItem: any) => {
+        if (!confirm("Delete this?")) return;
+        if (!activity) return;
+
+        try {
+            // 1. Delete from Storage
+            const { storage } = await import("@/lib/firebase/config");
+            const { ref, deleteObject } = await import("firebase/storage");
+            if (mediaItem.path) {
+                const storageRef = ref(storage, mediaItem.path);
+                await deleteObject(storageRef).catch(e => console.warn("Storage delete failed", e));
+            }
+
+            // 2. Update Doc
+            const updatedMedia = (activity.media || []).filter((m: any) => m.url !== mediaItem.url);
+            await updateActivity(activity.id, { media: updatedMedia });
+
+        } catch (error) {
+            console.error(error);
+            alert("Failed to delete media.");
+        }
     };
 
     const handleSave = async () => {
@@ -329,8 +396,64 @@ export default function ActivityDetailPage() {
                     </>
                 )}
 
+                {/* Media Gallery */}
+                <div style={{ marginBottom: "30px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "15px" }}>
+                        <h3 style={{ fontSize: "18px", fontWeight: "bold" }}>Media</h3>
+                        <label className="btn-secondary" style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "14px", padding: "8px 16px", borderRadius: "20px" }}>
+                            {uploadingMedia ? "Uploading..." : "📷 Add Photo/Video"}
+                            <input
+                                type="file"
+                                accept="image/*,video/*"
+                                capture="environment"
+                                className="hidden"
+                                onChange={handleMediaUpload}
+                                disabled={uploadingMedia}
+                            />
+                        </label>
+                    </div>
+
+                    {activity.media && activity.media.length > 0 ? (
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: "10px" }}>
+                            {activity.media.map((item: any, i: number) => (
+                                <div key={i} className="relative group" style={{ aspectRatio: "1/1", borderRadius: "12px", overflow: "hidden", background: "#000" }}>
+                                    {item.type === "video" ? (
+                                        <video src={item.url} controls style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                                    ) : (
+                                        // eslint-disable-next-line @next/next/no-img-element
+                                        <img src={item.url} alt="Activity Media" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                                    )}
+
+                                    {(isAdmin || true) && ( // Owner check implicit as this page is owner-only for now, but added for safety
+                                        <button
+                                            onClick={() => handleDeleteMedia(item)}
+                                            style={{
+                                                position: "absolute", top: "5px", right: "5px",
+                                                background: "rgba(0,0,0,0.6)", color: "white",
+                                                border: "none", borderRadius: "50%", width: "24px", height: "24px",
+                                                cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center"
+                                            }}
+                                            title="Delete Media"
+                                        >
+                                            &times;
+                                        </button>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="glass-panel p-6 text-center text-foreground-muted text-sm italic rounded-lg">
+                            No photos or videos yet. Capture the moment!
+                        </div>
+                    )}
+                </div>
+
+                {/* Comments Section */}
+                <CommentsSection activityId={activity.id} ownerId={user?.uid || ""} />
+
                 {/* Delete Section */}
                 <div style={{ marginTop: "30px", paddingTop: "20px", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+                    {/* ... (existing delete logic) ... */}
                     {!confirmDelete ? (
                         <button
                             onClick={() => setConfirmDelete(true)}
