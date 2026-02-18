@@ -59,16 +59,17 @@ export default function Home() {
           <Link href="/signup" className="btn-primary" style={{ padding: "16px 48px", fontSize: "18px" }}>
             Start Training
           </Link>
-          <button className="glass-panel" style={{
+          <Link href="/learn-more" className="glass-panel" style={{
             padding: "16px 32px",
             borderRadius: "var(--radius-full)",
             color: "white",
             fontSize: "18px",
             fontFamily: "var(--font-heading)",
-            cursor: "pointer"
+            cursor: "pointer",
+            textDecoration: "none"
           }}>
-            Watch Demo
-          </button>
+            Learn More
+          </Link>
         </div>
       </section>
 

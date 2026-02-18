@@ -9,10 +9,22 @@ import {
 import { auth, googleProvider, db } from "./config";
 import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
 
+const ADMIN_EMAILS = ["Chancellor@ichancetek.com", "Chanceminus@gmail.com"];
+
 const syncUserToFirestore = async (user: any) => {
     try {
         const userRef = doc(db, "users", user.uid);
         const userSnap = await getDoc(userRef);
+
+        let role = "user";
+        if (userSnap.exists()) {
+            role = userSnap.data().role || "user";
+        }
+
+        // Auto-promote hardcoded admins
+        if (user.email && ADMIN_EMAILS.includes(user.email)) {
+            role = "admin";
+        }
 
         const userData = {
             uid: user.uid,
@@ -20,6 +32,7 @@ const syncUserToFirestore = async (user: any) => {
             displayName: user.displayName || "",
             photoURL: user.photoURL || "",
             lastLogin: serverTimestamp(),
+            role, // Sync role
         };
 
         // If new user, set createdAt
@@ -27,7 +40,6 @@ const syncUserToFirestore = async (user: any) => {
             await setDoc(userRef, {
                 ...userData,
                 createdAt: serverTimestamp(),
-                role: "user" // default role
             });
         } else {
             // Update existing user
