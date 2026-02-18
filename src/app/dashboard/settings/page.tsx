@@ -4,10 +4,42 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 
 import { useAuth } from "@/context/AuthContext";
 import { useSettings } from "@/context/SettingsContext";
+import { useState } from "react";
+import { storage } from "@/lib/firebase/config";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { updateProfile } from "firebase/auth";
 
 export default function SettingsPage() {
     const { user } = useAuth();
     const { settings, updateSettings, toggleTheme } = useSettings();
+    const [uploading, setUploading] = useState(false);
+
+    const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!user || !e.target.files || !e.target.files[0]) return;
+
+        const file = e.target.files[0];
+        if (file.size > 2 * 1024 * 1024) {
+            alert("File is too large. Max 2MB.");
+            return;
+        }
+
+        setUploading(true);
+        try {
+            const storageRef = ref(storage, `profile_photos/${user.uid}`);
+            await uploadBytes(storageRef, file);
+            const downloadURL = await getDownloadURL(storageRef);
+
+            await updateProfile(user, { photoURL: downloadURL });
+            alert("Profile photo updated!");
+            // Force reload to see changes if needed, usually Next/Firebase handles it eventually
+            // window.location.reload(); 
+        } catch (error) {
+            console.error("Error uploading photo:", error);
+            alert("Failed to upload photo.");
+        } finally {
+            setUploading(false);
+        }
+    };
 
     return (
         <DashboardLayout>
@@ -16,6 +48,34 @@ export default function SettingsPage() {
 
                 <div className="glass-panel" style={{ padding: "20px", borderRadius: "16px", marginBottom: "20px" }}>
                     <h3 style={{ marginBottom: "15px", borderBottom: "1px solid rgba(255,255,255,0.1)", paddingBottom: "10px" }}>Profile</h3>
+
+                    <div style={{ display: "flex", alignItems: "center", gap: "20px", marginBottom: "20px" }}>
+                        <div style={{
+                            width: "80px", height: "80px", borderRadius: "50%",
+                            background: "var(--surface)", border: "2px solid var(--primary)",
+                            backgroundImage: user?.photoURL ? `url(${user.photoURL})` : "none",
+                            backgroundSize: "cover", backgroundPosition: "center",
+                            display: "flex", alignItems: "center", justifyContent: "center"
+                        }}>
+                            {!user?.photoURL && <span style={{ fontSize: "30px" }}>👤</span>}
+                        </div>
+                        <div>
+                            <label className="btn-primary" style={{ cursor: "pointer", display: "inline-block" }}>
+                                {uploading ? "Uploading..." : "Change Photo"}
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    style={{ display: "none" }}
+                                    onChange={handlePhotoUpload}
+                                    disabled={uploading}
+                                />
+                            </label>
+                            <div style={{ fontSize: "12px", color: "var(--foreground-muted)", marginTop: "5px" }}>
+                                Recommended: Square JPG/PNG, max 2MB
+                            </div>
+                        </div>
+                    </div>
+
                     <div style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
                         <div>
                             <label style={{ display: "block", marginBottom: "5px", color: "var(--foreground-muted)" }}>Display Name</label>
@@ -89,6 +149,14 @@ export default function SettingsPage() {
                             <option value="metric">Metric (km)</option>
                         </select>
                     </div>
+                </div>
+
+                <div className="glass-panel" style={{ padding: "20px", borderRadius: "16px", marginTop: "20px" }}>
+                    <h3 style={{ marginBottom: "15px", borderBottom: "1px solid rgba(255,255,255,0.1)", paddingBottom: "10px" }}>Support</h3>
+                    <a href="/help/install" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", textDecoration: "none", color: "var(--foreground)" }}>
+                        <span>📱 Install App (PWA)</span>
+                        <span style={{ color: "var(--foreground-muted)" }}>→</span>
+                    </a>
                 </div>
             </div>
         </DashboardLayout>

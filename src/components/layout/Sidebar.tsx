@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { useAuth } from "@/context/AuthContext";
 
 const navItems = [
     { name: "Dashboard", href: "/dashboard", icon: "📊" },
@@ -16,6 +17,7 @@ const navItems = [
 ];
 
 export default function Sidebar() {
+    const { user } = useAuth();
     const pathname = usePathname();
     const [isOpen, setIsOpen] = useState(false);
 
@@ -77,10 +79,20 @@ export default function Sidebar() {
                 </nav>
 
                 <div style={{ paddingTop: "20px", borderTop: "1px solid rgba(255,255,255,0.1)" }}>
-                    {/* User Profile Snippet could go here */}
+                    {/* User Profile Snippet */}
                     <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                        <div style={{ width: 32, height: 32, borderRadius: "50%", background: "var(--surface)", border: "1px solid var(--primary)" }}></div>
-                        <span style={{ fontSize: "14px", color: "var(--foreground-muted)" }}>Runner</span>
+                        <div style={{
+                            width: 32, height: 32, borderRadius: "50%",
+                            background: "var(--surface)", border: "1px solid var(--primary)",
+                            backgroundImage: user?.photoURL ? `url(${user.photoURL})` : "none",
+                            backgroundSize: "cover", backgroundPosition: "center",
+                            display: "flex", alignItems: "center", justifyContent: "center"
+                        }}>
+                            {!user?.photoURL && <span style={{ fontSize: "14px" }}>👤</span>}
+                        </div>
+                        <span style={{ fontSize: "14px", color: "var(--foreground-muted)", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap", maxWidth: "150px" }}>
+                            {user?.displayName || "Runner"}
+                        </span>
                     </div>
                 </div>
             </aside>

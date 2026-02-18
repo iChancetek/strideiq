@@ -5,11 +5,13 @@ import StatCard from "@/components/dashboard/StatCard";
 import AICoach from "@/components/dashboard/AICoach";
 import DailyAffirmation from "@/components/dashboard/DailyAffirmation";
 import { useActivities, Activity } from "@/hooks/useActivities";
+import { useTrainingPlan } from "@/hooks/useTrainingPlan";
 import { useRouter } from "next/navigation";
 import { useMemo } from "react";
 
 export default function Dashboard() {
     const { activities, loading } = useActivities();
+    const { plan, loading: planLoading } = useTrainingPlan();
     const router = useRouter();
 
     // Calculate Stats
@@ -118,21 +120,62 @@ export default function Dashboard() {
                     )}
                 </section>
 
-                {/* Upcoming Training - Static for now, could be dynamic later */}
+                {/* Upcoming Training - Dynamic */}
                 <section className="glass-panel" style={{ padding: "30px", borderRadius: "var(--radius-lg)" }}>
                     <h3 style={{ marginBottom: "20px" }}>Up Next</h3>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
-                        <div style={{ padding: "15px", background: "rgba(255,255,255,0.05)", borderRadius: "var(--radius-md)" }}>
-                            <div style={{ fontSize: "12px", color: "var(--primary)", fontWeight: 600, marginBottom: "4px" }}>TOMORROW • 7:00 AM</div>
-                            <div style={{ fontWeight: 600, fontSize: "16px" }}>Interval Speed Run</div>
-                            <div style={{ fontSize: "14px", color: "var(--foreground-muted)" }}>45 min • High Intensity</div>
+                    {planLoading ? (
+                        <p style={{ color: "var(--foreground-muted)" }}>Loading plan...</p>
+                    ) : !plan ? (
+                        <div style={{ textAlign: "center", padding: "20px", color: "var(--foreground-muted)" }}>
+                            <p style={{ marginBottom: "10px" }}>No active training plan.</p>
+                            <button
+                                onClick={() => router.push("/dashboard/training")}
+                                style={{ color: "var(--primary)", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}
+                            >
+                                Create one now →
+                            </button>
                         </div>
-                        <div style={{ padding: "15px", background: "rgba(255,255,255,0.05)", borderRadius: "var(--radius-md)" }}>
-                            <div style={{ fontSize: "12px", color: "var(--secondary)", fontWeight: 600, marginBottom: "4px" }}>SAT • 8:00 AM</div>
-                            <div style={{ fontWeight: 600, fontSize: "16px" }}>Long Run</div>
-                            <div style={{ fontSize: "14px", color: "var(--foreground-muted)" }}>10 mi • Steady Pace</div>
+                    ) : (
+                        <div style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
+                            {(() => {
+                                // Calculate upcoming workouts
+                                const start = new Date(plan.startDate);
+                                const today = new Date();
+                                today.setHours(0, 0, 0, 0);
+
+                                const allWorkouts = plan.weeks.flatMap((week, wIndex) =>
+                                    week.workouts.map((workout, dIndex) => {
+                                        const workoutDate = new Date(start);
+                                        workoutDate.setDate(start.getDate() + (wIndex * 7) + dIndex);
+                                        return { ...workout, date: workoutDate };
+                                    })
+                                );
+
+                                const upcoming = allWorkouts
+                                    .filter(w => w.date >= today && w.type !== "Rest")
+                                    .slice(0, 2);
+
+                                if (upcoming.length === 0) return <p style={{ color: "var(--foreground-muted)" }}>Plan completed! 🎉</p>;
+
+                                return upcoming.map((workout, i) => {
+                                    const isToday = workout.date.toDateString() === today.toDateString();
+                                    const dateLabel = isToday ? "TODAY" : workout.date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase();
+
+                                    return (
+                                        <div key={i} style={{ padding: "15px", background: "rgba(255,255,255,0.05)", borderRadius: "var(--radius-md)", borderLeft: `3px solid ${isToday ? "var(--primary)" : "rgba(255,255,255,0.2)"}` }}>
+                                            <div style={{ fontSize: "12px", color: isToday ? "var(--primary)" : "var(--foreground-muted)", fontWeight: 600, marginBottom: "4px" }}>
+                                                {dateLabel}
+                                            </div>
+                                            <div style={{ fontWeight: 600, fontSize: "16px" }}>{workout.distance || workout.type}</div>
+                                            <div style={{ fontSize: "14px", color: "var(--foreground-muted)" }}>
+                                                {workout.description}
+                                            </div>
+                                        </div>
+                                    );
+                                });
+                            })()}
                         </div>
-                    </div>
+                    )}
                 </section>
             </div>
 

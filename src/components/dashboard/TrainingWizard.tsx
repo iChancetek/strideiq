@@ -1,11 +1,15 @@
 import { useState } from "react";
 import { TrainingPlan } from "@/lib/types/training";
+import { useAuth } from "@/context/AuthContext";
+import { db } from "@/lib/firebase/config";
+import { doc, setDoc } from "firebase/firestore";
 
 interface TrainingWizardProps {
     onPlanGenerated: (plan: TrainingPlan) => void;
 }
 
 export default function TrainingWizard({ onPlanGenerated }: TrainingWizardProps) {
+    const { user } = useAuth();
     const [step, setStep] = useState(1);
     const [isLoading, setIsLoading] = useState(false);
     const [formData, setFormData] = useState({
@@ -45,6 +49,17 @@ export default function TrainingWizard({ onPlanGenerated }: TrainingWizardProps)
 
             if (!plan || !plan.weeks || !Array.isArray(plan.weeks)) {
                 throw new Error("Invalid plan format received");
+            }
+
+            // Save to Firestore
+            if (user) {
+                const docRef = doc(db, "users", user.uid, "training", "current");
+                await setDoc(docRef, {
+                    ...plan,
+                    userId: user.uid,
+                    createdAt: Date.now(),
+                    startDate: new Date().toISOString()
+                });
             }
 
             onPlanGenerated(plan);
