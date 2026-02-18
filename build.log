@@ -1,0 +1,59 @@
+
+> stride_iq@0.1.0 build
+> next build --webpack
+
+▲ Next.js 16.1.6 (webpack)
+- Environments: .env.local, .env
+
+  Creating an optimized production build ...
+ ✓ (pwa) Compiling for server...
+ ✓ (pwa) Compiling for server...
+ ✓ (pwa) Compiling for client (static)...
+ ○ (pwa) Service worker: D:\chancellor\strideiq\public\sw.js
+ ○ (pwa)   URL: /sw.js
+ ○ (pwa)   Scope: /
+✓ Compiled successfully in 17.9s
+  Running TypeScript ...
+  Collecting page data using 7 workers ...
+  Generating static pages using 7 workers (0/29) ...
+  Generating static pages using 7 workers (7/29) 
+  Generating static pages using 7 workers (14/29) 
+  Generating static pages using 7 workers (21/29) 
+✓ Generating static pages using 7 workers (29/29) in 4.1s
+  Finalizing page optimization ...
+  Collecting build traces ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ○ /admin
+├ ƒ /api/activity/create
+├ ƒ /api/admin/migrate
+├ ƒ /api/chat
+├ ƒ /api/friends/accept
+├ ƒ /api/friends/list
+├ ƒ /api/friends/pending
+├ ƒ /api/friends/request
+├ ƒ /api/leaderboard
+├ ƒ /api/meditate
+├ ƒ /api/training/generate
+├ ƒ /api/users/search
+├ ○ /dashboard
+├ ○ /dashboard/activities
+├ ƒ /dashboard/activities/[id]
+├ ○ /dashboard/coach
+├ ○ /dashboard/friends
+├ ○ /dashboard/leaderboard
+├ ○ /dashboard/meditation
+├ ○ /dashboard/run
+├ ○ /dashboard/settings
+├ ○ /dashboard/training
+├ ○ /help/install
+├ ○ /login
+├ ○ /signup
+└ ○ /verify-email
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
