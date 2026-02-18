@@ -20,10 +20,16 @@ export async function GET(req: Request) {
             return NextResponse.json({ requests: [] });
         }
 
-        const requestDocs = requestsSnap.docs.map(doc => ({
-            requestId: doc.id,
-            ...doc.data()
-        }));
+        const requestDocs = requestsSnap.docs.map(doc => {
+            const data = doc.data();
+            return {
+                requestId: doc.id,
+                requesterId: data.requesterId as string,
+                receiverId: data.receiverId as string,
+                status: data.status as string,
+                createdAt: data.createdAt
+            };
+        });
 
         // Fetch profiles of requesters
         const requesterIds = requestDocs.map(r => r.requesterId);
