@@ -3,7 +3,6 @@
 import { useAuth } from "@/context/AuthContext";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Plus, Book, Calendar, Search, Feather, Sparkles } from "lucide-react";
 
 interface JournalEntry {
     id: string;
@@ -46,89 +45,167 @@ export default function JournalDashboard() {
     );
 
     return (
-        <div className="max-w-6xl mx-auto">
-            <header className="mb-12 flex flex-col md:flex-row items-end justify-between gap-6">
-                <div>
-                    <div className="inline-flex items-center p-2 px-4 rounded-full bg-accent/10 border border-accent/20 mb-4 backdrop-blur-sm">
-                        <Sparkles className="text-accent w-4 h-4 mr-2" />
-                        <span className="text-accent font-bold tracking-wider text-xs uppercase">AI-Enhanced Reflection</span>
-                    </div>
-                    <h1 className="text-4xl md:text-5xl font-black tracking-tighter mb-2">
-                        My <span className="text-gradient">Journal</span>
-                    </h1>
-                    <p className="text-foreground-muted max-w-lg">
-                        Capture your thoughts, track your growth, and let AI refine your clarity.
-                    </p>
+        <div style={{ maxWidth: "900px", margin: "0 auto", padding: "0 16px", paddingBottom: "40px" }}>
+            {/* Header */}
+            <header style={{ marginBottom: "32px" }}>
+                <div style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    padding: "8px 16px",
+                    borderRadius: "var(--radius-full, 24px)",
+                    background: "rgba(204,255,0,0.1)",
+                    border: "1px solid rgba(204,255,0,0.2)",
+                    marginBottom: "12px",
+                }}>
+                    <span style={{ marginRight: "8px" }}>✨</span>
+                    <span style={{ color: "var(--primary)", fontWeight: 700, fontSize: "12px", textTransform: "uppercase", letterSpacing: "1px" }}>AI-Enhanced Reflection</span>
                 </div>
-                <Link href="/dashboard/journal/new" className="btn-primary flex items-center gap-2 shadow-lg shadow-primary/20 hover:scale-105 transition-transform">
-                    <Plus size={20} strokeWidth={3} /> <span className="font-bold">New Entry</span>
+                <h1 style={{ fontSize: "clamp(28px, 5vw, 42px)", fontWeight: 900, marginBottom: "8px" }}>
+                    My <span style={{ color: "var(--primary)" }}>Journal</span>
+                </h1>
+                <p style={{ color: "var(--foreground-muted)", maxWidth: "480px", fontSize: "15px", lineHeight: "1.5" }}>
+                    Capture your thoughts, track your growth, and let AI refine your clarity.
+                </p>
+                <Link href="/dashboard/journal/new" className="btn-primary" style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    marginTop: "16px",
+                    padding: "12px 24px",
+                    borderRadius: "var(--radius-full, 24px)",
+                    textDecoration: "none",
+                    fontWeight: 700,
+                    fontSize: "14px",
+                }}>
+                    + New Entry
                 </Link>
             </header>
 
             {loading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {[1, 2, 3].map(i => <div key={i} className="glass-panel h-64 animate-pulse rounded-2xl" />)}
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "20px" }}>
+                    {[1, 2, 3].map(i => (
+                        <div key={i} className="glass-panel" style={{ height: "200px", borderRadius: "16px", animation: "pulse 1.5s infinite" }} />
+                    ))}
                 </div>
             ) : entries.length === 0 ? (
-                <div className="glass-panel p-16 text-center flex flex-col items-center justify-center min-h-[400px] border border-dashed border-white/10 relative overflow-hidden">
-                    <div className="absolute inset-0 bg-gradient-to-t from-primary/5 to-transparent pointer-events-none" />
-                    <div className="w-24 h-24 rounded-full bg-surface-hover flex items-center justify-center mb-6 relative z-10 border border-white/5">
-                        <Feather size={48} className="text-foreground-muted opacity-50" />
+                <div className="glass-panel" style={{
+                    padding: "60px 24px",
+                    textAlign: "center",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    minHeight: "300px",
+                    borderRadius: "16px",
+                    border: "1px dashed rgba(255,255,255,0.1)",
+                }}>
+                    <div style={{
+                        width: "80px",
+                        height: "80px",
+                        borderRadius: "50%",
+                        background: "rgba(255,255,255,0.05)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        marginBottom: "20px",
+                        fontSize: "36px",
+                    }}>
+                        🪶
                     </div>
-                    <h3 className="text-2xl font-bold mb-3">Your Story Begins Here</h3>
-                    <p className="text-foreground-muted mb-8 max-w-sm text-lg">
-                        Start your first entry. Whether it's a workout log or a midnight thought, we're here to listen.
+                    <h3 style={{ fontSize: "22px", fontWeight: 700, marginBottom: "8px" }}>Your Story Begins Here</h3>
+                    <p style={{ color: "var(--foreground-muted)", marginBottom: "24px", maxWidth: "320px", fontSize: "15px", lineHeight: "1.5" }}>
+                        Start your first entry. Whether it&apos;s a workout log or a midnight thought, we&apos;re here to listen.
                     </p>
-                    <Link href="/dashboard/journal/new" className="btn-primary px-8 py-3 text-lg">
-                        <Plus className="inline mr-2" size={20} /> Create First Entry
+                    <Link href="/dashboard/journal/new" className="btn-primary" style={{
+                        padding: "12px 28px",
+                        borderRadius: "var(--radius-full, 24px)",
+                        textDecoration: "none",
+                        fontWeight: 700,
+                        fontSize: "15px",
+                    }}>
+                        + Create First Entry
                     </Link>
                 </div>
             ) : (
-                <div className="space-y-8">
+                <div>
                     {/* Search Bar */}
-                    <div className="relative max-w-md mx-auto md:mx-0 group">
-                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                            <Search className="h-5 w-5 text-foreground-muted group-focus-within:text-primary transition-colors" />
-                        </div>
+                    <div style={{ position: "relative", maxWidth: "400px", marginBottom: "24px" }}>
+                        <span style={{ position: "absolute", left: "14px", top: "50%", transform: "translateY(-50%)", fontSize: "16px", color: "var(--foreground-muted)" }}>🔍</span>
                         <input
                             type="text"
                             placeholder="Search your thoughts..."
-                            className="block w-full pl-12 pr-4 py-4 rounded-2xl glass-panel bg-surface/50 border-white/10 focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all outline-none text-foreground placeholder-foreground-muted/70"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
+                            style={{
+                                width: "100%",
+                                padding: "14px 16px 14px 42px",
+                                borderRadius: "16px",
+                                background: "rgba(255,255,255,0.05)",
+                                border: "1px solid rgba(255,255,255,0.1)",
+                                color: "#fff",
+                                fontSize: "14px",
+                                outline: "none",
+                                boxSizing: "border-box",
+                            }}
                         />
                     </div>
 
                     {/* Entries Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "20px" }}>
                         {filteredEntries.map((entry, idx) => (
-                            <Link key={entry.id} href={`/dashboard/journal/${entry.id}`} className="group block h-full">
-                                <article className="glass-panel p-6 h-full flex flex-col relative overflow-hidden hover:border-primary/40 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-primary/5">
+                            <Link key={entry.id} href={`/dashboard/journal/${entry.id}`} style={{ textDecoration: "none", color: "inherit" }}>
+                                <article className="glass-panel" style={{
+                                    padding: "20px",
+                                    borderRadius: "16px",
+                                    height: "100%",
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    position: "relative",
+                                    overflow: "hidden",
+                                    transition: "transform 0.2s, border-color 0.2s",
+                                }}>
+                                    {/* Top accent bar */}
+                                    <div style={{
+                                        position: "absolute",
+                                        top: 0,
+                                        left: 0,
+                                        width: "100%",
+                                        height: "3px",
+                                        background: idx % 3 === 0 ? "linear-gradient(90deg, var(--primary), #00ffaa)" : idx % 3 === 1 ? "linear-gradient(90deg, #00ffaa, #a855f5)" : "linear-gradient(90deg, #3b82f6, var(--primary))",
+                                        opacity: 0.7,
+                                    }} />
 
-                                    {/* Decorative gradient header */}
-                                    <div className={`absolute top-0 left-0 w-full h-1 bg-gradient-to-r ${idx % 3 === 0 ? 'from-primary to-accent' : idx % 3 === 1 ? 'from-accent to-purple-500' : 'from-blue-500 to-primary'} opacity-70`} />
-
-                                    <div className="flex items-center gap-2 mb-4 text-xs font-mono text-foreground-muted uppercase tracking-wider">
-                                        <Calendar size={12} className="text-primary" />
-                                        {new Date(entry.createdAt).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}
+                                    <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "12px", fontSize: "11px", color: "var(--foreground-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>
+                                        📅 {new Date(entry.createdAt).toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })}
                                     </div>
 
-                                    <h3 className="font-bold text-xl mb-3 leading-tight group-hover:text-primary transition-colors line-clamp-2">
+                                    <h3 style={{ fontWeight: 700, fontSize: "18px", marginBottom: "10px", lineHeight: "1.3" }}>
                                         {entry.title || "Untitled Entry"}
                                     </h3>
 
-                                    <p className="text-foreground-muted/80 text-sm leading-relaxed line-clamp-4 mb-6 flex-1">
+                                    <p style={{
+                                        color: "var(--foreground-muted)",
+                                        fontSize: "13px",
+                                        lineHeight: "1.5",
+                                        flex: 1,
+                                        overflow: "hidden",
+                                        display: "-webkit-box",
+                                        WebkitLineClamp: 4,
+                                        WebkitBoxOrient: "vertical",
+                                        marginBottom: "16px",
+                                    }}>
                                         {entry.content || "No content..."}
                                     </p>
 
-                                    <div className="flex items-center justify-between mt-auto pt-4 border-t border-white/5">
-                                        <div className="flex items-center gap-2 text-xs text-foreground-muted group-hover:text-primary transition-colors">
-                                            <Book size={14} />
-                                            <span>Read Entry</span>
-                                        </div>
-                                        <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-primary group-hover:text-black transition-all">
-                                            <span className="text-lg leading-none mb-0.5">→</span>
-                                        </div>
+                                    <div style={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "space-between",
+                                        paddingTop: "12px",
+                                        borderTop: "1px solid rgba(255,255,255,0.05)",
+                                    }}>
+                                        <span style={{ fontSize: "12px", color: "var(--foreground-muted)" }}>📖 Read Entry</span>
+                                        <span style={{ fontSize: "16px", color: "var(--foreground-muted)" }}>→</span>
                                     </div>
                                 </article>
                             </Link>
@@ -136,6 +213,10 @@ export default function JournalDashboard() {
                     </div>
                 </div>
             )}
+
+            <style jsx>{`
+                @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+            `}</style>
         </div>
     );
 }

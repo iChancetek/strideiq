@@ -4,17 +4,19 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 import { useAuth } from "@/context/AuthContext";
 import { db } from "@/lib/firebase/config";
 import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
+import { Language } from "@/lib/translations";
 
 interface Settings {
     theme: "light" | "dark";
     units: "imperial" | "metric";
-    activityMode: "run" | "walk" | "bike";
+    activityMode: "run" | "walk" | "bike" | "hike";
     environment: "outdoor" | "indoor";
     voiceCoaching: boolean;
     weatherAnnouncements: boolean;
     autoPause: boolean;
     autoPauseSensitivity: "low" | "medium" | "high";
     showMap: boolean;
+    language: Language;
 }
 
 interface SettingsContextType {
@@ -33,6 +35,7 @@ const defaultSettings: Settings = {
     autoPause: true,
     autoPauseSensitivity: "medium",
     showMap: true,
+    language: "en",
 };
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);

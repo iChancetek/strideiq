@@ -7,11 +7,13 @@ import { useState } from "react";
 import { storage } from "@/lib/firebase/config";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { updateProfile } from "firebase/auth";
+import { t, LANGUAGE_OPTIONS, isRTL, Language } from "@/lib/translations";
 
 export default function SettingsPage() {
     const { user } = useAuth();
     const { settings, updateSettings, toggleTheme } = useSettings();
     const [uploading, setUploading] = useState(false);
+    const lang = settings.language || "en";
 
     const handleTestVoice = () => {
         if (typeof window !== "undefined" && window.speechSynthesis) {
@@ -75,19 +77,19 @@ export default function SettingsPage() {
 
     return (
         <DashboardLayout>
-            <div style={{ maxWidth: "600px", margin: "0 auto" }}>
-                <h1 style={{ marginBottom: "30px" }}>Settings</h1>
+            <div style={{ maxWidth: "600px", margin: "0 auto", direction: isRTL(lang) ? "rtl" : "ltr" }}>
+                <h1 style={{ marginBottom: "30px" }}>{t(lang, "settings")}</h1>
 
                 {/* Profile Section */}
                 <div className="glass-panel" style={{ padding: "20px", borderRadius: "16px", marginBottom: "20px" }}>
-                    <h3 style={{ marginBottom: "15px", borderBottom: "1px solid rgba(255,255,255,0.1)", paddingBottom: "10px" }}>Profile</h3>
+                    <h3 style={{ marginBottom: "15px", borderBottom: "1px solid rgba(255,255,255,0.1)", paddingBottom: "10px" }}>{t(lang, "profile")}</h3>
                     <div style={{ display: "flex", alignItems: "center", gap: "20px", marginBottom: "20px" }}>
                         <div style={{ width: "80px", height: "80px", borderRadius: "50%", background: "var(--surface)", border: "2px solid var(--primary)", backgroundImage: user?.photoURL ? `url(${user.photoURL})` : "none", backgroundSize: "cover", backgroundPosition: "center", display: "flex", alignItems: "center", justifyContent: "center" }}>
                             {!user?.photoURL && <span style={{ fontSize: "30px" }}>👤</span>}
                         </div>
                         <div>
                             <label className="btn-primary" style={{ cursor: "pointer", display: "inline-block" }}>
-                                {uploading ? "Uploading..." : "Change Photo"}
+                                {uploading ? t(lang, "loading") : t(lang, "changePhoto")}
                                 <input type="file" accept="image/*" style={{ display: "none" }} onChange={handlePhotoUpload} disabled={uploading} />
                             </label>
                             <div style={{ fontSize: "12px", color: "var(--foreground-muted)", marginTop: "5px" }}>Recommended: Square JPG/PNG, max 2MB</div>
@@ -95,11 +97,11 @@ export default function SettingsPage() {
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
                         <div>
-                            <label style={{ display: "block", marginBottom: "5px", color: "var(--foreground-muted)" }}>Display Name</label>
+                            <label style={{ display: "block", marginBottom: "5px", color: "var(--foreground-muted)" }}>{t(lang, "displayName")}</label>
                             <input type="text" value={user?.displayName || ""} className="input-field" disabled style={{ color: "var(--foreground)" }} />
                         </div>
                         <div>
-                            <label style={{ display: "block", marginBottom: "5px", color: "var(--foreground-muted)" }}>Email</label>
+                            <label style={{ display: "block", marginBottom: "5px", color: "var(--foreground-muted)" }}>{t(lang, "email")}</label>
                             <input type="email" value={user?.email || ""} className="input-field" disabled style={{ color: "var(--foreground)" }} />
                         </div>
                     </div>
@@ -107,15 +109,15 @@ export default function SettingsPage() {
 
                 {/* Session Preferences — NEW */}
                 <div className="glass-panel" style={{ padding: "20px", borderRadius: "16px", marginBottom: "20px" }}>
-                    <h3 style={{ marginBottom: "15px", borderBottom: "1px solid rgba(255,255,255,0.1)", paddingBottom: "10px" }}>Session Preferences</h3>
+                    <h3 style={{ marginBottom: "15px", borderBottom: "1px solid rgba(255,255,255,0.1)", paddingBottom: "10px" }}>{t(lang, "sessionPreferences")}</h3>
 
                     {/* Activity Mode */}
                     <div style={{ marginBottom: "24px" }}>
-                        <label style={{ display: "block", marginBottom: "10px", color: "var(--foreground-muted)", fontSize: "14px" }}>Activity Mode</label>
-                        <div style={{ display: "flex", gap: "8px" }}>
-                            {(["run", "walk", "bike"] as const).map((m) => (
+                        <label style={{ display: "block", marginBottom: "10px", color: "var(--foreground-muted)", fontSize: "14px" }}>{t(lang, "activityMode")}</label>
+                        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                            {(["run", "walk", "bike", "hike"] as const).map((m) => (
                                 <button key={m} onClick={() => updateSettings({ activityMode: m })} style={segmentStyle(settings.activityMode === m)}>
-                                    {m === "run" ? "🏃 Run" : m === "walk" ? "🚶 Walk" : "🚴 Bike"}
+                                    {m === "run" ? `🏃 ${t(lang, "run")}` : m === "walk" ? `🚶 ${t(lang, "walk")}` : m === "hike" ? `🥾 ${t(lang, "hike")}` : `🚴 ${t(lang, "bike")}`}
                                 </button>
                             ))}
                         </div>
@@ -123,11 +125,11 @@ export default function SettingsPage() {
 
                     {/* Environment */}
                     <div style={{ marginBottom: "24px" }}>
-                        <label style={{ display: "block", marginBottom: "10px", color: "var(--foreground-muted)", fontSize: "14px" }}>Environment</label>
+                        <label style={{ display: "block", marginBottom: "10px", color: "var(--foreground-muted)", fontSize: "14px" }}>{t(lang, "environment")}</label>
                         <div style={{ display: "flex", gap: "8px" }}>
                             {(["outdoor", "indoor"] as const).map((env) => (
                                 <button key={env} onClick={() => updateSettings({ environment: env })} style={segmentStyle(settings.environment === env)}>
-                                    {env === "outdoor" ? "🌍 Outdoor" : "🏠 Indoor"}
+                                    {env === "outdoor" ? `🌍 ${t(lang, "outdoor")}` : `🏠 ${t(lang, "indoor")}`}
                                 </button>
                             ))}
                         </div>
@@ -136,8 +138,8 @@ export default function SettingsPage() {
                     {/* Voice Coaching Toggle */}
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
                         <div>
-                            <span>Voice Coaching</span>
-                            <div style={{ fontSize: "12px", color: "var(--foreground-muted)" }}>AI announcements at mile splits</div>
+                            <span>{t(lang, "voiceCoaching")}</span>
+                            <div style={{ fontSize: "12px", color: "var(--foreground-muted)" }}>{t(lang, "voiceCoachingDesc")}</div>
                         </div>
                         <button onClick={() => updateSettings({ voiceCoaching: !settings.voiceCoaching })} style={toggleStyle(settings.voiceCoaching)}>
                             <div style={toggleKnob(settings.voiceCoaching)} />
@@ -147,7 +149,7 @@ export default function SettingsPage() {
                     {settings.voiceCoaching && (
                         <div style={{ marginBottom: "20px", marginTop: "-10px" }}>
                             <button onClick={handleTestVoice} style={{ fontSize: "12px", color: "var(--primary)", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline" }}>
-                                🔊 Test Voice Volume
+                                🔊 {t(lang, "testVoice")}
                             </button>
                         </div>
                     )}
@@ -156,8 +158,8 @@ export default function SettingsPage() {
                     {settings.environment === "outdoor" && (
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
                             <div>
-                                <span>Weather Announcements</span>
-                                <div style={{ fontSize: "12px", color: "var(--foreground-muted)" }}>Weather update at session start</div>
+                                <span>{t(lang, "weatherAnnouncements")}</span>
+                                <div style={{ fontSize: "12px", color: "var(--foreground-muted)" }}>{t(lang, "weatherDesc")}</div>
                             </div>
                             <button onClick={() => updateSettings({ weatherAnnouncements: !settings.weatherAnnouncements })} style={toggleStyle(settings.weatherAnnouncements)}>
                                 <div style={toggleKnob(settings.weatherAnnouncements)} />
@@ -169,8 +171,8 @@ export default function SettingsPage() {
                     {settings.environment === "outdoor" && (
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
                             <div>
-                                <span>Show Map</span>
-                                <div style={{ fontSize: "12px", color: "var(--foreground-muted)" }}>Display live map during session</div>
+                                <span>{t(lang, "showMap")}</span>
+                                <div style={{ fontSize: "12px", color: "var(--foreground-muted)" }}>{t(lang, "showMapDesc")}</div>
                             </div>
                             <button onClick={() => updateSettings({ showMap: !settings.showMap })} style={toggleStyle(settings.showMap)}>
                                 <div style={toggleKnob(settings.showMap)} />
@@ -192,7 +194,7 @@ export default function SettingsPage() {
                     {/* Auto-Pause Sensitivity — only if auto-pause is on */}
                     {settings.autoPause && (
                         <div>
-                            <label style={{ display: "block", marginBottom: "10px", color: "var(--foreground-muted)", fontSize: "14px" }}>Auto-Pause Sensitivity</label>
+                            <label style={{ display: "block", marginBottom: "10px", color: "var(--foreground-muted)", fontSize: "14px" }}>{t(lang, "autoPauseSensitivity")}</label>
                             <div style={{ display: "flex", gap: "8px" }}>
                                 {(["low", "medium", "high"] as const).map((s) => (
                                     <button key={s} onClick={() => updateSettings({ autoPauseSensitivity: s })} style={segmentStyle(settings.autoPauseSensitivity === s)}>
@@ -206,30 +208,53 @@ export default function SettingsPage() {
 
                 {/* General Preferences — existing */}
                 <div className="glass-panel" style={{ padding: "20px", borderRadius: "16px", marginBottom: "20px" }}>
-                    <h3 style={{ marginBottom: "15px", borderBottom: "1px solid rgba(255,255,255,0.1)", paddingBottom: "10px" }}>Preferences</h3>
+                    <h3 style={{ marginBottom: "15px", borderBottom: "1px solid rgba(255,255,255,0.1)", paddingBottom: "10px" }}>{t(lang, "preferences")}</h3>
 
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-                        <span>Theme Mode</span>
+                        <span>{t(lang, "themeMode")}</span>
                         <button onClick={toggleTheme} style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.2)", padding: "8px 16px", borderRadius: "20px", color: "var(--foreground)", cursor: "pointer", display: "flex", alignItems: "center", gap: "8px" }}>
                             <div style={{ width: "12px", height: "12px", borderRadius: "50%", background: settings.theme === "light" ? "#FFCC00" : "#CCFF00" }} />
-                            {settings.theme === "light" ? "Light Mode" : "Dark Mode"}
+                            {settings.theme === "light" ? t(lang, "lightMode") : t(lang, "darkMode")}
                         </button>
                     </div>
 
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <span>Units</span>
+                        <span>{t(lang, "units")}</span>
                         <select value={settings.units} onChange={(e) => updateSettings({ units: e.target.value as "imperial" | "metric" })} style={{ background: "rgba(0,0,0,0.3)", color: "var(--foreground)", padding: "8px 12px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.2)", outline: "none" }}>
-                            <option value="imperial">Imperial (mi)</option>
-                            <option value="metric">Metric (km)</option>
+                            <option value="imperial">{t(lang, "imperial")}</option>
+                            <option value="metric">{t(lang, "metric")}</option>
                         </select>
+                    </div>
+
+                    {/* Language */}
+                    <div style={{ marginTop: "20px" }}>
+                        <label style={{ display: "block", marginBottom: "10px", color: "var(--foreground-muted)", fontSize: "14px" }}>{t(lang, "language")}</label>
+                        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                            {LANGUAGE_OPTIONS.map((opt) => (
+                                <button
+                                    key={opt.id}
+                                    onClick={() => updateSettings({ language: opt.id })}
+                                    style={{
+                                        ...segmentStyle(settings.language === opt.id),
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: "6px",
+                                    }}
+                                >
+                                    <span>{opt.flag}</span>
+                                    <span>{opt.nativeLabel}</span>
+                                </button>
+                            ))}
+                        </div>
+                        <div style={{ fontSize: "12px", color: "var(--foreground-muted)", marginTop: "6px" }}>{t(lang, "languageDesc")}</div>
                     </div>
                 </div>
 
                 {/* Support */}
                 <div className="glass-panel" style={{ padding: "20px", borderRadius: "16px" }}>
-                    <h3 style={{ marginBottom: "15px", borderBottom: "1px solid rgba(255,255,255,0.1)", paddingBottom: "10px" }}>Support</h3>
+                    <h3 style={{ marginBottom: "15px", borderBottom: "1px solid rgba(255,255,255,0.1)", paddingBottom: "10px" }}>{t(lang, "support")}</h3>
                     <a href="/help/install" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", textDecoration: "none", color: "var(--foreground)" }}>
-                        <span>📱 Install App (PWA)</span>
+                        <span>📱 {t(lang, "installApp")}</span>
                         <span style={{ color: "var(--foreground-muted)" }}>→</span>
                     </a>
                 </div>

@@ -31,10 +31,11 @@ export default function RunPage() {
     const MOVES = [
         { id: "run", label: "Run", icon: "🏃", color: "var(--primary)", desc: "Track pace & distance" },
         { id: "walk", label: "Walk", icon: "🚶", color: "#00E5FF", desc: "Count steps & relax" },
-        { id: "bike", label: "Bike", icon: "🚴", color: "#FF9100", desc: "Speed & elevation" }
+        { id: "bike", label: "Bike", icon: "🚴", color: "#FF9100", desc: "Speed & elevation" },
+        { id: "hike", label: "Hike", icon: "🥾", color: "#4CAF50", desc: "Trail & elevation" }
     ];
 
-    const handleSelect = (mode: "run" | "walk" | "bike") => {
+    const handleSelect = (mode: "run" | "walk" | "bike" | "hike") => {
         updateSettings({ activityMode: mode });
         setView("tracker");
     };
@@ -141,7 +142,7 @@ export default function RunPage() {
                             textTransform: "uppercase",
                             letterSpacing: "1px"
                         }}>
-                            {settings.activityMode === "run" ? "🏃" : settings.activityMode === "walk" ? "🚶" : "🚴"} {settings.activityMode}
+                            {settings.activityMode === "run" ? "🏃" : settings.activityMode === "walk" ? "🚶" : settings.activityMode === "hike" ? "🥾" : "🚴"} {settings.activityMode}
                         </span>
                     </div>
                 </header>

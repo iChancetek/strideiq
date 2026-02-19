@@ -4,9 +4,11 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { MapContainer, TileLayer, Polyline, Marker, Popup, useMap } from "react-leaflet";
 import { useSettings } from "@/context/SettingsContext";
 import { useActivities } from "@/hooks/useActivities";
+import { useAuth } from "@/context/AuthContext";
 import { AgentCore } from "@/lib/agents/agent-core";
 import { GeoPosition, AgentEvent, MileSplit } from "@/lib/agents/types";
 import { getActivityLabel, getActivityType, getModeConfig } from "@/lib/agents/mode-agent";
+import PostSessionModal from "./PostSessionModal";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 
@@ -29,6 +31,7 @@ const STEPS_PER_MILE: Record<string, number> = {
     run: 1400,
     walk: 2100,
     bike: 0, // bikes don't count steps
+    hike: 1800,
 };
 
 function RecenterMap({ lat, lng }: { lat: number; lng: number }) {
@@ -55,6 +58,7 @@ function haversine(lat1: number, lon1: number, lat2: number, lon2: number): numb
 export default function SessionTracker() {
     const { settings } = useSettings();
     const { addActivity } = useActivities();
+    const { user } = useAuth();
     const mode = settings.activityMode;
     const environment = settings.environment;
     const modeConfig = getModeConfig(mode);
@@ -71,6 +75,8 @@ export default function SessionTracker() {
     const [weatherBanner, setWeatherBanner] = useState<string | null>(null);
     const [agentMessages, setAgentMessages] = useState<string[]>([]);
     const [saving, setSaving] = useState(false);
+    const [showPostModal, setShowPostModal] = useState(false);
+    const [pendingSessionData, setPendingSessionData] = useState<any>(null);
 
     const watchId = useRef<number | null>(null);
     const lastAcceptedPos = useRef<[number, number] | null>(null);
@@ -302,35 +308,75 @@ export default function SessionTracker() {
         const miles = finalDistanceKm * 0.621371;
         const durationSeconds = finalActiveSeconds;
 
-        setSaving(true);
+        if (miles < 0.05) {
+            alert("Session too short to save.");
+            lastAcceptedPos.current = null;
+            smoothedPos.current = null;
+            stepsRef.current = 0;
+            setSteps(0);
+            return;
+        }
 
+        // Show the PostSessionModal with session data
+        setPendingSessionData({
+            distanceMiles: parseFloat(miles.toFixed(2)),
+            durationSeconds: parseFloat(durationSeconds.toFixed(0)),
+            calories: Math.round(miles * modeConfig.caloriesPerMile),
+            steps: stepsRef.current,
+            mode,
+            environment,
+            mileSplits: splits.map(s => Math.round(s.splitSeconds)),
+            pausedDuration: Math.round(pausedSec),
+            weatherSnapshot: weather ? {
+                temp: weather.temp,
+                condition: weather.condition,
+                humidity: weather.humidity,
+                wind: weather.wind,
+            } : undefined,
+        });
+        setShowPostModal(true);
+    };
+
+    const handlePostSessionSave = async (data: { notes: string; title: string; mediaFiles: File[]; isPublic: boolean }) => {
+        if (!pendingSessionData) return;
+        setSaving(true);
         try {
-            if (miles > 0.05) {
-                await addActivity({
-                    type: getActivityType(mode),
-                    distance: parseFloat(miles.toFixed(2)),
-                    duration: parseFloat(durationSeconds.toFixed(0)),
-                    calories: Math.round(miles * modeConfig.caloriesPerMile),
-                    steps: stepsRef.current,
-                    date: new Date(),
-                    notes: `${getActivityLabel(mode)} — ${environment}`,
-                    mode,
-                    environment,
-                    mileSplits: splits.map(s => Math.round(s.splitSeconds)),
-                    pausedDuration: Math.round(pausedSec),
-                    ...(weather ? {
-                        weatherSnapshot: {
-                            temp: weather.temp,
-                            condition: weather.condition,
-                            humidity: weather.humidity,
-                            wind: weather.wind,
-                        }
-                    } : {}),
-                });
-                alert(`${getActivityLabel(mode)} Saved! ${miles.toFixed(2)} mi in ${formatTime(durationSeconds)}`);
-            } else {
-                alert("Session too short to save.");
+            // Upload media files to Firebase Storage
+            const mediaItems: { type: "image" | "video"; url: string; path: string; createdAt: string }[] = [];
+            if (data.mediaFiles.length > 0 && user) {
+                const { storage } = await import("@/lib/firebase/config");
+                const { ref, uploadBytes, getDownloadURL } = await import("firebase/storage");
+
+                for (const file of data.mediaFiles) {
+                    const mediaType = (file.type.startsWith("video") ? "video" : "image") as "image" | "video";
+                    const filePath = `users/${user.uid}/activities/media/${Date.now()}_${file.name}`;
+                    const storageRef = ref(storage, filePath);
+                    await uploadBytes(storageRef, file);
+                    const url = await getDownloadURL(storageRef);
+                    mediaItems.push({ type: mediaType, url, path: filePath, createdAt: new Date().toISOString() });
+                }
             }
+
+            await addActivity({
+                type: getActivityType(mode),
+                distance: pendingSessionData.distanceMiles,
+                duration: pendingSessionData.durationSeconds,
+                calories: pendingSessionData.calories,
+                steps: pendingSessionData.steps,
+                date: new Date(),
+                notes: data.notes || `${getActivityLabel(mode)} — ${environment}`,
+                title: data.title,
+                isPublic: data.isPublic,
+                mode: pendingSessionData.mode,
+                environment: pendingSessionData.environment,
+                mileSplits: pendingSessionData.mileSplits,
+                pausedDuration: pendingSessionData.pausedDuration,
+                ...(pendingSessionData.weatherSnapshot ? { weatherSnapshot: pendingSessionData.weatherSnapshot } : {}),
+                ...(mediaItems.length > 0 ? { media: mediaItems } : {}),
+            });
+
+            setShowPostModal(false);
+            setPendingSessionData(null);
         } catch (e: any) {
             console.error("Save error:", e);
             alert(`Failed to save session: ${e.message || "Unknown error"}`);
@@ -341,6 +387,15 @@ export default function SessionTracker() {
             stepsRef.current = 0;
             setSteps(0);
         }
+    };
+
+    const handleDiscardSession = () => {
+        setShowPostModal(false);
+        setPendingSessionData(null);
+        lastAcceptedPos.current = null;
+        smoothedPos.current = null;
+        stepsRef.current = 0;
+        setSteps(0);
     };
 
     const formatTime = (seconds: number) => {
@@ -444,6 +499,14 @@ export default function SessionTracker() {
                     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
                     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
                 `}</style>
+
+                {showPostModal && pendingSessionData && (
+                    <PostSessionModal
+                        session={pendingSessionData}
+                        onSave={handlePostSessionSave}
+                        onDiscard={handleDiscardSession}
+                    />
+                )}
             </div>
         );
     }
@@ -550,6 +613,14 @@ export default function SessionTracker() {
                 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
                 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
             `}</style>
+
+            {showPostModal && pendingSessionData && (
+                <PostSessionModal
+                    session={pendingSessionData}
+                    onSave={handlePostSessionSave}
+                    onDiscard={handleDiscardSession}
+                />
+            )}
         </div>
     );
 }

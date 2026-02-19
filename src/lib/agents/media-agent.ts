@@ -7,6 +7,7 @@ const BPM_RECOMMENDATIONS: Record<ActivityMode, { min: number; max: number; labe
     run: { min: 160, max: 180, label: "High-energy running tracks" },
     walk: { min: 100, max: 120, label: "Relaxed walking vibes" },
     bike: { min: 130, max: 150, label: "Endurance cycling beats" },
+    hike: { min: 110, max: 130, label: "Scenic trail hiking tunes" },
 };
 
 export class MediaAgent {

@@ -37,7 +37,7 @@ export default function ActivityDetailPage() {
     const [editDurationSec, setEditDurationSec] = useState("");
     const [editCalories, setEditCalories] = useState("");
     const [editNotes, setEditNotes] = useState("");
-    const [editType, setEditType] = useState<"Run" | "Walk" | "Bike" | "HIIT">("Run");
+    const [editType, setEditType] = useState<"Run" | "Walk" | "Bike" | "Hike" | "HIIT">("Run");
 
     const activity = activities.find(a => a.id === id);
 

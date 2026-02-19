@@ -3,7 +3,6 @@
 import FastingTimer from "@/components/dashboard/fasting/FastingTimer";
 import { useAuth } from "@/context/AuthContext";
 import { useEffect, useState } from "react";
-import { Activity, Flame, Clock, Calendar } from "lucide-react";
 
 export default function FastingPage() {
     const { user } = useAuth();
@@ -33,121 +32,164 @@ export default function FastingPage() {
     }, [user]);
 
     return (
-        <div className="max-w-6xl mx-auto">
-            <header className="mb-10 text-center relative z-10">
-                <div className="inline-flex items-center justify-center p-3 rounded-full bg-primary/10 border border-primary/20 mb-4 backdrop-blur-sm">
-                    <Flame className="text-primary w-6 h-6 mr-2 animate-pulse" />
-                    <span className="text-primary font-bold tracking-wider text-sm uppercase">Metabolic Health</span>
+        <div style={{ maxWidth: "900px", margin: "0 auto", padding: "0 16px", paddingBottom: "40px" }}>
+            {/* Header */}
+            <header style={{ marginBottom: "32px", textAlign: "center", position: "relative" }}>
+                <div style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    padding: "10px 20px",
+                    borderRadius: "var(--radius-full, 24px)",
+                    background: "rgba(204,255,0,0.1)",
+                    border: "1px solid rgba(204,255,0,0.2)",
+                    marginBottom: "12px",
+                }}>
+                    <span style={{ marginRight: "8px", fontSize: "18px" }}>🔥</span>
+                    <span style={{ color: "var(--primary)", fontWeight: 700, fontSize: "13px", textTransform: "uppercase", letterSpacing: "1px" }}>Metabolic Health</span>
                 </div>
-                <h1 className="text-5xl md:text-6xl font-black tracking-tighter mb-4">
-                    Fasting <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent">Tracker</span>
+                <h1 style={{ fontSize: "clamp(28px, 5vw, 48px)", fontWeight: 900, marginBottom: "12px" }}>
+                    Fasting <span style={{ color: "var(--primary)" }}>Tracker</span>
                 </h1>
-                <p className="text-xl text-foreground-muted max-w-2xl mx-auto">
+                <p style={{ fontSize: "16px", color: "var(--foreground-muted)", maxWidth: "500px", margin: "0 auto", lineHeight: "1.5" }}>
                     Optimize your cellular repair and metabolic flexibility through intermittent fasting.
                 </p>
-
-                {/* Background Decor */}
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[100px] -z-10 pointer-events-none" />
             </header>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            {/* Main Content Grid */}
+            <div style={{
+                display: "grid",
+                gridTemplateColumns: "1fr",
+                gap: "24px",
+            }}>
+                {/* Timer Section */}
+                <div className="glass-panel" style={{ padding: "clamp(20px, 4vw, 48px)", borderRadius: "16px", position: "relative", overflow: "hidden" }}>
+                    <FastingTimer />
+                </div>
 
-                {/* Main Timer Section */}
-                <div className="lg:col-span-7 space-y-8">
-                    <div className="glass-panel p-8 md:p-12 relative overflow-hidden group">
-                        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
-                        <FastingTimer />
+                {/* Info Cards Row */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                    <div className="glass-panel" style={{ padding: "20px", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", borderRadius: "16px" }}>
+                        <span style={{ fontSize: "28px", marginBottom: "10px" }}>🔬</span>
+                        <h3 style={{ fontWeight: 700, fontSize: "15px" }}>Autophagy</h3>
+                        <p style={{ fontSize: "12px", color: "var(--foreground-muted)", marginTop: "4px" }}>Cellular repair &amp; cleaning</p>
                     </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="glass-panel p-6 flex flex-col items-center text-center hover:border-primary/30 transition-colors">
-                            <Activity className="w-8 h-8 text-accent mb-3" />
-                            <h3 className="font-bold">Autophagy</h3>
-                            <p className="text-xs text-foreground-muted mt-1">Cellular repair & cleaning</p>
-                        </div>
-                        <div className="glass-panel p-6 flex flex-col items-center text-center hover:border-primary/30 transition-colors">
-                            <Flame className="w-8 h-8 text-primary mb-3" />
-                            <h3 className="font-bold">Fat Burn</h3>
-                            <p className="text-xs text-foreground-muted mt-1">Ketosis & lipid oxidation</p>
-                        </div>
+                    <div className="glass-panel" style={{ padding: "20px", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", borderRadius: "16px" }}>
+                        <span style={{ fontSize: "28px", marginBottom: "10px" }}>🔥</span>
+                        <h3 style={{ fontWeight: 700, fontSize: "15px" }}>Fat Burn</h3>
+                        <p style={{ fontSize: "12px", color: "var(--foreground-muted)", marginTop: "4px" }}>Ketosis &amp; lipid oxidation</p>
                     </div>
                 </div>
 
-                {/* Sidebar Info & History */}
-                <div className="lg:col-span-5 space-y-6">
-
-                    {/* Benefits Card */}
-                    <div className="glass-panel p-8 bg-gradient-to-b from-surface to-black/40">
-                        <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
-                            <span className="w-1 h-6 bg-primary rounded-full" />
-                            Physiological Benefits
-                        </h3>
-                        <ul className="space-y-4">
-                            {[
-                                { title: "Insulin Sensitivity", desc: "Lowers blood sugar & insulin resistance." },
-                                { title: "HGH Production", desc: "Boosts growth hormone for muscle preservation." },
-                                { title: "Mental Clarity", desc: "BDNF increase for sharper focus." },
-                                { title: "Inflammation", desc: "Reduces systemic inflammation markers." }
-                            ].map((item, i) => (
-                                <li key={i} className="flex gap-4 items-start">
-                                    <div className="w-6 h-6 rounded-full bg-surface-hover border border-white/10 flex items-center justify-center text-xs font-mono text-primary flex-shrink-0 mt-0.5">
-                                        {i + 1}
-                                    </div>
-                                    <div>
-                                        <div className="font-bold text-sm">{item.title}</div>
-                                        <div className="text-xs text-foreground-muted">{item.desc}</div>
-                                    </div>
-                                </li>
-                            ))}
-                        </ul>
+                {/* Benefits Card */}
+                <div className="glass-panel" style={{ padding: "24px", borderRadius: "16px" }}>
+                    <h3 style={{ fontSize: "18px", fontWeight: 700, marginBottom: "20px", display: "flex", alignItems: "center", gap: "10px" }}>
+                        <span style={{ width: "4px", height: "20px", background: "var(--primary)", borderRadius: "2px", display: "inline-block" }} />
+                        Physiological Benefits
+                    </h3>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                        {[
+                            { title: "Insulin Sensitivity", desc: "Lowers blood sugar & insulin resistance.", icon: "💉" },
+                            { title: "HGH Production", desc: "Boosts growth hormone for muscle preservation.", icon: "💪" },
+                            { title: "Mental Clarity", desc: "BDNF increase for sharper focus.", icon: "🧠" },
+                            { title: "Inflammation", desc: "Reduces systemic inflammation markers.", icon: "🛡️" }
+                        ].map((item, i) => (
+                            <div key={i} style={{ display: "flex", gap: "12px", alignItems: "flex-start" }}>
+                                <div style={{
+                                    width: "32px",
+                                    height: "32px",
+                                    borderRadius: "50%",
+                                    background: "rgba(255,255,255,0.05)",
+                                    border: "1px solid rgba(255,255,255,0.1)",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    fontSize: "14px",
+                                    flexShrink: 0,
+                                }}>
+                                    {item.icon}
+                                </div>
+                                <div>
+                                    <div style={{ fontWeight: 700, fontSize: "14px" }}>{item.title}</div>
+                                    <div style={{ fontSize: "12px", color: "var(--foreground-muted)" }}>{item.desc}</div>
+                                </div>
+                            </div>
+                        ))}
                     </div>
+                </div>
 
-                    {/* Recent Fasts */}
-                    <div className="glass-panel p-8">
-                        <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
-                            <Clock className="w-5 h-5 text-primary" />
-                            Recent Fasts
-                        </h3>
+                {/* Recent Fasts */}
+                <div className="glass-panel" style={{ padding: "24px", borderRadius: "16px" }}>
+                    <h3 style={{ fontSize: "18px", fontWeight: 700, marginBottom: "20px", display: "flex", alignItems: "center", gap: "10px" }}>
+                        ⏱️ Recent Fasts
+                    </h3>
 
-                        {loading ? (
-                            <div className="space-y-3">
-                                {[1, 2, 3].map(i => <div key={i} className="h-12 bg-white/5 rounded animate-pulse" />)}
-                            </div>
-                        ) : history.length === 0 ? (
-                            <div className="text-center py-8 px-4 border border-dashed border-white/10 rounded-xl bg-white/5">
-                                <p className="text-foreground-muted text-sm">No completed fasts yet.<br />Your journey begins with the first step.</p>
-                            </div>
-                        ) : (
-                            <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-                                {history.map(log => (
-                                    <div key={log.id} className="group relative p-4 rounded-xl bg-surface border border-white/5 hover:border-primary/30 transition-all hover:translate-x-1">
-                                        <div className="flex justify-between items-center z-10 relative">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-lg bg-black/40 flex items-center justify-center text-foreground-muted group-hover:text-primary transition-colors">
-                                                    <Calendar size={16} />
-                                                </div>
-                                                <div>
-                                                    <div className="font-bold text-sm group-hover:text-primary transition-colors">
-                                                        {new Date(log.endTime).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
-                                                    </div>
-                                                    <div className="text-[10px] text-foreground-muted uppercase tracking-wider">{log.type || "Custom"}</div>
-                                                </div>
+                    {loading ? (
+                        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                            {[1, 2, 3].map(i => (
+                                <div key={i} style={{ height: "48px", background: "rgba(255,255,255,0.05)", borderRadius: "12px", animation: "pulse 1.5s infinite" }} />
+                            ))}
+                        </div>
+                    ) : history.length === 0 ? (
+                        <div style={{
+                            textAlign: "center",
+                            padding: "32px 16px",
+                            border: "1px dashed rgba(255,255,255,0.1)",
+                            borderRadius: "12px",
+                            background: "rgba(255,255,255,0.02)",
+                        }}>
+                            <p style={{ color: "var(--foreground-muted)", fontSize: "14px" }}>
+                                No completed fasts yet.<br />Your journey begins with the first step.
+                            </p>
+                        </div>
+                    ) : (
+                        <div style={{ display: "flex", flexDirection: "column", gap: "12px", maxHeight: "300px", overflowY: "auto" }}>
+                            {history.map(log => (
+                                <div key={log.id} style={{
+                                    padding: "14px 16px",
+                                    borderRadius: "12px",
+                                    background: "rgba(255,255,255,0.03)",
+                                    border: "1px solid rgba(255,255,255,0.05)",
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    alignItems: "center",
+                                }}>
+                                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                                        <div style={{
+                                            width: "36px",
+                                            height: "36px",
+                                            borderRadius: "8px",
+                                            background: "rgba(0,0,0,0.3)",
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            fontSize: "14px",
+                                        }}>
+                                            📅
+                                        </div>
+                                        <div>
+                                            <div style={{ fontWeight: 700, fontSize: "14px" }}>
+                                                {new Date(log.endTime).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
                                             </div>
-                                            <div className="text-right">
-                                                <div className="font-mono text-lg font-bold text-primary leading-none">
-                                                    {log.durationMinutes?.toFixed(1)}
-                                                </div>
-                                                <div className="text-[10px] text-foreground-muted">hours</div>
-                                            </div>
+                                            <div style={{ fontSize: "10px", color: "var(--foreground-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>{log.type || "Custom"}</div>
                                         </div>
                                     </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-
+                                    <div style={{ textAlign: "right" }}>
+                                        <div style={{ fontWeight: 700, fontSize: "18px", color: "var(--primary)", fontFamily: "monospace" }}>
+                                            {log.durationMinutes?.toFixed(1)}
+                                        </div>
+                                        <div style={{ fontSize: "10px", color: "var(--foreground-muted)" }}>hours</div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </div>
+
+            <style jsx>{`
+                @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+            `}</style>
         </div>
     );
 }

@@ -3,7 +3,7 @@
 import Sidebar from "./Sidebar";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter, usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { logOut } from "@/lib/firebase/auth";
 import VoiceCommandOverlay from "@/components/dashboard/VoiceCommandOverlay";
 import { ChevronLeft } from "lucide-react";
@@ -12,7 +12,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { user, loading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
-  const hasGreeted = useRef(false);
+  const greetingTriggered = useRef(false);
 
   useEffect(() => {
     if (!loading && user && !user.emailVerified) {
@@ -20,10 +20,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [user, loading, router]);
 
-  // Voice Greeting
+  // Voice Greeting — plays ONCE per login session (sessionStorage clears on tab close)
   useEffect(() => {
-    if (!loading && user && !hasGreeted.current) {
-      hasGreeted.current = true;
+    if (!loading && user && !greetingTriggered.current) {
+      // Check sessionStorage — only greet once per login
+      const alreadyGreeted = sessionStorage.getItem("strideiq_greeted");
+      if (alreadyGreeted) return;
+
+      greetingTriggered.current = true;
+      sessionStorage.setItem("strideiq_greeted", "true");
+
       const name = user.displayName?.split(" ")[0] || "there";
       const hour = new Date().getHours();
       let timeGreeting = "Good morning";
@@ -32,40 +38,51 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       const text = `${timeGreeting}, ${name}. Welcome back to Stride IQ! Ready to crush some goals today?`;
 
-      const speak = () => {
+      // Use OpenAI TTS (nova voice) for natural sound; fallback to browser TTS
+      (async () => {
+        try {
+          const res = await fetch("/api/ai/tts", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text }),
+          });
+          if (res.ok) {
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const audio = new Audio(url);
+            audio.volume = 0.85;
+            audio.play().catch(() => { });
+            audio.onended = () => URL.revokeObjectURL(url);
+            return; // Success — don't fallback
+          }
+        } catch (e) {
+          console.warn("OpenAI TTS unavailable, falling back to browser TTS", e);
+        }
+
+        // Fallback: browser SpeechSynthesis
         if (window.speechSynthesis) {
           window.speechSynthesis.cancel();
           const utterance = new SpeechSynthesisUtterance(text);
-
-          // Attempt to find a female/natural voice
           const voices = window.speechSynthesis.getVoices();
           const preferredVoice = voices.find(v =>
             v.name.includes("Google US English") ||
             v.name.includes("Zira") ||
             (v.name.includes("Female") && v.lang.startsWith("en"))
           );
-
-          if (preferredVoice) {
-            utterance.voice = preferredVoice;
-          }
-
-          utterance.rate = 1.1; // Slightly faster for enthusiasm
-          utterance.pitch = 1.1; // Slightly higher
+          if (preferredVoice) utterance.voice = preferredVoice;
+          utterance.rate = 1.0;
+          utterance.pitch = 1.05;
           window.speechSynthesis.speak(utterance);
         }
-      };
-
-      if (window.speechSynthesis.getVoices().length === 0) {
-        window.speechSynthesis.onvoiceschanged = speak;
-      } else {
-        speak();
-      }
+      })();
     }
   }, [user, loading]);
 
   const handleLogout = async () => {
     try {
       if (window.speechSynthesis) window.speechSynthesis.cancel();
+      // Clear greeting flag so next login triggers a fresh greeting
+      sessionStorage.removeItem("strideiq_greeted");
       await logOut();
       router.push("/login");
     } catch (e) {
@@ -93,12 +110,32 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div className="back-button-wrapper">
             <button
               onClick={() => router.back()}
-              className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors group"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                background: "none",
+                border: "none",
+                color: "var(--foreground-muted)",
+                cursor: "pointer",
+                padding: "8px",
+                borderRadius: "var(--radius-full)",
+                transition: "color 0.2s",
+                fontSize: "14px",
+              }}
             >
-              <div className="p-2 rounded-full bg-white/5 group-hover:bg-white/10 no-underline backdrop-blur-md">
+              <div style={{
+                padding: "8px",
+                borderRadius: "50%",
+                background: "rgba(255,255,255,0.05)",
+                backdropFilter: "blur(8px)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}>
                 <ChevronLeft size={20} />
               </div>
-              <span className="text-sm font-medium">Back</span>
+              <span style={{ fontWeight: 500 }}>Back</span>
             </button>
           </div>
         )}

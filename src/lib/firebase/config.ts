@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider } from "firebase/auth";
+import { getAuth, GoogleAuthProvider, setPersistence, browserLocalPersistence } from "firebase/auth";
 import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
@@ -17,6 +17,11 @@ const firebaseConfig = {
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
 const auth = getAuth(app);
+
+// Ensure user stays logged in until explicit sign-out
+if (typeof window !== "undefined") {
+  setPersistence(auth, browserLocalPersistence).catch(console.error);
+}
 
 // Initialize Firestore with offline persistence
 const db = initializeFirestore(app, {

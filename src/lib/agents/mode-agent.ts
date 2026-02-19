@@ -1,5 +1,5 @@
 // StrideIQ Agentic AI — Mode Intelligence Agent
-// Returns mode-specific parameters for Run / Walk / Bike
+// Returns mode-specific parameters for Run / Walk / Bike / Hike
 
 import { ActivityMode, ModeConfig, AutoPauseSensitivity } from "./types";
 
@@ -28,6 +28,14 @@ const MODE_CONFIGS: Record<ActivityMode, ModeConfig> = {
         coachingStyle: "endurance",
         caloriesPerMile: 45,
     },
+    hike: {
+        mode: "hike",
+        speedThresholdMph: 2.0,
+        autoPauseSensitivity: "high",
+        displayMetric: "min/mile",
+        coachingStyle: "wellness",
+        caloriesPerMile: 80,
+    },
 };
 
 // Sensitivity overrides — how many consecutive "slow" readings before auto-pause triggers
@@ -50,13 +58,15 @@ export function getActivityLabel(mode: ActivityMode): string {
         case "run": return "Run";
         case "walk": return "Walk";
         case "bike": return "Ride";
+        case "hike": return "Hike";
     }
 }
 
-export function getActivityType(mode: ActivityMode): "Run" | "Walk" | "Bike" {
+export function getActivityType(mode: ActivityMode): "Run" | "Walk" | "Bike" | "Hike" {
     switch (mode) {
         case "run": return "Run";
         case "walk": return "Walk";
         case "bike": return "Bike";
+        case "hike": return "Hike";
     }
 }
