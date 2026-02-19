@@ -1,142 +1,149 @@
 "use client";
 
-import { Activity, Zap, Users, Mic, Smartphone, Heart, Award, Calendar, Brain, Coffee } from "lucide-react";
+import DashboardLayout from "@/components/layout/DashboardLayout";
+
+const features = [
+    {
+        title: "Activity Tracking",
+        emoji: "🏃",
+        color: "var(--primary)",
+        description: "Track runs, walks, and bike rides with GPS, pace, and elevation. Real-time stats with automatic calorie estimates.",
+        modules: "GPS • Pace • Elevation • Calories"
+    },
+    {
+        title: "AI Performance Coach",
+        emoji: "🤖",
+        color: "var(--primary)",
+        description: "Chat with your personal AI coach. Choose from three coaching personas: Onyx (discipline), Titan (power), or Zen (balance).",
+        modules: "Chat • Voice • Personas"
+    },
+    {
+        title: "Training Plans",
+        emoji: "📅",
+        color: "var(--secondary)",
+        description: "AI-generated training plans tailored to your fitness level and goals. Structured weekly workouts with progressive overload.",
+        modules: "Weekly Plan • Auto-Generate • Progress"
+    },
+    {
+        title: "Fasting Tracker",
+        emoji: "⏳",
+        color: "var(--accent)",
+        description: "Monitor your fasting windows with a visual countdown timer. Track your metabolic health alongside your fitness.",
+        modules: "Timer • History • Streaks"
+    },
+    {
+        title: "Journal",
+        emoji: "📓",
+        color: "var(--secondary)",
+        description: "Log your thoughts, mood, and reflections. AI agents correlate your mental state with your physical performance.",
+        modules: "Daily Entry • Mood • Insights"
+    },
+    {
+        title: "Steps & Leaderboard",
+        emoji: "👟",
+        color: "var(--primary)",
+        description: "Track daily steps and compete on global leaderboards. Every step counts toward your rank.",
+        modules: "Steps • Ranking • Streaks"
+    },
+    {
+        title: "Friends & Community",
+        emoji: "👥",
+        color: "var(--secondary)",
+        description: "Connect with other athletes. View their activities, follow their progress, and stay motivated together.",
+        modules: "Friends • Social Feed • Invite"
+    },
+    {
+        title: "Meditation",
+        emoji: "🧘",
+        color: "var(--accent)",
+        description: "Guided breathing exercises and meditation sessions to enhance focus, recovery, and mental clarity.",
+        modules: "Breathing • Timer • Sessions"
+    },
+];
 
 export default function LearnMorePage() {
     return (
-        <div className="max-w-4xl mx-auto pb-20 px-4">
-            {/* Header - Agentic Style */}
-            <header className="mb-10 lg:mb-16 text-center">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] lg:text-xs font-bold tracking-widest uppercase mb-4 lg:mb-6">
-                    <span className="w-1.5 h-1.5 lg:w-2 lg:h-2 rounded-full bg-primary animate-pulse" />
-                    Powered by Agentic AI
-                </div>
-
-                <h1 className="text-4xl md:text-5xl lg:text-7xl font-serif text-white mb-4 lg:mb-6 leading-tight">
-                    The World's First <br />
-                    <span className="text-primary italic">Agentic Fitness System</span>
-                </h1>
-
-                <p className="text-sm md:text-lg text-gray-400 max-w-2xl mx-auto font-sans font-light leading-relaxed">
-                    StrideIQ isn't just a tracker. It's a swarm of <strong className="text-white">intelligent, autonomous agents</strong> working in harmony to optimize your health. From real-time coaching to predictive recovery, your AI team is always active.
-                </p>
+        <DashboardLayout>
+            <header style={{ marginBottom: "30px" }}>
+                <h1 style={{ fontSize: "32px", marginBottom: "5px" }}>Guide</h1>
+                <p style={{ color: "var(--foreground-muted)" }}>Everything StrideIQ can do for you.</p>
             </header>
 
-            <div className="space-y-8 lg:space-y-12">
-
-                {/* Voice Command System */}
-                <section className="bg-zinc-900/30 border-l-4 border-primary p-6 lg:p-8 relative overflow-hidden group rounded-xl">
-                    <div className="absolute top-0 right-0 p-4 lg:p-8 opacity-5 pointer-events-none">
-                        <Mic size={80} className="lg:w-[120px] lg:h-[120px]" />
-                    </div>
-                    <div className="relative z-10">
-                        <h2 className="text-xl lg:text-2xl font-serif text-white mb-4 lg:mb-6 border-b border-white/10 pb-4">
-                            Voice Command Interface
-                        </h2>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
-                            <div>
-                                <p className="text-gray-300 mb-6 text-sm lg:text-lg font-light leading-relaxed">
-                                    StrideIQ is now hands-free. Tap the microphone in the bottom right to activate your voice agent. Powered by OpenAI Whisper for ultra-accurate transcription.
-                                </p>
-                                <div className="text-[10px] lg:text-xs uppercase tracking-widest text-primary mb-2">Capabilities</div>
-                                <div className="flex flex-wrap gap-2">
-                                    {["Start Run", "Log Food", "Open Journal", "Navigation"].map(tag => (
-                                        <span key={tag} className="px-3 py-1 bg-white/5 border border-white/10 text-gray-400 text-xs rounded-full">
-                                            {tag}
-                                        </span>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div className="bg-black/40 p-4 lg:p-6 border border-white/5 rounded-lg">
-                                <h3 className="font-serif text-white mb-3 text-lg italic">"Try saying..."</h3>
-                                <ul className="space-y-3 text-gray-400 text-sm font-mono">
-                                    <li className="flex items-center gap-2">
-                                        <span className="text-primary">›</span> "Start a run"
-                                    </li>
-                                    <li className="flex items-center gap-2">
-                                        <span className="text-primary">›</span> "Go for a walk"
-                                    </li>
-                                    <li className="flex items-center gap-2">
-                                        <span className="text-primary">›</span> "Take me to my journal"
-                                    </li>
-                                    <li className="flex items-center gap-2">
-                                        <span className="text-primary">›</span> "Sign out"
-                                    </li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
-
-                    {/* Active Performance */}
-                    <section className="bg-[#050505] p-6 lg:p-8 border-l-2 border-white/20 rounded-xl">
-                        <div className="mb-4 lg:mb-6 text-primary">
-                            <Activity size={24} className="lg:w-8 lg:h-8" />
-                        </div>
-                        <h2 className="text-lg lg:text-2xl font-serif text-white mb-2">
-                            Active Performance
-                        </h2>
-                        <p className="text-sm lg:text-base text-gray-400 font-light leading-relaxed mb-4 lg:mb-6">
-                            Track every move with precision using our multi-modal activity agents. Run, Walk, and Bike modes available.
-                        </p>
-                        <div className="text-[10px] lg:text-xs uppercase tracking-widest text-gray-600">
-                            Modules: GPS • Pace • Elevation
-                        </div>
-                    </section>
-
-                    {/* Predictive Wellness */}
-                    <section className="bg-[#050505] p-6 lg:p-8 border-l-2 border-white/20 rounded-xl">
-                        <div className="mb-4 lg:mb-6 text-pink-500">
-                            <Heart size={24} className="lg:w-8 lg:h-8" />
-                        </div>
-                        <h2 className="text-lg lg:text-2xl font-serif text-white mb-2">
-                            Predictive Wellness
-                        </h2>
-                        <p className="text-sm lg:text-base text-gray-400 font-light leading-relaxed mb-4 lg:mb-6">
-                            Monitor your fasting windows and mental state. Our wellness agents correlate your mood with your performance.
-                        </p>
-                        <div className="text-[10px] lg:text-xs uppercase tracking-widest text-gray-600">
-                            Modules: Fasting • Journal • Recovery
-                        </div>
-                    </section>
-
-                    {/* Community Swarm */}
-                    <section className="bg-[#050505] p-6 lg:p-8 border-l-2 border-white/20 rounded-xl">
-                        <div className="mb-4 lg:mb-6 text-yellow-400">
-                            <Users size={24} className="lg:w-8 lg:h-8" />
-                        </div>
-                        <h2 className="text-lg lg:text-2xl font-serif text-white mb-2">
-                            Community Swarm
-                        </h2>
-                        <p className="text-sm lg:text-base text-gray-400 font-light leading-relaxed mb-4 lg:mb-6">
-                            Connect with other athletes. Compete on global leaderboards where every step counts toward your rank.
-                        </p>
-                        <div className="text-[10px] lg:text-xs uppercase tracking-widest text-gray-600">
-                            Modules: Friends • Leaderboard • Social
-                        </div>
-                    </section>
-
-                    {/* Neural Platform */}
-                    <section className="bg-[#050505] p-6 lg:p-8 border-l-2 border-white/20 rounded-xl">
-                        <div className="mb-4 lg:mb-6 text-white">
-                            <Smartphone size={24} className="lg:w-8 lg:h-8" />
-                        </div>
-                        <h2 className="text-lg lg:text-2xl font-serif text-white mb-2">
-                            Neural Platform
-                        </h2>
-                        <p className="text-sm lg:text-base text-gray-400 font-light leading-relaxed mb-4 lg:mb-6">
-                            Install StrideIQ as a Progressive Web App (PWA) for a native, high-performance experience on any device.
-                        </p>
-                        <div className="text-[10px] lg:text-xs uppercase tracking-widest text-gray-600">
-                            Modules: PWA • Dark Mode • Offline
-                        </div>
-                    </section>
+            {/* Voice Commands */}
+            <section className="glass-panel" style={{
+                padding: "25px",
+                borderRadius: "var(--radius-lg)",
+                marginBottom: "25px",
+                borderLeft: "3px solid var(--primary)"
+            }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "15px" }}>
+                    <h3 style={{ margin: 0 }}>🎤 Voice Commands</h3>
+                    <span style={{ fontSize: "11px", color: "var(--primary)", textTransform: "uppercase", letterSpacing: "1px", fontWeight: 700 }}>NEW</span>
                 </div>
+                <p style={{ color: "var(--foreground-muted)", marginBottom: "15px", fontSize: "14px", lineHeight: 1.6 }}>
+                    Control StrideIQ hands-free. Tap the microphone button and speak naturally.
+                </p>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "10px" }}>
+                    {["\"Start a run\"", "\"Go for a walk\"", "\"Open my journal\"", "\"Sign out\""].map(cmd => (
+                        <div key={cmd} style={{
+                            padding: "10px 14px",
+                            background: "rgba(255,255,255,0.03)",
+                            borderRadius: "var(--radius-sm)",
+                            border: "1px solid rgba(255,255,255,0.05)",
+                            fontSize: "13px",
+                            color: "var(--foreground-muted)",
+                            fontFamily: "monospace"
+                        }}>
+                            <span style={{ color: "var(--primary)", marginRight: "6px" }}>›</span>
+                            {cmd}
+                        </div>
+                    ))}
+                </div>
+            </section>
+
+            {/* Feature Grid */}
+            <div style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+                gap: "20px"
+            }}>
+                {features.map((feature) => (
+                    <section key={feature.title} className="glass-panel" style={{
+                        padding: "25px",
+                        borderRadius: "var(--radius-lg)",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "12px"
+                    }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                            <div style={{
+                                width: 40, height: 40,
+                                borderRadius: "var(--radius-sm)",
+                                background: "rgba(255,255,255,0.05)",
+                                display: "flex", alignItems: "center", justifyContent: "center",
+                                fontSize: "20px"
+                            }}>
+                                {feature.emoji}
+                            </div>
+                            <h3 style={{ margin: 0, fontSize: "16px" }}>{feature.title}</h3>
+                        </div>
+                        <p style={{ color: "var(--foreground-muted)", fontSize: "14px", lineHeight: 1.5 }}>
+                            {feature.description}
+                        </p>
+                        <div style={{
+                            fontSize: "11px",
+                            color: "var(--foreground-muted)",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.05em",
+                            marginTop: "auto",
+                            paddingTop: "10px",
+                            borderTop: "1px solid rgba(255,255,255,0.05)"
+                        }}>
+                            {feature.modules}
+                        </div>
+                    </section>
+                ))}
             </div>
-        </div>
+        </DashboardLayout>
     );
 }

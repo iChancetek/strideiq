@@ -26,4 +26,6 @@ env:
   - variable: NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
     value: "G-6BCVETHE9W"
     availability: ["BUILD", "RUNTIME"]
-
+  - variable: OPENAI_API_KEY
+    secret: OPENAI_API_KEY
+    availability: ["BUILD", "RUNTIME"]

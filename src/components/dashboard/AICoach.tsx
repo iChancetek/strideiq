@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect } from "react";
 import { PERSONAS, PersonaId } from "@/lib/ai/personas";
-import { Mic, Send, Volume2, VolumeX, ArrowLeft } from "lucide-react";
 
 type Message = {
     role: "user" | "assistant" | "tool";
@@ -47,7 +46,7 @@ export default function AICoach() {
             recognition.onresult = (event: any) => {
                 const transcript = event.results[0][0].transcript;
                 setInput(transcript);
-                sendMessage(transcript); // Auto-send on voice input
+                sendMessage(transcript);
             };
 
             recognition.onend = () => {
@@ -61,14 +60,11 @@ export default function AICoach() {
     // Text-to-Speech
     const speak = (text: string) => {
         if (!voiceMode || !window.speechSynthesis) return;
-
         window.speechSynthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(text);
         const voices = window.speechSynthesis.getVoices();
-        // Try to find a good voice, otherwise default
         const preferredVoice = voices.find(v => v.name.includes("Google US English") || v.name.includes("Samantha"));
         if (preferredVoice) utterance.voice = preferredVoice;
-
         utterance.rate = 1.0;
         utterance.pitch = 1.0;
         window.speechSynthesis.speak(utterance);
@@ -84,7 +80,6 @@ export default function AICoach() {
         }
     };
 
-    // Reset chat when persona changes
     const changePersona = (id: PersonaId) => {
         setCurrentPersonaId(id);
         const newPersona = PERSONAS[id];
@@ -107,22 +102,18 @@ export default function AICoach() {
         setLoading(true);
 
         try {
-            // Context window: last 10 messages
             const history = [...messages.slice(-10), userMsg].map(({ role, content }) => ({ role, content }));
 
             const res = await fetch("/api/chat", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    messages: history,
-                    personaId: currentPersonaId
-                }),
+                body: JSON.stringify({ messages: history, personaId: currentPersonaId }),
             });
 
             const data = await res.json();
 
             if (data.error || !res.ok) {
-                const errorMsg = "Sorry, I had trouble reaching the coaching server.";
+                const errorMsg = data.details || "Sorry, I had trouble reaching the coaching server.";
                 setMessages(prev => [...prev, { role: "assistant", content: errorMsg }]);
                 if (voiceMode) speak(errorMsg);
             } else {
@@ -141,52 +132,39 @@ export default function AICoach() {
     };
 
     return (
-        <div className="flex flex-col h-[calc(100vh-140px)] min-h-[500px] w-full max-w-md mx-auto bg-black rounded-xl lg:rounded-[32px] border border-white/10 overflow-hidden shadow-2xl relative">
-
+        <div className="glass-panel" style={{
+            borderRadius: "var(--radius-lg)",
+            display: "flex",
+            flexDirection: "column",
+            height: "100%",
+            overflow: "hidden"
+        }}>
             {/* Header */}
-            <div className="p-6 border-b border-white/10 bg-zinc-900/50 backdrop-blur-md">
-                <div className="flex items-center justify-between mb-6">
-                    <button className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors">
-                        <ArrowLeft size={20} className="text-white" />
-                    </button>
-                    <h1 className="text-2xl font-serif text-white ml-2">AI Performance Coach</h1>
-                    <div className="w-10" /> {/* Spacer */}
-                </div>
-
-                {/* Active Persona Card */}
-                <div className="flex items-center justify-between bg-zinc-800/50 rounded-2xl p-4 border border-white/5 mb-4">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-black flex items-center justify-center text-xl">
-                            {activePersona.avatar}
-                        </div>
-                        <div>
-                            <div className="text-white font-bold text-sm">{activePersona.name}</div>
-                            <div className="text-gray-400 text-xs">{activePersona.role}</div>
-                        </div>
-                    </div>
-                    <button
-                        onClick={() => setVoiceMode(!voiceMode)}
-                        className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition-all ${voiceMode ? "bg-red-500/20 text-red-400 border border-red-500/30" : "bg-white/5 text-gray-400 border border-white/10"
-                            }`}
-                    >
-                        {voiceMode ? <Volume2 size={14} /> : <VolumeX size={14} />}
-                        {voiceMode ? "Voice On" : "Voice Off"}
-                    </button>
-                </div>
-
+            <div style={{
+                padding: "20px",
+                borderBottom: "1px solid rgba(255,255,255,0.1)"
+            }}>
                 {/* Persona Toggles */}
-                <div className="flex gap-2 p-1 bg-black/40 rounded-xl overflow-x-auto">
+                <div style={{ display: "flex", gap: "8px", marginBottom: "12px" }}>
                     {Object.values(PERSONAS).map((p) => (
                         <button
                             key={p.id}
                             onClick={() => changePersona(p.id)}
-                            className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${currentPersonaId === p.id
-                                ? `bg-[${p.color}] text-black shadow-lg shadow-[${p.color}]/20`
-                                : "text-gray-400 hover:bg-white/5"
-                                }`}
                             style={{
-                                backgroundColor: currentPersonaId === p.id ? p.color : "transparent",
-                                color: currentPersonaId === p.id ? "#000" : undefined
+                                flex: 1,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                gap: "6px",
+                                padding: "8px 12px",
+                                borderRadius: "var(--radius-sm)",
+                                fontSize: "12px",
+                                fontWeight: 600,
+                                border: currentPersonaId === p.id ? `1px solid ${p.color}` : "1px solid rgba(255,255,255,0.1)",
+                                background: currentPersonaId === p.id ? p.color : "transparent",
+                                color: currentPersonaId === p.id ? "#000" : "var(--foreground-muted)",
+                                cursor: "pointer",
+                                transition: "all 0.2s ease"
                             }}
                         >
                             <span>{p.avatar}</span>
@@ -194,31 +172,76 @@ export default function AICoach() {
                         </button>
                     ))}
                 </div>
+
+                {/* Active Persona Info */}
+                <div style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    fontSize: "12px",
+                    color: "var(--foreground-muted)"
+                }}>
+                    <span>{activePersona.name} — {activePersona.role}</span>
+                    <button
+                        onClick={() => setVoiceMode(!voiceMode)}
+                        style={{
+                            padding: "4px 10px",
+                            borderRadius: "var(--radius-full)",
+                            fontSize: "11px",
+                            fontWeight: 600,
+                            cursor: "pointer",
+                            background: voiceMode ? "rgba(255, 50, 50, 0.15)" : "rgba(255,255,255,0.05)",
+                            color: voiceMode ? "var(--error)" : "var(--foreground-muted)",
+                            border: voiceMode ? "1px solid rgba(255, 50, 50, 0.3)" : "1px solid rgba(255,255,255,0.1)",
+                            transition: "all 0.2s ease"
+                        }}
+                    >
+                        {voiceMode ? "🔊 Voice On" : "🔇 Voice Off"}
+                    </button>
+                </div>
             </div>
 
             {/* Chat Area */}
-            <div className="flex-1 p-6 overflow-y-auto flex flex-col gap-4 bg-black relative">
-                <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10 pointer-events-none" />
-
+            <div style={{
+                flex: 1,
+                padding: "20px",
+                overflowY: "auto",
+                display: "flex",
+                flexDirection: "column",
+                gap: "12px"
+            }}>
                 {messages.map((msg, i) => (
-                    <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"} relative z-10`}>
-                        <div
-                            className={`max-w-[80%] p-4 rounded-2xl text-sm leading-relaxed ${msg.role === "user"
-                                ? "bg-[#CCFF00] text-black font-medium border border-[#CCFF00] rounded-br-sm"
-                                : "bg-zinc-900 text-gray-200 border border-white/10 rounded-bl-sm"
-                                }`}
-                        >
+                    <div key={i} style={{
+                        display: "flex",
+                        justifyContent: msg.role === "user" ? "flex-end" : "flex-start"
+                    }}>
+                        <div style={{
+                            maxWidth: "80%",
+                            padding: "12px 16px",
+                            borderRadius: msg.role === "user" ? "var(--radius-md) var(--radius-md) 4px var(--radius-md)" : "var(--radius-md) var(--radius-md) var(--radius-md) 4px",
+                            fontSize: "14px",
+                            lineHeight: 1.5,
+                            background: msg.role === "user" ? "var(--primary)" : "rgba(255,255,255,0.05)",
+                            color: msg.role === "user" ? "#000" : "var(--foreground)",
+                            fontWeight: msg.role === "user" ? 500 : 400,
+                            border: msg.role === "user" ? "none" : "1px solid rgba(255,255,255,0.1)"
+                        }}>
                             {msg.content}
                         </div>
                     </div>
                 ))}
 
                 {loading && (
-                    <div className="flex justify-start">
-                        <div className="bg-zinc-900 border border-white/10 text-gray-400 text-xs px-4 py-3 rounded-2xl rounded-bl-sm flex items-center gap-1">
-                            <span className="w-1.5 h-1.5 bg-gray-500 rounded-full animate-bounce" />
-                            <span className="w-1.5 h-1.5 bg-gray-500 rounded-full animate-bounce delay-100" />
-                            <span className="w-1.5 h-1.5 bg-gray-500 rounded-full animate-bounce delay-200" />
+                    <div style={{ display: "flex", justifyContent: "flex-start" }}>
+                        <div style={{
+                            padding: "12px 16px",
+                            borderRadius: "var(--radius-md)",
+                            background: "rgba(255,255,255,0.05)",
+                            border: "1px solid rgba(255,255,255,0.1)",
+                            color: "var(--foreground-muted)",
+                            fontSize: "14px"
+                        }}>
+                            Thinking...
                         </div>
                     </div>
                 )}
@@ -226,45 +249,71 @@ export default function AICoach() {
             </div>
 
             {/* Input Area */}
-            <div className="p-4 bg-black/80 backdrop-blur-xl border-t border-white/10 absolute bottom-0 left-0 right-0 z-20">
-                <div className="flex items-center gap-3">
-                    <button
-                        onClick={toggleListening}
-                        className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${isListening
-                            ? "bg-red-500 text-white animate-pulse"
-                            : "bg-zinc-800 text-gray-400 hover:bg-zinc-700"
-                            }`}
-                    >
-                        <Mic size={20} />
-                    </button>
+            <div style={{
+                padding: "15px 20px",
+                borderTop: "1px solid rgba(255,255,255,0.1)",
+                display: "flex",
+                gap: "10px",
+                alignItems: "center"
+            }}>
+                <button
+                    onClick={toggleListening}
+                    style={{
+                        width: 40, height: 40,
+                        borderRadius: "50%",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        background: isListening ? "var(--error)" : "rgba(255,255,255,0.05)",
+                        color: isListening ? "#fff" : "var(--foreground-muted)",
+                        border: "1px solid rgba(255,255,255,0.1)",
+                        cursor: "pointer",
+                        fontSize: "16px",
+                        transition: "all 0.2s ease"
+                    }}
+                >
+                    🎤
+                </button>
 
-                    <div className="flex-1 relative">
-                        <input
-                            type="text"
-                            value={input}
-                            onChange={(e) => setInput(e.target.value)}
-                            onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-                            placeholder={`Ask ${activePersona.name.split(" ")[0]}...`}
-                            className="w-full bg-zinc-900 border border-white/10 text-white text-sm rounded-full py-3.5 pl-5 pr-12 focus:outline-none focus:border-[#CCFF00]/50 transition-colors placeholder:text-zinc-600"
-                        />
-                        <button
-                            onClick={() => sendMessage()}
-                            disabled={loading || !input.trim()}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-[#CCFF00] flex items-center justify-center text-black disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 transition-all"
-                        >
-                            <Send size={14} className="ml-0.5" />
-                        </button>
-                    </div>
+                <input
+                    type="text"
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+                    placeholder={`Ask ${activePersona.name.split(" ")[0]}...`}
+                    style={{
+                        flex: 1,
+                        padding: "10px 16px",
+                        borderRadius: "var(--radius-full)",
+                        background: "rgba(255,255,255,0.05)",
+                        border: "1px solid rgba(255,255,255,0.1)",
+                        color: "var(--foreground)",
+                        fontSize: "14px",
+                        outline: "none",
+                        fontFamily: "var(--font-sans)"
+                    }}
+                />
 
-                    {/* Menu/Settings placeholder */}
-                    <button className="w-12 h-12 rounded-full bg-[#CCFF00] flex items-center justify-center text-black font-bold hover:scale-105 transition-transform">
-                        =
-                    </button>
-                </div>
+                <button
+                    onClick={() => sendMessage()}
+                    disabled={loading || !input.trim()}
+                    style={{
+                        padding: "10px 20px",
+                        borderRadius: "var(--radius-full)",
+                        background: "var(--primary)",
+                        color: "#000",
+                        fontWeight: 600,
+                        fontSize: "13px",
+                        border: "none",
+                        cursor: loading || !input.trim() ? "not-allowed" : "pointer",
+                        opacity: loading || !input.trim() ? 0.5 : 1,
+                        transition: "all 0.2s ease",
+                        fontFamily: "var(--font-heading)",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.05em"
+                    }}
+                >
+                    Send
+                </button>
             </div>
-
-            {/* Spacer for input area */}
-            <div className="h-24" />
         </div>
     );
 }

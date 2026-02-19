@@ -4,52 +4,16 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
-import { Medal, Trophy, Award, Lock, Timer, Route as RouteIcon, Zap, Activity } from "lucide-react";
+import DashboardLayout from "@/components/layout/DashboardLayout";
 
 // --- Badge Configuration ---
-const BADGE_CONFIG: Record<string, { label: string, icon: any, color: string, description: string, glow: string }> = {
-    "25_miles": {
-        label: "25 Miles",
-        icon: Medal,
-        color: "#CCFF00", // Lime
-        description: "Ran a total of 25 miles",
-        glow: "0 0 20px rgba(204, 255, 0, 0.4)"
-    },
-    "50_miles": {
-        label: "50 Miles",
-        icon: Medal,
-        color: "#00E5FF", // Cyan
-        description: "Ran a total of 50 miles",
-        glow: "0 0 20px rgba(0, 229, 255, 0.4)"
-    },
-    "100_miles": {
-        label: "100 Miles",
-        icon: Medal,
-        color: "#FF0055", // Hot Pink
-        description: "Ran a total of 100 miles",
-        glow: "0 0 20px rgba(255, 0, 85, 0.4)"
-    },
-    "250_miles": {
-        label: "250 Miles",
-        icon: Trophy,
-        color: "#CCFF00",
-        description: "Ran a total of 250 miles",
-        glow: "0 0 30px rgba(204, 255, 0, 0.6)"
-    },
-    "500_miles": {
-        label: "500 Miles",
-        icon: Trophy,
-        color: "#00E5FF",
-        description: "Ran a total of 500 miles",
-        glow: "0 0 30px rgba(0, 229, 255, 0.6)"
-    },
-    "1000_miles": {
-        label: "1K Club",
-        icon: Award,
-        color: "#FF0055",
-        description: "Ran a total of 1,000 miles",
-        glow: "0 0 40px rgba(255, 0, 85, 0.8)"
-    },
+const BADGE_CONFIG: Record<string, { label: string; emoji: string; color: string; description: string }> = {
+    "25_miles": { label: "25 Miles", emoji: "🥉", color: "#CCFF00", description: "Ran a total of 25 miles" },
+    "50_miles": { label: "50 Miles", emoji: "🥈", color: "#00E5FF", description: "Ran a total of 50 miles" },
+    "100_miles": { label: "100 Miles", emoji: "🥇", color: "#FF0055", description: "Ran a total of 100 miles" },
+    "250_miles": { label: "250 Miles", emoji: "🏆", color: "#CCFF00", description: "Ran a total of 250 miles" },
+    "500_miles": { label: "500 Miles", emoji: "🏆", color: "#00E5FF", description: "Ran a total of 500 miles" },
+    "1000_miles": { label: "1K Club", emoji: "👑", color: "#FF0055", description: "Ran a total of 1,000 miles" },
 };
 
 export default function AchievementsPage() {
@@ -63,9 +27,7 @@ export default function AchievementsPage() {
                 try {
                     const statsRef = doc(db, "users", user.uid, "stats", "allTime");
                     const snap = await getDoc(statsRef);
-                    if (snap.exists()) {
-                        setUserStats(snap.data());
-                    }
+                    if (snap.exists()) setUserStats(snap.data());
                 } catch (e) {
                     console.error("Error fetching stats:", e);
                 } finally {
@@ -81,119 +43,127 @@ export default function AchievementsPage() {
     const records = userStats?.records || {};
 
     return (
-        <div className="max-w-7xl mx-auto pb-20">
-            {/* Header Section - Agentic Style */}
-            <header className="mb-10 lg:mb-16 text-center relative px-4">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] lg:text-xs font-bold tracking-widest uppercase mb-4 lg:mb-6">
-                    <span className="w-1.5 h-1.5 lg:w-2 lg:h-2 rounded-full bg-primary animate-pulse" />
-                    Powered by Agentic AI
-                </div>
-
-                <h1 className="text-4xl md:text-5xl lg:text-7xl font-serif text-white mb-4 lg:mb-6 leading-tight">
-                    The Hall of <br className="md:hidden" /><span className="text-primary italic">Excellence</span>
-                </h1>
-
-                <p className="text-sm md:text-lg text-gray-400 max-w-2xl mx-auto font-sans font-light leading-relaxed">
-                    StrideIQ isn't just a tracker. It's a swarm of <strong className="text-white">intelligent, autonomous agents</strong> recognizing your every milestone.
-                </p>
+        <DashboardLayout>
+            <header style={{ marginBottom: "30px" }}>
+                <h1 style={{ fontSize: "32px", marginBottom: "5px" }}>Achievements</h1>
+                <p style={{ color: "var(--foreground-muted)" }}>Your milestones, records, and earned badges.</p>
             </header>
 
             {loading ? (
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-pulse px-4">
-                    <div className="h-64 lg:h-96 rounded-3xl bg-white/5 col-span-1" />
-                    <div className="h-64 lg:h-96 rounded-3xl bg-white/5 col-span-2" />
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: "20px" }}>
+                    <div className="glass-panel" style={{ padding: "40px", borderRadius: "var(--radius-lg)", minHeight: "300px" }} />
+                    <div className="glass-panel" style={{ padding: "40px", borderRadius: "var(--radius-lg)", minHeight: "300px" }} />
                 </div>
             ) : (
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 px-4">
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: "20px", alignItems: "start" }}>
 
-                    {/* Left Column: Personal Records (Agentic HUD) */}
-                    <div className="lg:col-span-4 space-y-6">
-                        <div className="bg-[#050505] border-l-4 border-primary p-6 lg:p-8 relative overflow-hidden group rounded-xl lg:rounded-none">
-                            <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
-                                <Activity size={80} className="lg:w-[120px] lg:h-[120px]" />
-                            </div>
+                    {/* Left Column: Personal Records */}
+                    <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+                        <section className="glass-panel" style={{ padding: "25px", borderRadius: "var(--radius-lg)" }}>
+                            <h3 style={{ margin: 0, marginBottom: "20px", fontSize: "14px", color: "var(--foreground-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                                Personal Records
+                            </h3>
 
-                            <h2 className="text-xl lg:text-2xl font-serif text-white mb-6 lg:mb-8 border-b border-white/10 pb-4">
-                                Active Performance
-                            </h2>
-
-                            <div className="space-y-6">
+                            <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
                                 {/* Fastest Mile */}
-                                <div className="group/item">
-                                    <div className="flex items-center justify-between mb-2">
-                                        <span className="text-[10px] lg:text-xs uppercase tracking-widest text-gray-500 group-hover/item:text-primary transition-colors">Fastest Mile</span>
-                                        <Timer size={14} className="text-gray-600 group-hover/item:text-primary transition-colors" />
+                                <div>
+                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                                        <span style={{ fontSize: "12px", textTransform: "uppercase", letterSpacing: "1px", color: "var(--foreground-muted)" }}>Fastest Mile</span>
+                                        <span style={{ fontSize: "14px" }}>⏱️</span>
                                     </div>
-                                    <div className="text-3xl lg:text-4xl font-serif text-white">
+                                    <div style={{ fontSize: "28px", fontWeight: 700, fontFamily: "var(--font-heading)" }}>
                                         {records.fastestMile ? records.fastestMile.display : "--:--"}
                                     </div>
                                 </div>
 
                                 {/* Longest Run */}
-                                <div className="group/item">
-                                    <div className="flex items-center justify-between mb-2">
-                                        <span className="text-[10px] lg:text-xs uppercase tracking-widest text-gray-500 group-hover/item:text-secondary transition-colors">Longest Run</span>
-                                        <RouteIcon size={14} className="text-gray-600 group-hover/item:text-secondary transition-colors" />
+                                <div>
+                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                                        <span style={{ fontSize: "12px", textTransform: "uppercase", letterSpacing: "1px", color: "var(--foreground-muted)" }}>Longest Run</span>
+                                        <span style={{ fontSize: "14px" }}>📏</span>
                                     </div>
-                                    <div className="text-3xl lg:text-4xl font-serif text-white">
+                                    <div style={{ fontSize: "28px", fontWeight: 700, fontFamily: "var(--font-heading)" }}>
                                         {records.longestRun ? records.longestRun.display : "0.0 mi"}
                                     </div>
                                 </div>
                             </div>
-                        </div>
-
-                        <div className="p-6 lg:p-8 bg-zinc-900/30 border border-white/5 text-center rounded-xl lg:rounded-none">
-                            <h3 className="text-lg lg:text-xl font-serif text-white mb-2 italic">"Efficiency is the essence of survival."</h3>
-                            <p className="text-[10px] lg:text-xs text-gray-500 uppercase tracking-widest">— Your AI Coach</p>
-                        </div>
-                    </div>
-
-                    {/* Right Column: Trophy Case (Minimalist Grid) */}
-                    <div className="lg:col-span-8">
-                        <section className="bg-[#050505] p-6 lg:p-8 h-full relative rounded-xl lg:rounded-none border border-white/5 lg:border-none">
-                            <h2 className="text-xl lg:text-2xl font-serif text-white mb-6 lg:mb-8 border-b border-white/10 pb-4 flex items-center justify-between">
-                                <span>Trophy Case</span>
-                                <Award size={20} className="text-white/20 lg:w-6 lg:h-6" />
-                            </h2>
-
-                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 lg:gap-6">
-                                {Object.entries(BADGE_CONFIG).map(([id, config]) => {
-                                    const isEarned = earnedSet.has(id);
-                                    const Icon = config.icon;
-
-                                    return (
-                                        <div
-                                            key={id}
-                                            className={`relative group p-4 lg:p-6 border flex flex-col items-center text-center transition-all duration-500 rounded-lg ${isEarned
-                                                ? "bg-zinc-900/20 border-white/10 hover:border-primary/50"
-                                                : "bg-transparent border-white/5 opacity-30 grayscale"
-                                                }`}
-                                        >
-                                            <div
-                                                className="mb-3 lg:mb-4 transition-all duration-500 group-hover:scale-110"
-                                            >
-                                                {isEarned ? (
-                                                    <Icon size={24} className="lg:w-8 lg:h-8" color={config.color} strokeWidth={1.5} />
-                                                ) : (
-                                                    <Lock size={20} className="lg:w-6 lg:h-6" color="#333" />
-                                                )}
-                                            </div>
-
-                                            <h3 className={`font-serif text-sm lg:text-lg mb-1 lg:mb-2 ${isEarned ? "text-white" : "text-gray-700"}`}>
-                                                {config.label}
-                                            </h3>
-                                            <p className="text-[9px] lg:text-[10px] text-gray-500 uppercase tracking-widest leading-relaxed">
-                                                {config.description}
-                                            </p>
-                                        </div>
-                                    );
-                                })}
-                            </div>
                         </section>
+
+                        {/* Motivational Quote */}
+                        <div className="glass-panel" style={{
+                            padding: "25px",
+                            borderRadius: "var(--radius-lg)",
+                            textAlign: "center",
+                            background: "linear-gradient(135deg, rgba(204, 255, 0, 0.05), rgba(0, 0, 0, 0))"
+                        }}>
+                            <p style={{ fontSize: "16px", fontStyle: "italic", fontFamily: "var(--font-heading)", lineHeight: 1.4 }}>
+                                "Efficiency is the essence of survival."
+                            </p>
+                            <p style={{ fontSize: "11px", color: "var(--foreground-muted)", marginTop: "8px", textTransform: "uppercase", letterSpacing: "1px" }}>
+                                — Your AI Coach
+                            </p>
+                        </div>
                     </div>
 
+                    {/* Right Column: Trophy Case */}
+                    <section className="glass-panel" style={{ padding: "25px", borderRadius: "var(--radius-lg)" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+                            <h3 style={{ margin: 0, fontSize: "14px", color: "var(--foreground-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                                Trophy Case
+                            </h3>
+                            <span>🏆</span>
+                        </div>
+
+                        <div style={{
+                            display: "grid",
+                            gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
+                            gap: "15px"
+                        }}>
+                            {Object.entries(BADGE_CONFIG).map(([id, config]) => {
+                                const isEarned = earnedSet.has(id);
+
+                                return (
+                                    <div
+                                        key={id}
+                                        style={{
+                                            padding: "20px 15px",
+                                            borderRadius: "var(--radius-md)",
+                                            background: isEarned ? "rgba(255,255,255,0.03)" : "transparent",
+                                            border: isEarned ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(255,255,255,0.05)",
+                                            display: "flex",
+                                            flexDirection: "column",
+                                            alignItems: "center",
+                                            textAlign: "center",
+                                            opacity: isEarned ? 1 : 0.3,
+                                            transition: "all 0.3s ease",
+                                            cursor: "default"
+                                        }}
+                                    >
+                                        <span style={{ fontSize: "28px", marginBottom: "10px" }}>
+                                            {isEarned ? config.emoji : "🔒"}
+                                        </span>
+                                        <div style={{
+                                            fontSize: "14px",
+                                            fontWeight: 600,
+                                            marginBottom: "4px",
+                                            color: isEarned ? "var(--foreground)" : "var(--foreground-muted)"
+                                        }}>
+                                            {config.label}
+                                        </div>
+                                        <div style={{
+                                            fontSize: "11px",
+                                            color: "var(--foreground-muted)",
+                                            lineHeight: 1.3
+                                        }}>
+                                            {config.description}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </section>
                 </div>
             )}
-        </div>
+        </DashboardLayout>
     );
 }

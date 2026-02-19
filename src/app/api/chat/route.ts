@@ -32,7 +32,7 @@ export async function POST(req: Request) {
             model: "gpt-4o",
             messages: [systemMessage, ...messages],
             temperature: 0.7,
-            max_tokens: 500,
+            max_completion_tokens: 500,
         });
 
         const reply = completion.choices[0].message;
