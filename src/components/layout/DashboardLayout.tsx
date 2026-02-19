@@ -5,6 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { logOut } from "@/lib/firebase/auth";
+import VoiceCommandOverlay from "@/components/dashboard/VoiceCommandOverlay";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -56,11 +57,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <Sidebar onLogout={handleLogout} />
       <main style={{
         flex: 1,
-        marginLeft: "250px",
+        marginLeft: "300px",
         padding: "40px",
-        width: "calc(100% - 250px)"
+        width: "calc(100% - 300px)"
       }} className="main-content">
         {children}
+        <VoiceCommandOverlay />
       </main>
 
       <style jsx global>{`

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 
 const navItems = [
@@ -28,6 +28,25 @@ export default function Sidebar({ onLogout }: SidebarProps) {
     const { user } = useAuth();
     const pathname = usePathname();
     const [isOpen, setIsOpen] = useState(false);
+    const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
+    useEffect(() => {
+        const handler = (e: any) => {
+            e.preventDefault();
+            setDeferredPrompt(e);
+        };
+        window.addEventListener("beforeinstallprompt", handler);
+        return () => window.removeEventListener("beforeinstallprompt", handler);
+    }, []);
+
+    const handleInstall = async () => {
+        if (!deferredPrompt) return;
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === "accepted") {
+            setDeferredPrompt(null);
+        }
+    };
 
     return (
         <>
@@ -40,116 +59,148 @@ export default function Sidebar({ onLogout }: SidebarProps) {
             </button>
 
             <aside className={`glass-panel sidebar ${isOpen ? 'open' : ''}`} style={{
-                width: "250px",
-                height: "100vh",
+                width: "260px",
                 position: "fixed",
-                top: 0,
-                left: 0,
-                borderRight: "1px solid rgba(255,255,255,0.1)",
+                top: "20px",
+                left: "20px",
+                bottom: "20px",
+                borderRadius: "24px",
+                border: "1px solid rgba(255,255,255,0.1)",
                 display: "flex",
                 flexDirection: "column",
-                padding: "20px",
-                zIndex: 50
+                padding: "24px",
+                zIndex: 50,
+                transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                overflow: "hidden" // Contains the scrollable nav
             }}>
-                <div style={{ marginBottom: "40px", paddingLeft: "10px" }}>
-                    <h2 style={{ fontSize: "24px", letterSpacing: "-0.5px" }}>
+                <div style={{ marginBottom: "30px", paddingLeft: "4px" }}>
+                    <h2 style={{ fontSize: "24px", letterSpacing: "-0.5px", fontWeight: 800 }}>
                         Stride<span className="text-gradient">IQ</span>
                     </h2>
-                    <div style={{ fontSize: "10px", color: "var(--foreground-muted)", marginTop: "2px", letterSpacing: "0.5px" }}>
-                        by ChanceTEK Fitness
+                    <div style={{ fontSize: "11px", color: "var(--foreground-muted)", marginTop: "4px", letterSpacing: "0.5px", textTransform: "uppercase" }}>
+                        Agentic Fitness
                     </div>
                 </div>
 
-                <nav style={{ flex: 1 }}>
-                    <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: "10px" }}>
+                <nav style={{ flex: 1, overflowY: "auto", margin: "0 -10px", padding: "0 10px", scrollbarWidth: "none" }}>
+                    <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: "8px" }}>
                         {navItems.map((item) => {
                             const isActive = pathname === item.href;
                             return (
                                 <li key={item.href}>
                                     <Link
                                         href={item.href}
+                                        onClick={() => setIsOpen(false)}
                                         style={{
                                             display: "flex",
                                             alignItems: "center",
-                                            gap: "12px",
+                                            gap: "14px",
                                             padding: "12px 16px",
-                                            borderRadius: "var(--radius-md)",
-                                            background: isActive ? "rgba(204, 255, 0, 0.1)" : "transparent",
+                                            borderRadius: "14px",
+                                            background: isActive ? "linear-gradient(90deg, rgba(204, 255, 0, 0.15), rgba(204, 255, 0, 0.05))" : "transparent",
                                             color: isActive ? "var(--primary)" : "var(--foreground-muted)",
                                             fontWeight: isActive ? 600 : 400,
-                                            transition: "var(--transition-fast)"
+                                            transition: "all 0.2s ease",
+                                            border: isActive ? "1px solid rgba(204, 255, 0, 0.2)" : "1px solid transparent"
                                         }}
                                     >
-                                        <span>{item.icon}</span>
+                                        <span style={{ fontSize: "18px" }}>{item.icon}</span>
                                         {item.name}
                                     </Link>
                                 </li>
                             );
                         })}
-                        {/* New Achievements Page Link (Temporary placement in list, or dedicated below) */}
+                        {/* Achievements Link */}
                         <li>
                             <Link
                                 href="/dashboard/achievements"
+                                onClick={() => setIsOpen(false)}
                                 style={{
                                     display: "flex",
                                     alignItems: "center",
-                                    gap: "12px",
+                                    gap: "14px",
                                     padding: "12px 16px",
-                                    borderRadius: "var(--radius-md)",
-                                    background: pathname === "/dashboard/achievements" ? "rgba(204, 255, 0, 0.1)" : "transparent",
+                                    borderRadius: "14px",
+                                    background: pathname === "/dashboard/achievements" ? "rgba(204, 255, 0, 0.15)" : "transparent",
                                     color: pathname === "/dashboard/achievements" ? "var(--primary)" : "var(--foreground-muted)",
                                     fontWeight: pathname === "/dashboard/achievements" ? 600 : 400,
-                                    transition: "var(--transition-fast)"
+                                    border: pathname === "/dashboard/achievements" ? "1px solid rgba(204, 255, 0, 0.2)" : "1px solid transparent"
                                 }}
                             >
-                                <span>🏅</span>
+                                <span style={{ fontSize: "18px" }}>🏅</span>
                                 Achievements
                             </Link>
                         </li>
                     </ul>
                 </nav>
 
-                <div style={{ paddingTop: "20px", borderTop: "1px solid rgba(255,255,255,0.1)" }}>
+                <div style={{ paddingTop: "20px", marginTop: "10px", borderTop: "1px solid rgba(255,255,255,0.1)", display: "flex", flexDirection: "column", gap: "10px" }}>
+                    {/* Uninstall / PWA Button */}
+                    {deferredPrompt && (
+                        <button
+                            onClick={handleInstall}
+                            className="btn-primary"
+                            style={{
+                                width: "100%",
+                                padding: "10px",
+                                fontSize: "13px",
+                                background: "var(--primary)",
+                                color: "black",
+                                fontWeight: "bold",
+                                borderRadius: "12px"
+                            }}
+                        >
+                            ⬇ Install App
+                        </button>
+                    )}
+
                     {onLogout && (
                         <button
                             onClick={onLogout}
                             style={{
                                 display: "flex", alignItems: "center", gap: "12px",
-                                padding: "10px 16px", borderRadius: "12px",
+                                padding: "12px 16px", borderRadius: "14px",
                                 color: "var(--error)", background: "rgba(255, 50, 50, 0.1)",
-                                border: "none", cursor: "pointer",
+                                border: "1px solid rgba(255, 50, 50, 0.2)", cursor: "pointer",
                                 width: "100%", textAlign: "left", fontSize: "14px", fontWeight: 600,
-                                marginBottom: "15px"
+                                transition: "background 0.2s"
                             }}
                         >
                             <span>🚪</span> Log Out
                         </button>
                     )}
 
-                    {/* User Profile Snippet */}
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    {/* User Profile */}
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "0 4px" }}>
                         <div style={{
-                            width: 32, height: 32, borderRadius: "50%",
-                            background: "var(--surface)", border: "1px solid var(--primary)",
+                            width: 36, height: 36, borderRadius: "50%",
+                            background: "var(--surface)", border: "2px solid var(--primary)",
                             backgroundImage: user?.photoURL ? `url(${user.photoURL})` : "none",
                             backgroundSize: "cover", backgroundPosition: "center",
                             display: "flex", alignItems: "center", justifyContent: "center"
                         }}>
-                            {!user?.photoURL && <span style={{ fontSize: "14px" }}>👤</span>}
+                            {!user?.photoURL && <span style={{ fontSize: "16px" }}>👤</span>}
                         </div>
-                        <span style={{ fontSize: "14px", color: "var(--foreground-muted)", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap", maxWidth: "150px" }}>
-                            {user?.displayName || "Runner"}
-                        </span>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: "14px", fontWeight: 600, color: "var(--foreground)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                {user?.displayName || "Runner"}
+                            </div>
+                            <div style={{ fontSize: "11px", color: "var(--foreground-muted)" }}>Free Plan</div>
+                        </div>
                     </div>
                 </div>
             </aside>
 
-            {/* Mobile Styles via style tag for now, ideally in CSS module */}
             <style jsx>{`
         @media (max-width: 768px) {
           .sidebar {
-            transform: translateX(-100%);
-            transition: transform 0.3s ease;
+            width: 80% !important;
+            height: auto !important;
+            top: 20px !important;
+            bottom: 20px !important;
+            left: 20px !important;
+            transform: translateX(-120%);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
           }
           .sidebar.open {
             transform: translateX(0);
