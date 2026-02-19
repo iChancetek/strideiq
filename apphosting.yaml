@@ -26,3 +26,4 @@ env:
   - variable: NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
     value: "G-6BCVETHE9W"
     availability: ["BUILD", "RUNTIME"]
+

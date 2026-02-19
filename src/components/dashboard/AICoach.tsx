@@ -141,7 +141,7 @@ export default function AICoach() {
     };
 
     return (
-        <div className="flex flex-col h-[700px] w-full max-w-md mx-auto bg-black rounded-[32px] border border-white/10 overflow-hidden shadow-2xl relative">
+        <div className="flex flex-col h-[calc(100vh-140px)] min-h-[500px] w-full max-w-md mx-auto bg-black rounded-xl lg:rounded-[32px] border border-white/10 overflow-hidden shadow-2xl relative">
 
             {/* Header */}
             <div className="p-6 border-b border-white/10 bg-zinc-900/50 backdrop-blur-md">
@@ -181,8 +181,8 @@ export default function AICoach() {
                             key={p.id}
                             onClick={() => changePersona(p.id)}
                             className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${currentPersonaId === p.id
-                                    ? `bg-[${p.color}] text-black shadow-lg shadow-[${p.color}]/20`
-                                    : "text-gray-400 hover:bg-white/5"
+                                ? `bg-[${p.color}] text-black shadow-lg shadow-[${p.color}]/20`
+                                : "text-gray-400 hover:bg-white/5"
                                 }`}
                             style={{
                                 backgroundColor: currentPersonaId === p.id ? p.color : "transparent",
@@ -204,8 +204,8 @@ export default function AICoach() {
                     <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"} relative z-10`}>
                         <div
                             className={`max-w-[80%] p-4 rounded-2xl text-sm leading-relaxed ${msg.role === "user"
-                                    ? "bg-[#CCFF00] text-black font-medium border border-[#CCFF00] rounded-br-sm"
-                                    : "bg-zinc-900 text-gray-200 border border-white/10 rounded-bl-sm"
+                                ? "bg-[#CCFF00] text-black font-medium border border-[#CCFF00] rounded-br-sm"
+                                : "bg-zinc-900 text-gray-200 border border-white/10 rounded-bl-sm"
                                 }`}
                         >
                             {msg.content}
@@ -231,8 +231,8 @@ export default function AICoach() {
                     <button
                         onClick={toggleListening}
                         className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${isListening
-                                ? "bg-red-500 text-white animate-pulse"
-                                : "bg-zinc-800 text-gray-400 hover:bg-zinc-700"
+                            ? "bg-red-500 text-white animate-pulse"
+                            : "bg-zinc-800 text-gray-400 hover:bg-zinc-700"
                             }`}
                     >
                         <Mic size={20} />
