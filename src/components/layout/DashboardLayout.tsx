@@ -90,15 +90,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         {/* Global Back Button */}
         {showBackButton && (
-          <button
-            onClick={() => router.back()}
-            className="mb-6 flex items-center gap-2 text-gray-400 hover:text-white transition-colors group"
-          >
-            <div className="p-2 rounded-full bg-white/5 group-hover:bg-white/10 no-underline">
-              <ChevronLeft size={20} />
-            </div>
-            <span className="text-sm font-medium">Back</span>
-          </button>
+          <div className="back-button-wrapper">
+            <button
+              onClick={() => router.back()}
+              className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors group"
+            >
+              <div className="p-2 rounded-full bg-white/5 group-hover:bg-white/10 no-underline backdrop-blur-md">
+                <ChevronLeft size={20} />
+              </div>
+              <span className="text-sm font-medium">Back</span>
+            </button>
+          </div>
         )}
 
         {children}
@@ -111,7 +113,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             margin-left: 0 !important;
             width: 100% !important;
             padding: 20px !important;
-            padding-bottom: 80px !important; 
+            padding-top: max(20px, env(safe-area-inset-top) + 20px) !important;
+            padding-bottom: 120px !important; /* Increased for bottom nav/mic */
+          }
+
+          .back-button-wrapper {
+            position: sticky;
+            top: 10px;
+            z-index: 40;
+            margin-bottom: 20px;
+            margin-left: -10px; /* Slight offset alignment */
           }
         }
       `}</style>
