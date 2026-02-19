@@ -4,16 +4,24 @@ import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 import { Readable } from "stream";
 
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-});
-
 // Force Node.js runtime for FormData handling if needed, 
 // but Next.js App Router API routes default to Node.js unless edge is specified.
 // However, parsing FormData can be tricky. We'll use the native Request.formData().
 
 export async function POST(req: NextRequest) {
     try {
+        const apiKey = process.env.OPENAI_API_KEY;
+        if (!apiKey) {
+            console.error("OPENAI_API_KEY is missing");
+            // During build, this might be hit if the file is executed, but we handle it gracefully.
+            // At runtime, this returns an error to the client.
+            return NextResponse.json({ error: "AI Configuration Error: Missing API Key" }, { status: 500 });
+        }
+
+        const openai = new OpenAI({
+            apiKey: apiKey,
+        });
+
         const formData = await req.formData();
         const file = formData.get("file") as File;
 
