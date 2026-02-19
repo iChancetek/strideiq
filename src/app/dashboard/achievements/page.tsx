@@ -82,20 +82,20 @@ export default function AchievementsPage() {
 
     return (
         <div className="max-w-7xl mx-auto pb-20">
-            {/* Hero Header */}
-            <header className="mb-12 relative p-8 md:p-12 rounded-3xl overflow-hidden border border-white/5 bg-black">
-                <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-20" />
-                <div className="absolute top-0 right-0 w-96 h-96 bg-primary/10 blur-[100px] rounded-full pointer-events-none" />
-                <div className="absolute bottom-0 left-0 w-64 h-64 bg-secondary/10 blur-[80px] rounded-full pointer-events-none" />
-
-                <div className="relative z-10 text-center">
-                    <h1 className="text-5xl md:text-7xl font-bold tracking-tighter mb-4 text-white uppercase" style={{ fontFamily: 'var(--font-heading)' }}>
-                        Hall of <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">Fame</span>
-                    </h1>
-                    <p className="text-xl text-gray-400 max-w-2xl mx-auto font-light">
-                        Push your limits. Break your records. <span className="text-white font-medium">Become Legendary.</span>
-                    </p>
+            {/* Header Section - Agentic Style */}
+            <header className="mb-16 text-center relative">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold tracking-widest uppercase mb-6">
+                    <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                    Powered by Agentic AI
                 </div>
+
+                <h1 className="text-5xl md:text-7xl font-serif text-white mb-6 leading-tight">
+                    The Hall of <span className="text-primary italic">Excellence</span>
+                </h1>
+
+                <p className="text-lg text-gray-400 max-w-2xl mx-auto font-sans font-light leading-relaxed">
+                    StrideIQ isn't just a tracker. It's a swarm of <strong className="text-white">intelligent, autonomous agents</strong> recognizing your every milestone.
+                </p>
             </header>
 
             {loading ? (
@@ -106,71 +106,57 @@ export default function AchievementsPage() {
             ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
 
-                    {/* Left Column: Personal Records (HUD Style) */}
+                    {/* Left Column: Personal Records (Agentic HUD) */}
                     <div className="lg:col-span-4 space-y-6">
-                        <div className="bg-[#0A0A0A] border border-white/10 rounded-3xl p-6 relative overflow-hidden group hover:border-primary/30 transition-colors">
-                            <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/80" />
-                            <div className="relative z-10">
-                                <h2 className="text-xl font-bold mb-6 flex items-center gap-3 text-white uppercase tracking-widest text-xs">
-                                    <Activity size={16} className="text-primary" />
-                                    Personal Records
-                                </h2>
+                        <div className="bg-[#050505] border-l-4 border-primary p-8 relative overflow-hidden group">
+                            <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+                                <Activity size={120} />
+                            </div>
 
-                                <div className="space-y-4">
-                                    {/* Fastest Mile */}
-                                    <div className="p-4 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all flex items-center justify-between group/item">
-                                        <div className="flex items-center gap-4">
-                                            <div className="p-3 rounded-lg bg-black text-secondary border border-secondary/20 group-hover/item:shadow-[0_0_15px_rgba(0,229,255,0.3)] transition-all">
-                                                <Timer size={24} />
-                                            </div>
-                                            <div>
-                                                <div className="text-xs text-gray-500 uppercase tracking-wider font-bold">Fastest Mile</div>
-                                                <div className="text-2xl font-bold text-white font-mono">
-                                                    {records.fastestMile ? records.fastestMile.display : "--:--"}
-                                                </div>
-                                            </div>
-                                        </div>
-                                        {records.fastestMile && <Zap size={16} className="text-secondary opacity-0 group-hover/item:opacity-100 transition-opacity" />}
+                            <h2 className="text-2xl font-serif text-white mb-8 border-b border-white/10 pb-4">
+                                Active Performance
+                            </h2>
+
+                            <div className="space-y-6">
+                                {/* Fastest Mile */}
+                                <div className="group/item">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <span className="text-xs uppercase tracking-widest text-gray-500 group-hover/item:text-primary transition-colors">Fastest Mile</span>
+                                        <Timer size={16} className="text-gray-600 group-hover/item:text-primary transition-colors" />
                                     </div>
+                                    <div className="text-4xl font-serif text-white">
+                                        {records.fastestMile ? records.fastestMile.display : "--:--"}
+                                    </div>
+                                </div>
 
-                                    {/* Longest Run */}
-                                    <div className="p-4 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all flex items-center justify-between group/item">
-                                        <div className="flex items-center gap-4">
-                                            <div className="p-3 rounded-lg bg-black text-primary border border-primary/20 group-hover/item:shadow-[0_0_15px_rgba(204,255,0,0.3)] transition-all">
-                                                <RouteIcon size={24} />
-                                            </div>
-                                            <div>
-                                                <div className="text-xs text-gray-500 uppercase tracking-wider font-bold">Longest Run</div>
-                                                <div className="text-2xl font-bold text-white font-mono">
-                                                    {records.longestRun ? records.longestRun.display : "0.0 mi"}
-                                                </div>
-                                            </div>
-                                        </div>
-                                        {records.longestRun && <Zap size={16} className="text-primary opacity-0 group-hover/item:opacity-100 transition-opacity" />}
+                                {/* Longest Run */}
+                                <div className="group/item">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <span className="text-xs uppercase tracking-widest text-gray-500 group-hover/item:text-secondary transition-colors">Longest Run</span>
+                                        <RouteIcon size={16} className="text-gray-600 group-hover/item:text-secondary transition-colors" />
+                                    </div>
+                                    <div className="text-4xl font-serif text-white">
+                                        {records.longestRun ? records.longestRun.display : "0.0 mi"}
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="p-6 rounded-3xl bg-gradient-to-br from-primary/20 to-transparent border border-primary/20 text-center">
-                            <h3 className="text-2xl font-bold text-white mb-2 italic">"NO LIMITS"</h3>
-                            <p className="text-xs text-gray-400 uppercase tracking-widest">Keep Pushing Forward</p>
+                        <div className="p-8 bg-zinc-900/30 border border-white/5 text-center">
+                            <h3 className="text-xl font-serif text-white mb-2 italic">"Efficiency is the essence of survival."</h3>
+                            <p className="text-xs text-gray-500 uppercase tracking-widest">— Your AI Coach</p>
                         </div>
                     </div>
 
-                    {/* Right Column: Trophy Case (Grid) */}
+                    {/* Right Column: Trophy Case (Minimalist Grid) */}
                     <div className="lg:col-span-8">
-                        <section className="bg-[#0A0A0A] border border-white/10 rounded-3xl p-8 h-full relative overflow-hidden">
-                            <div className="absolute top-0 right-0 p-10 opacity-5 pointer-events-none">
-                                <Trophy size={200} />
-                            </div>
-
-                            <h2 className="text-xl font-bold mb-8 flex items-center gap-3 text-white uppercase tracking-widest text-xs relative z-10">
-                                <Award size={16} className="text-secondary" />
-                                Trophy Case
+                        <section className="bg-[#050505] p-8 h-full relative">
+                            <h2 className="text-2xl font-serif text-white mb-8 border-b border-white/10 pb-4 flex items-center justify-between">
+                                <span>Trophy Case</span>
+                                <Award size={24} className="text-white/20" />
                             </h2>
 
-                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 relative z-10">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
                                 {Object.entries(BADGE_CONFIG).map(([id, config]) => {
                                     const isEarned = earnedSet.has(id);
                                     const Icon = config.icon;
@@ -178,31 +164,26 @@ export default function AchievementsPage() {
                                     return (
                                         <div
                                             key={id}
-                                            className={`relative group p-4 rounded-xl border flex flex-col items-center text-center transition-all duration-300 ${isEarned
-                                                    ? "bg-black border-white/10 hover:border-primary/50"
-                                                    : "bg-black/40 border-white/5 opacity-40 grayscale"
+                                            className={`relative group p-6 border flex flex-col items-center text-center transition-all duration-500 ${isEarned
+                                                    ? "bg-zinc-900/20 border-white/10 hover:border-primary/50"
+                                                    : "bg-transparent border-white/5 opacity-30 grayscale"
                                                 }`}
                                         >
                                             <div
-                                                className="w-16 h-16 rounded-full flex items-center justify-center mb-4 transition-all duration-300 group-hover:scale-110"
-                                                style={{
-                                                    background: isEarned ? "black" : "rgba(255,255,255,0.05)",
-                                                    border: isEarned ? `1px solid ${config.color}` : "none",
-                                                    boxShadow: isEarned ? config.glow : "none"
-                                                }}
+                                                className="mb-4 transition-all duration-500 group-hover:scale-110"
                                             >
                                                 {isEarned ? (
-                                                    <Icon size={28} color={config.color} />
+                                                    <Icon size={32} color={config.color} strokeWidth={1.5} />
                                                 ) : (
-                                                    <Lock size={20} color="#444" />
+                                                    <Lock size={24} color="#333" />
                                                 )}
                                             </div>
 
-                                            <h3 className={`font-bold text-sm mb-1 ${isEarned ? "text-white" : "text-gray-600"}`}>
+                                            <h3 className={`font-serif text-lg mb-2 ${isEarned ? "text-white" : "text-gray-700"}`}>
                                                 {config.label}
                                             </h3>
-                                            <p className="text-[10px] text-gray-500 uppercase tracking-wide">
-                                                {isEarned ? "Unlocked" : "Locked"}
+                                            <p className="text-[10px] text-gray-500 uppercase tracking-widest leading-relaxed">
+                                                {config.description}
                                             </p>
                                         </div>
                                     );

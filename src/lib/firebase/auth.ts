@@ -1,5 +1,6 @@
 import {
     signInWithPopup,
+    signInWithRedirect,
     GoogleAuthProvider,
     createUserWithEmailAndPassword,
     signInWithEmailAndPassword,
@@ -61,6 +62,16 @@ export const signInWithGoogle = async () => {
         return result.user;
     } catch (error) {
         console.error("Error signing in with Google", error);
+        throw error;
+    }
+};
+
+export const signInWithGoogleRedirect = async () => {
+    try {
+        await signInWithRedirect(auth, googleProvider);
+        // The page will redirect, so no return value needed immediately
+    } catch (error) {
+        console.error("Error signing in with Google Redirect", error);
         throw error;
     }
 };

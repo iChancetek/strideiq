@@ -5,46 +5,65 @@ import { Activity, Zap, Users, Mic, Smartphone, Heart, Award, Calendar, Brain, C
 export default function LearnMorePage() {
     return (
         <div className="max-w-4xl mx-auto pb-20">
-            {/* Header */}
-            <header className="mb-12 text-center">
-                <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight mb-4 text-white uppercase" style={{ fontFamily: 'var(--font-heading)' }}>
-                    Stride<span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">IQ</span> Guide
+            {/* Header - Agentic Style */}
+            <header className="mb-16 text-center">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold tracking-widest uppercase mb-6">
+                    <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                    Powered by Agentic AI
+                </div>
+
+                <h1 className="text-5xl md:text-7xl font-serif text-white mb-6 leading-tight">
+                    The World's First <br />
+                    <span className="text-primary italic">Agentic Fitness System</span>
                 </h1>
-                <p className="text-xl text-gray-400 max-w-2xl mx-auto">
-                    Master your fitness journey with our agentic AI features.
+
+                <p className="text-lg text-gray-400 max-w-2xl mx-auto font-sans font-light leading-relaxed">
+                    StrideIQ isn't just a tracker. It's a swarm of <strong className="text-white">intelligent, autonomous agents</strong> working in harmony to optimize your health. From real-time coaching to predictive recovery, your AI team is always active.
                 </p>
             </header>
 
             <div className="space-y-12">
 
-                {/* Voice Command System - NEW */}
-                <section className="bg-black/40 border border-primary/30 rounded-3xl p-8 relative overflow-hidden group hover:border-primary/50 transition-all">
-                    <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
+                {/* Voice Command System */}
+                <section className="bg-zinc-900/30 border-l-4 border-primary p-8 relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
                         <Mic size={120} />
                     </div>
                     <div className="relative z-10">
-                        <h2 className="text-2xl font-bold mb-4 flex items-center gap-3 text-primary uppercase">
-                            <span className="p-2 rounded-lg bg-primary/10"><Mic size={24} /></span>
-                            Voice Command System 🎙️
+                        <h2 className="text-2xl font-serif text-white mb-6 border-b border-white/10 pb-4">
+                            Voice Command Interface
                         </h2>
-                        <p className="text-gray-300 mb-6 text-lg leading-relaxed">
-                            StrideIQ is now hands-free. Tap the microphone button in the bottom right corner to control the app with your voice.
-                        </p>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="bg-black/60 rounded-xl p-5 border border-white/5">
-                                <h3 className="font-bold text-white mb-2 text-sm uppercase tracking-wider">How it works</h3>
-                                <p className="text-gray-400 text-sm">
-                                    We use OpenAI Whisper for ultra-accurate transcription and GPT-4o to understand your intent. It handles natural language, so you don't need to memorize strict commands.
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div>
+                                <p className="text-gray-300 mb-6 text-lg font-light leading-relaxed">
+                                    StrideIQ is now hands-free. Tap the microphone in the bottom right to activate your voice agent. Powered by OpenAI Whisper for ultra-accurate transcription.
                                 </p>
+                                <div className="text-xs uppercase tracking-widest text-primary mb-2">Capabilities</div>
+                                <div className="flex flex-wrap gap-2">
+                                    {["Start Run", "Log Food", "Open Journal", "Navigation"].map(tag => (
+                                        <span key={tag} className="px-3 py-1 bg-white/5 border border-white/10 text-gray-400 text-xs rounded-full">
+                                            {tag}
+                                        </span>
+                                    ))}
+                                </div>
                             </div>
-                            <div className="bg-black/60 rounded-xl p-5 border border-white/5">
-                                <h3 className="font-bold text-white mb-3 text-sm uppercase tracking-wider">Try saying...</h3>
-                                <ul className="space-y-2 text-gray-300 text-sm font-mono">
-                                    <li className="flex items-center gap-2"><span className="text-secondary">"Start a run"</span></li>
-                                    <li className="flex items-center gap-2"><span className="text-secondary">"Go for a walk"</span></li>
-                                    <li className="flex items-center gap-2"><span className="text-secondary">"Take me to my journal"</span></li>
-                                    <li className="flex items-center gap-2"><span className="text-secondary">"Sign out"</span></li>
+
+                            <div className="bg-black/40 p-6 border border-white/5">
+                                <h3 className="font-serif text-white mb-3 text-lg italic">"Try saying..."</h3>
+                                <ul className="space-y-3 text-gray-400 text-sm font-mono">
+                                    <li className="flex items-center gap-2">
+                                        <span className="text-primary">›</span> "Start a run"
+                                    </li>
+                                    <li className="flex items-center gap-2">
+                                        <span className="text-primary">›</span> "Go for a walk"
+                                    </li>
+                                    <li className="flex items-center gap-2">
+                                        <span className="text-primary">›</span> "Take me to my journal"
+                                    </li>
+                                    <li className="flex items-center gap-2">
+                                        <span className="text-primary">›</span> "Sign out"
+                                    </li>
                                 </ul>
                             </div>
                         </div>
@@ -53,100 +72,69 @@ export default function LearnMorePage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
 
-                    {/* Training */}
-                    <section className="glass-panel p-8 rounded-3xl">
-                        <h2 className="text-xl font-bold mb-4 flex items-center gap-3 text-secondary uppercase">
-                            <span className="p-2 rounded-lg bg-secondary/10"><Activity size={20} /></span>
-                            Training
+                    {/* Active Performance */}
+                    <section className="bg-[#050505] p-8 border-l-2 border-white/20">
+                        <div className="mb-6 text-primary">
+                            <Activity size={32} />
+                        </div>
+                        <h2 className="text-2xl font-serif text-white mb-2">
+                            Active Performance
                         </h2>
-                        <ul className="space-y-4 text-gray-400 text-sm">
-                            <li className="flex gap-3">
-                                <Activity size={16} className="mt-1 text-secondary shrink-0" />
-                                <div>
-                                    <strong className="text-white">Activity Tracking:</strong> Record Runs, Walks, and Bike rides. We track distance, pace, calories, and map your route (outdoor only).
-                                </div>
-                            </li>
-                            <li className="flex gap-3">
-                                <Calendar size={16} className="mt-1 text-secondary shrink-0" />
-                                <div>
-                                    <strong className="text-white">Training Plan:</strong> Generate AI-powered running plans (5K, 10K, Marathon) tailored to your fitness level.
-                                </div>
-                            </li>
-                            <li className="flex gap-3">
-                                <Brain size={16} className="mt-1 text-secondary shrink-0" />
-                                <div>
-                                    <strong className="text-white">AI Coach:</strong> Get personalized advice and motivation from your AI running coach based on your recent activity.
-                                </div>
-                            </li>
-                        </ul>
+                        <p className="text-gray-400 font-light leading-relaxed mb-6">
+                            Track every move with precision using our multi-modal activity agents. Run, Walk, and Bike modes available.
+                        </p>
+                        <div className="text-xs uppercase tracking-widest text-gray-600">
+                            Modules: GPS • Pace • Elevation
+                        </div>
                     </section>
 
-                    {/* Wellness */}
-                    <section className="glass-panel p-8 rounded-3xl">
-                        <h2 className="text-xl font-bold mb-4 flex items-center gap-3 text-pink-500 uppercase">
-                            <span className="p-2 rounded-lg bg-pink-500/10"><Heart size={20} /></span>
-                            Wellness
+                    {/* Predictive Wellness */}
+                    <section className="bg-[#050505] p-8 border-l-2 border-white/20">
+                        <div className="mb-6 text-pink-500">
+                            <Heart size={32} />
+                        </div>
+                        <h2 className="text-2xl font-serif text-white mb-2">
+                            Predictive Wellness
                         </h2>
-                        <ul className="space-y-4 text-gray-400 text-sm">
-                            <li className="flex gap-3">
-                                <Coffee size={16} className="mt-1 text-pink-500 shrink-0" />
-                                <div>
-                                    <strong className="text-white">Fasting Timer:</strong> Track your intermittent fasting windows with our premium timer.
-                                </div>
-                            </li>
-                            <li className="flex gap-3">
-                                <Zap size={16} className="mt-1 text-pink-500 shrink-0" />
-                                <div>
-                                    <strong className="text-white">Daily Journal:</strong> Reflect on your training and mood. AI helps summarize your entries.
-                                </div>
-                            </li>
-                        </ul>
+                        <p className="text-gray-400 font-light leading-relaxed mb-6">
+                            Monitor your fasting windows and mental state. Our wellness agents correlate your mood with your performance.
+                        </p>
+                        <div className="text-xs uppercase tracking-widest text-gray-600">
+                            Modules: Fasting • Journal • Recovery
+                        </div>
                     </section>
 
-                    {/* Community */}
-                    <section className="glass-panel p-8 rounded-3xl">
-                        <h2 className="text-xl font-bold mb-4 flex items-center gap-3 text-yellow-400 uppercase">
-                            <span className="p-2 rounded-lg bg-yellow-400/10"><Users size={20} /></span>
-                            Community
+                    {/* Community Swarm */}
+                    <section className="bg-[#050505] p-8 border-l-2 border-white/20">
+                        <div className="mb-6 text-yellow-400">
+                            <Users size={32} />
+                        </div>
+                        <h2 className="text-2xl font-serif text-white mb-2">
+                            Community Swarm
                         </h2>
-                        <ul className="space-y-4 text-gray-400 text-sm">
-                            <li className="flex gap-3">
-                                <Users size={16} className="mt-1 text-yellow-400 shrink-0" />
-                                <div>
-                                    <strong className="text-white">Friends & Social:</strong> Find friends, follow their activities, and compete on the leaderboard.
-                                </div>
-                            </li>
-                            <li className="flex gap-3">
-                                <Award size={16} className="mt-1 text-yellow-400 shrink-0" />
-                                <div>
-                                    <strong className="text-white">Leaderboards:</strong> Compete for Distance and Steps. See where you stack up against the community.
-                                </div>
-                            </li>
-                        </ul>
+                        <p className="text-gray-400 font-light leading-relaxed mb-6">
+                            Connect with other athletes. Compete on global leaderboards where every step counts toward your rank.
+                        </p>
+                        <div className="text-xs uppercase tracking-widest text-gray-600">
+                            Modules: Friends • Leaderboard • Social
+                        </div>
                     </section>
 
-                    {/* Platform */}
-                    <section className="glass-panel p-8 rounded-3xl">
-                        <h2 className="text-xl font-bold mb-4 flex items-center gap-3 text-white uppercase">
-                            <span className="p-2 rounded-lg bg-white/10"><Smartphone size={20} /></span>
-                            Platform
+                    {/* Neural Platform */}
+                    <section className="bg-[#050505] p-8 border-l-2 border-white/20">
+                        <div className="mb-6 text-white">
+                            <Smartphone size={32} />
+                        </div>
+                        <h2 className="text-2xl font-serif text-white mb-2">
+                            Neural Platform
                         </h2>
-                        <ul className="space-y-4 text-gray-400 text-sm">
-                            <li className="flex gap-3">
-                                <Smartphone size={16} className="mt-1 text-white shrink-0" />
-                                <div>
-                                    <strong className="text-white">Install App:</strong> StrideIQ is a Progressive Web App (PWA). You can install it on your home screen for a native app experience.
-                                </div>
-                            </li>
-                            <li className="flex gap-3">
-                                <Zap size={16} className="mt-1 text-white shrink-0" />
-                                <div>
-                                    <strong className="text-white">Dark Mode:</strong> We feature a high-voltage dark mode designed to save battery on OLED screens.
-                                </div>
-                            </li>
-                        </ul>
+                        <p className="text-gray-400 font-light leading-relaxed mb-6">
+                            Install StrideIQ as a Progressive Web App (PWA) for a native, high-performance experience on any device.
+                        </p>
+                        <div className="text-xs uppercase tracking-widest text-gray-600">
+                            Modules: PWA • Dark Mode • Offline
+                        </div>
                     </section>
-
                 </div>
             </div>
         </div>
