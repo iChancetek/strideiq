@@ -18,6 +18,7 @@ const navItems = [
     { name: "Fasting", href: "/dashboard/fasting", icon: "⏳" },
     { name: "Journal", href: "/dashboard/journal", icon: "📓" },
     { name: "Settings", href: "/dashboard/settings", icon: "⚙️" },
+    { name: "Guide", href: "/dashboard/learn-more", icon: "📚" },
 ];
 
 interface SidebarProps {
