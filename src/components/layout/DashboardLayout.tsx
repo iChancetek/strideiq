@@ -2,14 +2,16 @@
 
 import Sidebar from "./Sidebar";
 import { useAuth } from "@/context/AuthContext";
-import { useRouter } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { useRouter, usePathname } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import { logOut } from "@/lib/firebase/auth";
 import VoiceCommandOverlay from "@/components/dashboard/VoiceCommandOverlay";
+import { ChevronLeft } from "lucide-react";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   const hasGreeted = useRef(false);
 
   useEffect(() => {
@@ -28,14 +30,35 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       if (hour >= 12 && hour < 17) timeGreeting = "Good afternoon";
       if (hour >= 17) timeGreeting = "Good evening";
 
-      const text = `${timeGreeting}, ${name}. Welcome back to Stride IQ.`;
+      const text = `${timeGreeting}, ${name}. Welcome back to Stride IQ! Ready to crush some goals today?`;
 
-      if (window.speechSynthesis) {
-        // Cancel any pending speech
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.rate = 1.0;
-        window.speechSynthesis.speak(utterance);
+      const speak = () => {
+        if (window.speechSynthesis) {
+          window.speechSynthesis.cancel();
+          const utterance = new SpeechSynthesisUtterance(text);
+
+          // Attempt to find a female/natural voice
+          const voices = window.speechSynthesis.getVoices();
+          const preferredVoice = voices.find(v =>
+            v.name.includes("Google US English") ||
+            v.name.includes("Zira") ||
+            (v.name.includes("Female") && v.lang.startsWith("en"))
+          );
+
+          if (preferredVoice) {
+            utterance.voice = preferredVoice;
+          }
+
+          utterance.rate = 1.1; // Slightly faster for enthusiasm
+          utterance.pitch = 1.1; // Slightly higher
+          window.speechSynthesis.speak(utterance);
+        }
+      };
+
+      if (window.speechSynthesis.getVoices().length === 0) {
+        window.speechSynthesis.onvoiceschanged = speak;
+      } else {
+        speak();
       }
     }
   }, [user, loading]);
@@ -52,6 +75,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   if (loading) return null;
 
+  const showBackButton = pathname !== "/dashboard";
+
   return (
     <div style={{ display: "flex", minHeight: "100vh" }}>
       <Sidebar onLogout={handleLogout} />
@@ -59,8 +84,23 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         flex: 1,
         marginLeft: "300px",
         padding: "40px",
-        width: "calc(100% - 300px)"
+        width: "calc(100% - 300px)",
+        position: "relative"
       }} className="main-content">
+
+        {/* Global Back Button */}
+        {showBackButton && (
+          <button
+            onClick={() => router.back()}
+            className="mb-6 flex items-center gap-2 text-gray-400 hover:text-white transition-colors group"
+          >
+            <div className="p-2 rounded-full bg-white/5 group-hover:bg-white/10 no-underline">
+              <ChevronLeft size={20} />
+            </div>
+            <span className="text-sm font-medium">Back</span>
+          </button>
+        )}
+
         {children}
         <VoiceCommandOverlay />
       </main>

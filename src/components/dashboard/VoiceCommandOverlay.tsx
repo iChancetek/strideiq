@@ -108,7 +108,7 @@ export default function VoiceCommandOverlay() {
     };
 
     return (
-        <div style={{ position: "fixed", bottom: "30px", right: "30px", zIndex: 1000, display: "flex", flexDirection: "column", alignItems: "end", gap: "10px" }}>
+        <div className="voice-overlay-container" style={{ position: "fixed", bottom: "30px", right: "30px", zIndex: 1000, display: "flex", flexDirection: "column", alignItems: "end", gap: "10px" }}>
 
             {/* Transcript Bubble */}
             {(transcript || isProcessing) && (
@@ -169,6 +169,13 @@ export default function VoiceCommandOverlay() {
                     display: inline-block;
                 }
                 @keyframes spin { to { transform: rotate(360deg); } }
+                
+                @media (max-width: 768px) {
+                    .voice-overlay-container {
+                        bottom: 90px !important; 
+                        right: 20px !important;
+                    }
+                }
             `}</style>
         </div>
     );
