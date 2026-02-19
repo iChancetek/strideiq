@@ -2,9 +2,14 @@ import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import { PERSONAS, PersonaId } from "@/lib/ai/personas";
 
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-});
+// function to lazily initialize OpenAI client
+function getOpenAIClient() {
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+        throw new Error("OPENAI_API_KEY is not set");
+    }
+    return new OpenAI({ apiKey });
+}
 
 export async function POST(req: Request) {
     try {
@@ -22,6 +27,7 @@ export async function POST(req: Request) {
             content: persona.systemPrompt
         };
 
+        const openai = getOpenAIClient();
         const completion = await openai.chat.completions.create({
             model: "gpt-4o",
             messages: [systemMessage, ...messages],
