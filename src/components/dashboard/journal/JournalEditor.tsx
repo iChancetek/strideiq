@@ -85,6 +85,7 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
                 },
                 body: JSON.stringify({
                     id: initialData?.id, // if editing
+                    userId: user?.uid,
                     title,
                     content,
                     imageUrls
@@ -163,7 +164,7 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
                     "Content-Type": "application/json",
                     "Authorization": `Bearer ${token}`
                 },
-                body: JSON.stringify({ id: initialData.id })
+                body: JSON.stringify({ id: initialData.id, userId: user?.uid })
             });
 
             if (res.ok) {

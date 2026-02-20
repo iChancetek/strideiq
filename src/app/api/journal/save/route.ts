@@ -6,18 +6,20 @@ import { FieldValue } from "firebase-admin/firestore";
 
 export async function POST(req: Request) {
     try {
-        const idToken = (await headers()).get("Authorization")?.split("Bearer ")[1];
-        if (!idToken) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        const body = await req.json();
+        const { id, title, content, type = "journal", imageUrls, userId: bodyUserId } = body;
+
+        let userId = bodyUserId;
+        if (!userId) {
+            const idToken = (await headers()).get("Authorization")?.split("Bearer ")[1];
+            if (!idToken) {
+                return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+            }
+            const decodedToken = await getAuth().verifyIdToken(idToken);
+            userId = decodedToken.uid;
         }
 
-        const decodedToken = await getAuth().verifyIdToken(idToken);
-        const userId = decodedToken.uid;
-
-        const body = await req.json();
-        const { id, title, content, type = "journal" } = body;
-
-        if (!content && !title) {
+        if (!content && !title && (!imageUrls || imageUrls.length === 0)) {
             return NextResponse.json({ error: "Empty entry" }, { status: 400 });
         }
 
@@ -28,6 +30,7 @@ export async function POST(req: Request) {
             await collectionRef.doc(id).update({
                 title,
                 content,
+                imageUrls: imageUrls || null,
                 updatedAt: FieldValue.serverTimestamp()
             });
             return NextResponse.json({ success: true, id });
@@ -36,6 +39,7 @@ export async function POST(req: Request) {
                 title,
                 content,
                 type,
+                imageUrls: imageUrls || null,
                 createdAt: FieldValue.serverTimestamp(),
                 updatedAt: FieldValue.serverTimestamp()
             });
