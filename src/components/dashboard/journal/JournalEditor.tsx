@@ -85,12 +85,19 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
         }
     };
 
-    const handleSaveWithImages = async () => {
-        if (!title.trim() && !content.trim() && mediaItems.length === 0) return;
-        if (!user) return;
-
-        setIsSaving(true);
+    const handleSaveWithImages = async (e?: React.MouseEvent) => {
+        if (e) e.preventDefault();
         try {
+            if (!title?.trim() && !content?.trim() && mediaItems.length === 0) {
+                alert("Entry is empty. Please add a title, content, or media before saving.");
+                return;
+            }
+            if (!user) {
+                alert("Authentication error. Please refresh the page and try again.");
+                return;
+            }
+
+            setIsSaving(true);
             const collectionRef = collection(db, "users", user.uid, "journal_entries");
 
             if (initialData?.id) {
@@ -118,7 +125,7 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
             router.push("/dashboard/journal");
         } catch (e: any) {
             console.error("Journal save error:", e);
-            alert(`Error: ${e.message || t(lang, "error")}`);
+            alert(`Save Error: ${e.message || "An unknown error occurred."}`);
         } finally {
             setIsSaving(false);
         }
@@ -239,6 +246,7 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
                         </button>
                     )}
                     <button
+                        type="button"
                         onClick={handleSaveWithImages}
                         disabled={isSaving}
                         className="btn-primary" // Use global class or inline
