@@ -5,7 +5,26 @@ import { useAuth } from "@/context/AuthContext";
 import { useSettings } from "@/context/SettingsContext";
 import { t } from "@/lib/translations";
 
-// ... existing interfaces
+export interface SessionData {
+    mode: string;
+    distanceMiles: number;
+    durationSeconds: number;
+    calories: number;
+    steps: number;
+}
+
+export interface SaveData {
+    title: string;
+    notes: string;
+    mediaFiles: File[];
+    isPublic: boolean;
+}
+
+interface Props {
+    session: SessionData;
+    onSave: (data: SaveData) => Promise<void> | void;
+    onDiscard: () => void;
+}
 
 export default function PostSessionModal({ session, onSave, onDiscard }: Props) {
     const { user } = useAuth();

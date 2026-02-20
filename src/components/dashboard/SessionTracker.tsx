@@ -9,6 +9,7 @@ import { AgentCore } from "@/lib/agents/agent-core";
 import { GeoPosition, AgentEvent, MileSplit } from "@/lib/agents/types";
 import { getActivityLabel, getActivityType, getModeConfig } from "@/lib/agents/mode-agent";
 import PostSessionModal from "./PostSessionModal";
+import { t } from "@/lib/translations";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 
@@ -57,6 +58,7 @@ function haversine(lat1: number, lon1: number, lat2: number, lon2: number): numb
 // ─── Component ───────────────────────────────────────────────────────────────
 export default function SessionTracker() {
     const { settings } = useSettings();
+    const lang = settings.language;
     const { addActivity } = useActivities();
     const { user } = useAuth();
     const mode = settings.activityMode;
@@ -104,15 +106,42 @@ export default function SessionTracker() {
                 if (isPausedRef.current || !isTrackingRef.current) return;
                 const now = Date.now();
                 const delta = Math.round((now - lastTickRef.current) / 1000);
-                // Cap delta to 2s to prevent huge jumps when waking from background
-                const safeDelta = Math.min(delta, 2);
-                activeTimeRef.current += safeDelta;
+                // REMOVED cap to prevent iOS PWA backgrounding from losing actual elapsed time
+                activeTimeRef.current += delta;
                 lastTickRef.current = now;
                 setElapsedTime(activeTimeRef.current);
             }, 1000);
         }
         return () => {
             if (timerRef.current) clearInterval(timerRef.current);
+        };
+    }, [isTracking, isPaused]);
+
+    // ── Screen Wake Lock ──────────────────────────────────────────────────────
+    const wakeLockRef = useRef<any>(null);
+
+    useEffect(() => {
+        const requestWakeLock = async () => {
+            if ('wakeLock' in navigator) {
+                try {
+                    wakeLockRef.current = await (navigator as any).wakeLock.request('screen');
+                } catch (err: any) {
+                    console.log(`Wake Lock error: ${err.message}`);
+                }
+            }
+        };
+
+        if (isTracking && !isPaused) {
+            requestWakeLock();
+        } else if (wakeLockRef.current) {
+            wakeLockRef.current.release().then(() => { wakeLockRef.current = null; });
+        }
+
+        // Also release on unmount
+        return () => {
+            if (wakeLockRef.current) {
+                wakeLockRef.current.release().catch(() => { });
+            }
         };
     }, [isTracking, isPaused]);
 
@@ -164,9 +193,12 @@ export default function SessionTracker() {
         // 1. Accuracy gate — reject poor readings
         if (accuracy > GPS_ACCURACY_THRESHOLD) return;
 
+        const dtSec = lastPosTimestamp.current > 0 ? (now - lastPosTimestamp.current) / 1000 : 0;
+
         // 2. Apply exponential moving average smoothing
         let smoothLat: number, smoothLng: number;
-        if (smoothedPos.current) {
+        // If it's been >5 seconds since the last point (e.g. background wake), reset smoothing to prevent losing distance to 'rubber banding'
+        if (smoothedPos.current && dtSec < 5) {
             smoothLat = smoothedPos.current[0] + SMOOTHING_FACTOR * (latitude - smoothedPos.current[0]);
             smoothLng = smoothedPos.current[1] + SMOOTHING_FACTOR * (longitude - smoothedPos.current[1]);
         } else {
@@ -187,9 +219,8 @@ export default function SessionTracker() {
             // 3. Minimum distance threshold — ignore stationary jitter
             if (segmentKm < MIN_DISTANCE_THRESHOLD) return;
 
-            // 4. Speed sanity check — reject teleportation
-            const dtSec = (now - lastPosTimestamp.current) / 1000;
-            if (dtSec > 0) {
+            // 4. Speed sanity check — reject teleportation glitch (only if dt is normal scale, ignore huge jumps from backgrounding hours)
+            if (dtSec > 0 && dtSec < 3600) {
                 const speedKmh = (segmentKm / dtSec) * 3600;
                 if (speedKmh > MAX_SPEED_KMH) return;
             }

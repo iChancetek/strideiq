@@ -185,8 +185,7 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
             margin: "0 auto",
             display: "flex",
             flexDirection: "column",
-            height: "calc(100vh - 120px)", // Adjusted for header/nav
-            minHeight: "500px",
+            minHeight: "calc(100dvh - 160px)", // Adjusted for mobile bottom nav
         }}>
             {/* Toolbar */}
             <div style={{
@@ -259,7 +258,7 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
                 display: "flex",
                 flexDirection: "column",
                 padding: "24px",
-                overflow: "hidden",
+                overflow: "visible",
                 borderRadius: "16px",
                 background: "rgba(255,255,255,0.03)",
                 border: "1px solid rgba(255,255,255,0.05)",
@@ -342,6 +341,7 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
                         border: "none",
                         marginBottom: "16px",
                         width: "100%",
+                        minHeight: "250px", // Ensure it doesn't collapse
                     }}
                     placeholder={t(lang, "journalContentPlaceholder")}
                     value={content}

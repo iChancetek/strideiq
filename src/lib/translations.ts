@@ -36,6 +36,17 @@ type TranslationKeys = {
     weeklyGoal: string;
     dailyAffirmation: string;
     recentActivities: string;
+    startActivity: string;
+    stop: string;
+    saving: string;
+    paused: string;
+    distance: string;
+    time: string;
+    pace: string;
+    speed: string;
+    calories: string;
+    sessionComplete: string;
+    tooShort: string;
 
     // Activity types
     run: string;
@@ -218,7 +229,6 @@ const translations: Record<Language, TranslationKeys> = {
         speed: "Speed",
         steps: "Steps",
         calories: "Calories",
-        mileSplits: "Mile Splits",
         sessionComplete: "Session Complete",
         tooShort: "Session too short to save.",
         nameYourActivity: "Name your activity...",
@@ -366,7 +376,6 @@ const translations: Record<Language, TranslationKeys> = {
         speed: "Velocidad",
         steps: "Pasos",
         calories: "Calorías",
-        mileSplits: "Parciales por Milla",
         sessionComplete: "Sesión Completa",
         tooShort: "Sesión muy corta para guardar.",
         nameYourActivity: "Nombra tu actividad...",
@@ -514,7 +523,6 @@ const translations: Record<Language, TranslationKeys> = {
         speed: "Vitesse",
         steps: "Pas",
         calories: "Calories",
-        mileSplits: "Temps par Mile",
         sessionComplete: "Session Terminée",
         tooShort: "Session trop courte pour être enregistrée.",
         nameYourActivity: "Nommez votre activité...",
@@ -662,7 +670,6 @@ const translations: Record<Language, TranslationKeys> = {
         speed: "速度",
         steps: "步数",
         calories: "卡路里",
-        mileSplits: "每英里配速",
         sessionComplete: "运动完成",
         tooShort: "运动时间太短，无法保存。",
         nameYourActivity: "给活动命名...",
@@ -810,7 +817,6 @@ const translations: Record<Language, TranslationKeys> = {
         speed: "السرعة",
         steps: "الخطوات",
         calories: "السعرات",
-        mileSplits: "أقسام الميل",
         sessionComplete: "اكتملت الجلسة",
         tooShort: "الجلسة قصيرة جدًا للحفظ.",
         nameYourActivity: "سم نشاطك...",

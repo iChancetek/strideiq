@@ -117,7 +117,16 @@ export async function updateUserStats(userId: string, activity: any) {
             // Get User Profile
             const userProfileRef = adminDb.collection("users").doc(userId);
             const userProfileDoc = await transaction.get(userProfileRef);
-            const userData = userProfileDoc.data() || { displayName: "Runner", photoURL: null };
+            let userData = { displayName: "Runner", photoURL: null };
+            if (userProfileDoc.exists) {
+                const docData = userProfileDoc.data();
+                if (docData) {
+                    userData = {
+                        displayName: docData.displayName || "Runner",
+                        photoURL: docData.photoURL || null
+                    };
+                }
+            }
 
             transaction.set(leaderboardRef, {
                 userId,
