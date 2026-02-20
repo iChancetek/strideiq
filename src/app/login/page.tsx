@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { signInWithGoogle, signInWithGoogleRedirect, signInWithEmail, resendVerification } from "@/lib/firebase/auth";
+import { signInWithGoogle, signInWithEmail, resendVerification } from "@/lib/firebase/auth";
 import { auth } from "@/lib/firebase/config";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -20,17 +20,9 @@ export default function LoginPage() {
         setError("");
         setInfo("");
 
-        // Detect mobile user agent (rough check)
-        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-
         try {
-            if (isMobile) {
-                await signInWithGoogleRedirect();
-                // Redirects away, so no need to push router
-            } else {
-                await signInWithGoogle();
-                router.push("/dashboard");
-            }
+            await signInWithGoogle();
+            router.push("/dashboard");
         } catch (err: any) {
             setError("Failed to sign in with Google.");
             console.error(err);
