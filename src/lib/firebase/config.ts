@@ -1,6 +1,6 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, setPersistence, browserLocalPersistence } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { initializeFirestore, memoryLocalCache } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
@@ -24,7 +24,11 @@ if (typeof window !== "undefined") {
 }
 
 // Initialize Firestore with default memory cache (prevents silent IndexedDB hangs on iOS PWA)
-const db = getFirestore(app);
+// CRITICAL: We MUST force long polling to bypass iOS Safari's aggressive WebSocket killing in background PWAs.
+const db = initializeFirestore(app, {
+  localCache: memoryLocalCache(),
+  experimentalForceLongPolling: true
+});
 const storage = getStorage(app);
 const googleProvider = new GoogleAuthProvider();
 
