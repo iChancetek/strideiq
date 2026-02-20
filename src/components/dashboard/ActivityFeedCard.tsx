@@ -5,7 +5,9 @@ import { useLikes } from "@/hooks/useLikes";
 import { useAuth } from "@/context/AuthContext";
 import { useState } from "react";
 import Link from "next/link";
-import CommentsSection from "./activity/CommentsSection";
+import CommentsSection from "./activity/CommentsSection"; // Keep original import
+import { useSettings } from "@/context/SettingsContext";
+import { t } from "@/lib/translations";
 
 interface Props {
     activity: Activity;
@@ -16,6 +18,8 @@ interface Props {
 
 export default function ActivityFeedCard({ activity, ownerName, ownerPhoto, ownerId }: Props) {
     const { user } = useAuth();
+    const { settings } = useSettings();
+    const lang = settings.language;
     const { likeCount, isLiked, toggleLike, likes } = useLikes(ownerId, activity.id);
     const [showComments, setShowComments] = useState(false);
     const [currentMediaIdx, setCurrentMediaIdx] = useState(0);
@@ -29,8 +33,8 @@ export default function ActivityFeedCard({ activity, ownerName, ownerPhoto, owne
     };
 
     const modeIcon = activity.mode === "run" ? "🏃" : activity.mode === "walk" ? "🚶" : activity.mode === "hike" ? "🥾" : "🚴";
-    const activityTitle = activity.title || `${activity.type} on ${activity.date.toLocaleDateString()}`;
-    const timeAgo = getTimeAgo(activity.date);
+    const activityTitle = activity.title || `${t(lang, activity.type.toLowerCase() as any) || activity.type} • ${activity.date.toLocaleDateString()}`;
+    const timeAgo = getTimeAgo(activity.date, lang); // Pass lang
 
     return (
         <div className="glass-panel" style={{
@@ -87,20 +91,20 @@ export default function ActivityFeedCard({ activity, ownerName, ownerPhoto, owne
                     flexWrap: "wrap",
                 }}>
                     <div>
-                        <div style={{ fontSize: "11px", color: "var(--foreground-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>Time</div>
+                        <div style={{ fontSize: "11px", color: "var(--foreground-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>{t(lang, "time")}</div>
                         <div style={{ fontSize: "18px", fontWeight: 700 }}>{formatDuration(activity.duration)}</div>
                     </div>
                     <div>
-                        <div style={{ fontSize: "11px", color: "var(--foreground-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>Distance</div>
-                        <div style={{ fontSize: "18px", fontWeight: 700 }}>{activity.distance} mi</div>
+                        <div style={{ fontSize: "11px", color: "var(--foreground-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>{t(lang, "distance")}</div>
+                        <div style={{ fontSize: "18px", fontWeight: 700 }}>{activity.distance} {settings.units === "imperial" ? "mi" : "km"}</div>
                     </div>
                     <div>
-                        <div style={{ fontSize: "11px", color: "var(--foreground-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>Pace</div>
+                        <div style={{ fontSize: "11px", color: "var(--foreground-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>{t(lang, "pace")}</div>
                         <div style={{ fontSize: "18px", fontWeight: 700 }}>{activity.pace}</div>
                     </div>
                     {activity.calories > 0 && (
                         <div>
-                            <div style={{ fontSize: "11px", color: "var(--foreground-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>Cal</div>
+                            <div style={{ fontSize: "11px", color: "var(--foreground-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>{t(lang, "calories")}</div>
                             <div style={{ fontSize: "18px", fontWeight: 700 }}>{activity.calories}</div>
                         </div>
                     )}
@@ -206,7 +210,7 @@ export default function ActivityFeedCard({ activity, ownerName, ownerPhoto, owne
                     )}
                     {likeCount > 0 && (
                         <span style={{ fontSize: "13px", color: "var(--foreground-muted)" }}>
-                            {likeCount === 1 ? "1 kudo" : `${likeCount} kudos`}
+                            {likeCount === 1 ? `1 ${t(lang, "kudos")}` : `${likeCount} ${t(lang, "kudos")}`}
                         </span>
                     )}
                 </div>
@@ -236,7 +240,7 @@ export default function ActivityFeedCard({ activity, ownerName, ownerPhoto, owne
                         transition: "color 0.2s",
                     }}
                 >
-                    {isLiked ? "👍" : "👍"} Kudos
+                    {isLiked ? "👍" : "👍"} {t(lang, "kudos")}
                 </button>
                 <button
                     onClick={() => setShowComments(!showComments)}
@@ -255,7 +259,7 @@ export default function ActivityFeedCard({ activity, ownerName, ownerPhoto, owne
                         gap: "8px",
                     }}
                 >
-                    💬 Comment
+                    💬 {t(lang, "comment")}
                 </button>
             </div>
 
@@ -269,16 +273,16 @@ export default function ActivityFeedCard({ activity, ownerName, ownerPhoto, owne
     );
 }
 
-function getTimeAgo(date: Date): string {
+function getTimeAgo(date: Date, lang: any): string {
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffMin = Math.floor(diffMs / 60000);
-    if (diffMin < 1) return "Just now";
-    if (diffMin < 60) return `${diffMin}m ago`;
+    if (diffMin < 1) return t(lang, "justNow");
+    if (diffMin < 60) return `${diffMin}${t(lang, "minutesAgo")}`;
     const diffHr = Math.floor(diffMin / 60);
-    if (diffHr < 24) return `${diffHr}h ago`;
+    if (diffHr < 24) return `${diffHr}${t(lang, "hoursAgo")}`;
     const diffDay = Math.floor(diffHr / 24);
-    if (diffDay === 1) return "Yesterday";
-    if (diffDay < 7) return `${diffDay}d ago`;
+    if (diffDay === 1) return t(lang, "yesterday");
+    if (diffDay < 7) return `${diffDay}${t(lang, "daysAgo")}`;
     return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }

@@ -435,36 +435,38 @@ export default function SessionTracker() {
 
                 {isPaused && isTracking && (
                     <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 450, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        <div style={{ fontSize: "32px", fontWeight: "bold", color: "var(--warning)", animation: "pulse 2s infinite" }}>⏸ PAUSED</div>
+                        <div style={{ fontSize: "32px", fontWeight: "bold", color: "var(--warning)", animation: "pulse 2s infinite" }}>⏸ {t(lang, "sessionPaused")}</div>
                     </div>
                 )}
 
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", padding: "40px", gap: "30px" }}>
-                    <div style={{ fontSize: "14px", color: "var(--foreground-muted)", textTransform: "uppercase", letterSpacing: "2px" }}>{isIndoor ? "🏠 Indoor" : "📡 Outdoor"} {activityLabel}</div>
+                    <div style={{ fontSize: "14px", color: "var(--foreground-muted)", textTransform: "uppercase", letterSpacing: "2px" }}>
+                        {isIndoor ? `🏠 ${t(lang, "indoor")}` : `📡 ${t(lang, "outdoor")}`} {t(lang, mode.toLowerCase() as any) || mode}
+                    </div>
 
                     <div style={{ fontSize: "64px", fontWeight: "bold" }}>{formatTime(elapsedTime)}</div>
 
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "20px", textAlign: "center" }}>
                         <div>
-                            <div style={{ fontSize: "12px", color: "var(--foreground-muted)" }}>DISTANCE</div>
-                            <div style={{ fontSize: "28px", fontWeight: "bold" }}>{(distance * 0.621371).toFixed(2)} <span style={{ fontSize: "14px" }}>mi</span></div>
+                            <div style={{ fontSize: "12px", color: "var(--foreground-muted)" }}>{t(lang, "distance").toUpperCase()}</div>
+                            <div style={{ fontSize: "28px", fontWeight: "bold" }}>{(distance * 0.621371).toFixed(2)} <span style={{ fontSize: "14px" }}>{settings.units === "imperial" ? "mi" : "km"}</span></div>
                         </div>
                         <div>
-                            <div style={{ fontSize: "12px", color: "var(--foreground-muted)" }}>{modeConfig.displayMetric === "mph" ? "SPEED" : "PACE"}</div>
+                            <div style={{ fontSize: "12px", color: "var(--foreground-muted)" }}>{modeConfig.displayMetric === "mph" ? t(lang, "speed").toUpperCase() : t(lang, "pace").toUpperCase()}</div>
                             <div style={{ fontSize: "28px", fontWeight: "bold" }}>{displayMetric()}</div>
                         </div>
                         <div>
-                            <div style={{ fontSize: "12px", color: "var(--foreground-muted)" }}>STEPS</div>
+                            <div style={{ fontSize: "12px", color: "var(--foreground-muted)" }}>{t(lang, "steps").toUpperCase()}</div>
                             <div style={{ fontSize: "28px", fontWeight: "bold" }}>{steps.toLocaleString()}</div>
                         </div>
                     </div>
 
                     {mileSplits.length > 0 && (
                         <div style={{ width: "100%", maxWidth: "300px" }}>
-                            <div style={{ fontSize: "12px", color: "var(--foreground-muted)", marginBottom: "8px" }}>MILE SPLITS</div>
+                            <div style={{ fontSize: "12px", color: "var(--foreground-muted)", marginBottom: "8px" }}>{t(lang, "mileSplits")}</div>
                             {mileSplits.map((s) => (
                                 <div key={s.mile} style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
-                                    <span>Mile {s.mile}</span>
+                                    <span>{t(lang, "splits")} {s.mile}</span>
                                     <span style={{ color: "var(--primary)" }}>{formatTime(Math.floor(s.splitSeconds))}</span>
                                 </div>
                             ))}
@@ -484,11 +486,11 @@ export default function SessionTracker() {
                     <div style={{ position: "absolute", bottom: 30, left: "50%", transform: "translateX(-50%)", display: "flex", gap: "20px" }}>
                         {!isTracking ? (
                             <button onClick={triggerCountdown} className="btn-primary" style={{ padding: "16px 48px", fontSize: "18px", borderRadius: "var(--radius-full)" }}>
-                                START {activityLabel.toUpperCase()}
+                                {t(lang, "startSession")} {t(lang, mode.toLowerCase() as any)?.toUpperCase() || mode.toUpperCase()}
                             </button>
                         ) : (
                             <button onClick={stopSession} disabled={saving} style={{ background: saving ? "#888" : "#ff4444", color: "white", border: "none", padding: "16px 48px", fontSize: "18px", borderRadius: "var(--radius-full)", fontWeight: "bold", cursor: saving ? "not-allowed" : "pointer" }}>
-                                {saving ? "SAVING..." : "STOP"}
+                                {saving ? t(lang, "sessionSaving") : t(lang, "stopSession")}
                             </button>
                         )}
                     </div>
@@ -514,7 +516,7 @@ export default function SessionTracker() {
     // Outdoor — waiting for GPS
     if (!currentPos) {
         return <div style={{ color: "white", padding: 20, display: "flex", alignItems: "center", gap: "10px" }}>
-            <span style={{ animation: "pulse 1.5s infinite" }}>📡</span> Locating GPS Satellites...
+            <span style={{ animation: "pulse 1.5s infinite" }}>📡</span> {t(lang, "locatingGPS")}
             <style jsx>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }`}</style>
         </div>;
     }
@@ -530,7 +532,7 @@ export default function SessionTracker() {
 
             {isPaused && isTracking && (
                 <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 450, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <div style={{ fontSize: "36px", fontWeight: "bold", color: "var(--warning)", animation: "pulse 2s infinite" }}>⏸ PAUSED</div>
+                    <div style={{ fontSize: "36px", fontWeight: "bold", color: "var(--warning)", animation: "pulse 2s infinite" }}>⏸ {t(lang, "sessionPaused")}</div>
                 </div>
             )}
 
@@ -543,26 +545,26 @@ export default function SessionTracker() {
             {/* Stats Overlay */}
             <div className="glass-panel" style={{ position: "absolute", top: 20, left: 20, right: 20, zIndex: 400, padding: "16px", display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "8px", textAlign: "center" }}>
                 <div>
-                    <div style={{ fontSize: "11px", color: "var(--foreground-muted)" }}>DISTANCE</div>
-                    <div style={{ fontSize: "20px", fontWeight: "bold" }}>{(distance * 0.621371).toFixed(2)} <span style={{ fontSize: "12px" }}>mi</span></div>
+                    <div style={{ fontSize: "11px", color: "var(--foreground-muted)" }}>{t(lang, "distance").toUpperCase()}</div>
+                    <div style={{ fontSize: "20px", fontWeight: "bold" }}>{(distance * 0.621371).toFixed(2)} <span style={{ fontSize: "12px" }}>{settings.units === "imperial" ? "mi" : "km"}</span></div>
                 </div>
                 <div>
-                    <div style={{ fontSize: "11px", color: "var(--foreground-muted)" }}>TIME</div>
+                    <div style={{ fontSize: "11px", color: "var(--foreground-muted)" }}>{t(lang, "time").toUpperCase()}</div>
                     <div style={{ fontSize: "20px", fontWeight: "bold" }}>{formatTime(elapsedTime)}</div>
                 </div>
                 <div>
-                    <div style={{ fontSize: "11px", color: "var(--foreground-muted)" }}>{modeConfig.displayMetric === "mph" ? "SPEED" : "PACE"}</div>
+                    <div style={{ fontSize: "11px", color: "var(--foreground-muted)" }}>{modeConfig.displayMetric === "mph" ? t(lang, "speed").toUpperCase() : t(lang, "pace").toUpperCase()}</div>
                     <div style={{ fontSize: "20px", fontWeight: "bold" }}>{displayMetric()}</div>
                 </div>
                 <div>
-                    <div style={{ fontSize: "11px", color: "var(--foreground-muted)" }}>STEPS</div>
+                    <div style={{ fontSize: "11px", color: "var(--foreground-muted)" }}>{t(lang, "steps").toUpperCase()}</div>
                     <div style={{ fontSize: "20px", fontWeight: "bold" }}>{steps.toLocaleString()}</div>
                 </div>
             </div>
 
             {mileSplits.length > 0 && (
                 <div className="glass-panel" style={{ position: "absolute", top: 140, right: 20, zIndex: 400, padding: "12px", borderRadius: "var(--radius-md)", maxHeight: "200px", overflowY: "auto", minWidth: "140px" }}>
-                    <div style={{ fontSize: "10px", color: "var(--foreground-muted)", marginBottom: "6px", textTransform: "uppercase" }}>Splits</div>
+                    <div style={{ fontSize: "10px", color: "var(--foreground-muted)", marginBottom: "6px", textTransform: "uppercase" }}>{t(lang, "splits")}</div>
                     {mileSplits.map((s) => (
                         <div key={s.mile} style={{ display: "flex", justifyContent: "space-between", gap: "12px", fontSize: "13px", padding: "2px 0" }}>
                             <span style={{ color: "var(--foreground-muted)" }}>Mi {s.mile}</span>
@@ -572,6 +574,7 @@ export default function SessionTracker() {
                 </div>
             )}
 
+            {/* ... agent messages map view ... */}
             {agentMessages.length > 0 && (
                 <div style={{ position: "absolute", bottom: 100, left: 20, right: 20, zIndex: 401 }}>
                     {agentMessages.map((msg, i) => (
@@ -584,6 +587,7 @@ export default function SessionTracker() {
 
             {/* Map */}
             <MapContainer center={currentPos} zoom={16} style={{ height: "100%", width: "100%", zIndex: 0 }}>
+                {/* ... map layers ... */}
                 <TileLayer
                     url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
@@ -599,11 +603,11 @@ export default function SessionTracker() {
             <div style={{ position: "absolute", bottom: 30, left: "50%", transform: "translateX(-50%)", zIndex: 400, display: "flex", gap: "20px" }}>
                 {!isTracking ? (
                     <button onClick={triggerCountdown} className="btn-primary" style={{ padding: "16px 48px", fontSize: "18px", borderRadius: "var(--radius-full)" }}>
-                        START {activityLabel.toUpperCase()}
+                        {t(lang, "startSession")} {t(lang, mode.toLowerCase() as any)?.toUpperCase() || mode.toUpperCase()}
                     </button>
                 ) : (
                     <button onClick={stopSession} disabled={saving} style={{ background: saving ? "#888" : "#ff4444", color: "white", border: "none", padding: "16px 48px", fontSize: "18px", borderRadius: "var(--radius-full)", fontWeight: "bold", cursor: saving ? "not-allowed" : "pointer" }}>
-                        {saving ? "SAVING..." : "STOP"}
+                        {saving ? t(lang, "sessionSaving") : t(lang, "stopSession")}
                     </button>
                 )}
             </div>

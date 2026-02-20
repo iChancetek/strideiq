@@ -4,22 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
-
-const navItems = [
-    { name: "Dashboard", href: "/dashboard", icon: "📊" },
-    { name: "Activities", href: "/dashboard/activities", icon: "🏃" },
-    { name: "Friends", href: "/dashboard/friends", icon: "👥" },
-    { name: "Leaderboard", href: "/dashboard/leaderboard", icon: "🏆" },
-    { name: "Steps", href: "/dashboard/steps", icon: "👟" },
-    { name: "Steps Board", href: "/dashboard/steps-leaderboard", icon: "🥇" },
-    { name: "Training Plan", href: "/dashboard/training", icon: "📅" },
-    { name: "AI Coach", href: "/dashboard/coach", icon: "🤖" },
-    { name: "Meditation", href: "/dashboard/meditation", icon: "🧘" },
-    { name: "Fasting", href: "/dashboard/fasting", icon: "⏳" },
-    { name: "Journal", href: "/dashboard/journal", icon: "📓" },
-    { name: "Settings", href: "/dashboard/settings", icon: "⚙️" },
-    { name: "Guide", href: "/dashboard/learn-more", icon: "📚" },
-];
+import { useSettings } from "@/context/SettingsContext"; // Import settings
+import { t } from "@/lib/translations"; // Import translations
 
 interface SidebarProps {
     onLogout?: () => void;
@@ -27,6 +13,8 @@ interface SidebarProps {
 
 export default function Sidebar({ onLogout }: SidebarProps) {
     const { user } = useAuth();
+    const { settings } = useSettings();
+    const lang = settings.language;
     const pathname = usePathname();
     const [isOpen, setIsOpen] = useState(false);
     const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -85,7 +73,21 @@ export default function Sidebar({ onLogout }: SidebarProps) {
 
                 <nav style={{ flex: 1, overflowY: "auto", margin: "0 -10px", padding: "0 10px", scrollbarWidth: "none" }}>
                     <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: "8px" }}>
-                        {navItems.map((item) => {
+                        {[
+                            { name: t(lang, "dashboard"), href: "/dashboard", icon: "📊" },
+                            { name: t(lang, "activities"), href: "/dashboard/activities", icon: "🏃" },
+                            { name: t(lang, "friends"), href: "/dashboard/friends", icon: "👥" },
+                            { name: t(lang, "leaderboard"), href: "/dashboard/leaderboard", icon: "🏆" },
+                            { name: t(lang, "steps"), href: "/dashboard/steps", icon: "👟" },
+                            { name: t(lang, "stepsBoard"), href: "/dashboard/steps-leaderboard", icon: "🥇" },
+                            { name: t(lang, "training"), href: "/dashboard/training", icon: "📅" },
+                            { name: t(lang, "aiCoach"), href: "/dashboard/coach", icon: "🤖" },
+                            { name: t(lang, "meditation"), href: "/dashboard/meditation", icon: "🧘" },
+                            { name: t(lang, "fasting"), href: "/dashboard/fasting", icon: "⏳" },
+                            { name: t(lang, "journal"), href: "/dashboard/journal", icon: "📓" },
+                            { name: t(lang, "settings"), href: "/dashboard/settings", icon: "⚙️" },
+                            { name: t(lang, "guide"), href: "/dashboard/learn-more", icon: "📚" },
+                        ].map((item) => {
                             const isActive = pathname === item.href;
                             return (
                                 <li key={item.href}>
@@ -129,7 +131,7 @@ export default function Sidebar({ onLogout }: SidebarProps) {
                                 }}
                             >
                                 <span style={{ fontSize: "18px" }}>🏅</span>
-                                Achievements
+                                {t(lang, "achievements")}
                             </Link>
                         </li>
                     </ul>
@@ -151,7 +153,7 @@ export default function Sidebar({ onLogout }: SidebarProps) {
                                 borderRadius: "12px"
                             }}
                         >
-                            ⬇ Install App
+                            ⬇ {t(lang, "installApp")}
                         </button>
                     )}
 
@@ -167,7 +169,7 @@ export default function Sidebar({ onLogout }: SidebarProps) {
                                 transition: "background 0.2s"
                             }}
                         >
-                            <span>🚪</span> Log Out
+                            <span>🚪</span> {t(lang, "logOut")}
                         </button>
                     )}
 

@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { useRouter } from "next/navigation";
+import { useRouter } from "next/navigation"; // Correct import
 import { Loader2, Wand2, Check, ArrowLeft } from "lucide-react";
+import { useSettings } from "@/context/SettingsContext"; // Import settings
+import { t } from "@/lib/translations"; // Import translations
 
 interface JournalEditorProps {
     initialData?: {
@@ -20,6 +22,8 @@ interface JournalEditorProps {
 export default function JournalEditor({ initialData, isNew = false }: JournalEditorProps) {
     const { user } = useAuth();
     const router = useRouter();
+    const { settings } = useSettings(); // Get settings for language
+    const lang = settings.language;
 
     const [title, setTitle] = useState(initialData?.title || "");
     const [content, setContent] = useState(initialData?.content || "");
@@ -38,7 +42,6 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
 
         const isTitleChanged = title !== initialTitle;
         const isContentChanged = content !== initialContent;
-        // Simple array comparison (order matters, but good enough for append-only mostly)
         const isImagesChanged = JSON.stringify(imageUrls) !== JSON.stringify(initialImages);
 
         setIsDirty(isTitleChanged || isContentChanged || isImagesChanged);
@@ -63,7 +66,7 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
             }
         } catch (e) {
             console.error(e);
-            alert("AI processing failed.");
+            alert(t(lang, "error")); // Localized alert
         } finally {
             setIsProcessingAI(false);
         }
@@ -92,7 +95,7 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
                 setIsDirty(false); // Reset dirty state so we don't prompt on exit
                 router.push("/dashboard/journal");
             } else {
-                alert("Failed to save entry");
+                alert(t(lang, "error"));
             }
         } catch (e) {
             console.error(e);
@@ -107,38 +110,10 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
             return;
         }
 
-        const choice = confirm("You have unsaved changes.\n\nClick OK to SAVE before leaving.\nClick Cancel to DISCARD changes and leave.");
-
-        // This standard confirm is binary (OK/Cancel). 
-        // To implement "Save", "Discard", "Cancel" (3-way), we need a custom modal or use standard standard window.confirm cleverly.
-        // User request: "recieve message asking if you want to save before exiting"
-        // Let's use a clearer approach compatible with standard browser alert:
-        // "Unsaved changes. OK to Save & Exit. Cancel to keep editing?" -> No that doesn't allow discard.
-
-        // Better:
-        // 1. "Do you want to save your changes?" -> OK = Yes, Cancel = No.
-        // If OK: Save -> exit.
-        // If Cancel: "Do you want to discard changes?" -> OK = Yes (exit), Cancel = No (stay).
-
-        // Actually, let's keep it simple for MVP as requested:
-        // "You have unsaved changes. Press OK to Save and Exit, or Cancel to Stay."
-        // Wait, user might want to discard. 
-
-        // "You have unsaved changes. Do you want to save them?"
-        // If we want a true 3-way, we need a custom dialog. 
-        // For now, let's use the browser confirm for "Are you sure you want to discard?" if they try to leave.
-        // AND maybe a explicit "Save & Exit" button is better.
-
-        // Let's try this flow:
-        // User clicks Back.
-        // Alert: "You have unsaved changes!"
-        // Confirm: "Save changes before leaving?" (OK=Yes, Cancel=No)
-
-        if (confirm("You have unsaved changes. Do you want to SAVE them before leaving?")) {
+        if (confirm(t(lang, "unsavedChanges") + " " + t(lang, "saveBeforeLeaving"))) {
             await handleSaveWithImages();
         } else {
-            // User said NO to saving.
-            if (confirm("Are you sure you want to DISCARD changes?")) {
+            if (confirm(t(lang, "confirmDiscard"))) { // Localized
                 router.back();
             }
         }
@@ -166,20 +141,20 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
             if (data.url) {
                 setImageUrls(prev => [...prev, data.url]);
             } else {
-                alert("Image upload failed.");
+                alert(t(lang, "error"));
             }
         } catch (e) {
             console.error(e);
-            alert("Image upload failed.");
+            alert(t(lang, "error"));
         } finally {
             setUploading(false);
         }
     };
 
     const handleDelete = async () => {
-        if (!initialData?.id || !confirm("Are you sure you want to delete this entry?")) return;
+        if (!initialData?.id || !confirm(t(lang, "confirmDelete"))) return; // Localized
 
-        setIsSaving(true); // Use saving state for delete as well
+        setIsSaving(true);
         try {
             const token = await user?.getIdToken();
             const res = await fetch("/api/journal/delete", {
@@ -192,10 +167,10 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
             });
 
             if (res.ok) {
-                setIsDirty(false); // Valid exit
+                setIsDirty(false);
                 router.push("/dashboard/journal");
             } else {
-                alert("Failed to delete entry");
+                alert(t(lang, "error"));
             }
         } catch (e) {
             console.error(e);
@@ -205,82 +180,212 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
     };
 
     return (
-        <div className="max-w-3xl mx-auto h-[calc(100vh-100px)] flex flex-col">
+        <div style={{
+            maxWidth: "768px",
+            margin: "0 auto",
+            display: "flex",
+            flexDirection: "column",
+            height: "calc(100vh - 120px)", // Adjusted for header/nav
+            minHeight: "500px",
+        }}>
             {/* Toolbar */}
-            <div className="flex items-center justify-between mb-4">
-                <button onClick={handleBack} className="text-foreground-muted hover:text-foreground">
+            <div style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: "16px",
+            }}>
+                <button
+                    onClick={handleBack}
+                    style={{
+                        background: "none",
+                        border: "none",
+                        color: "var(--foreground-muted)",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        padding: "8px",
+                        marginLeft: "-8px",
+                    }}
+                >
                     <ArrowLeft size={20} />
                 </button>
-                <div className="flex gap-2">
+                <div style={{ display: "flex", gap: "8px" }}>
                     {!isNew && (
                         <button
                             onClick={handleDelete}
                             disabled={isSaving}
-                            className="px-4 py-2 text-red-500 hover:bg-red-500/10 rounded-md text-sm font-medium transition-colors"
+                            style={{
+                                padding: "8px 16px",
+                                background: "rgba(239, 68, 68, 0.1)", // Red-500/10
+                                color: "#ef4444",
+                                border: "none",
+                                borderRadius: "6px",
+                                fontSize: "14px",
+                                fontWeight: 500,
+                                cursor: isSaving ? "not-allowed" : "pointer",
+                            }}
                         >
-                            Delete
+                            {t(lang, "delete")}
                         </button>
                     )}
                     <button
-                        onClick={handleSaveWithImages} // Changed to handleSaveWithImages
+                        onClick={handleSaveWithImages}
                         disabled={isSaving}
-                        className="btn-primary flex items-center gap-2"
+                        className="btn-primary" // Use global class or inline
+                        style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "8px",
+                            padding: "8px 16px",
+                            borderRadius: "20px",
+                            background: "var(--primary)",
+                            color: "black",
+                            border: "none",
+                            fontWeight: 600,
+                            fontSize: "14px",
+                            cursor: isSaving ? "not-allowed" : "pointer",
+                            opacity: isSaving ? 0.7 : 1,
+                        }}
                     >
                         {isSaving ? <Loader2 className="animate-spin" size={16} /> : <Check size={16} />}
-                        Save Entry
+                        {t(lang, "saveEntry")}
                     </button>
                 </div>
             </div>
 
-            <div className="glass-panel flex-1 flex flex-col p-6 overflow-hidden">
+            <div className="glass-panel" style={{
+                flex: 1,
+                display: "flex",
+                flexDirection: "column",
+                padding: "24px",
+                overflow: "hidden",
+                borderRadius: "16px",
+                background: "rgba(255,255,255,0.03)",
+                border: "1px solid rgba(255,255,255,0.05)",
+                backdropFilter: "blur(10px)",
+            }}>
                 <input
                     type="text"
-                    placeholder="Title your entry..."
-                    className="bg-transparent text-2xl font-bold mb-4 focus:outline-none placeholder:text-foreground-muted/50"
+                    placeholder={t(lang, "journalTitlePlaceholder")}
+                    style={{
+                        background: "transparent",
+                        border: "none",
+                        fontSize: "24px",
+                        fontWeight: 700,
+                        marginBottom: "16px",
+                        color: "var(--foreground)",
+                        outline: "none",
+                        width: "100%",
+                    }}
                     value={title}
                     onChange={e => setTitle(e.target.value)}
                 />
 
-                {/* AI & Media Toolbar */} {/* Updated comment */}
-                <div className="flex gap-2 mb-4 overflow-x-auto pb-2 scrollbar-hide items-center">
-                    <button onClick={() => handleAI("grammar")} disabled={isProcessingAI} className="btn-secondary text-xs flex items-center gap-1 whitespace-nowrap">
-                        <Wand2 size={12} /> Fix Grammar
+                {/* AI & Media Toolbar */}
+                <div style={{
+                    display: "flex",
+                    gap: "8px",
+                    marginBottom: "16px",
+                    overflowX: "auto",
+                    paddingBottom: "8px",
+                    alignItems: "center",
+                    scrollbarWidth: "none", // Firefox
+                    msOverflowStyle: "none", // IE
+                }}>
+                    <button onClick={() => handleAI("grammar")} disabled={isProcessingAI} className="btn-secondary" style={{
+                        display: "flex", alignItems: "center", gap: "4px", fontSize: "12px", whiteSpace: "nowrap",
+                        padding: "6px 12px", borderRadius: "16px", background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.1)", color: "var(--foreground)", cursor: "pointer"
+                    }}>
+                        <Wand2 size={12} /> {t(lang, "fixGrammar")}
                     </button>
-                    <button onClick={() => handleAI("expand")} disabled={isProcessingAI} className="btn-secondary text-xs flex items-center gap-1 whitespace-nowrap">
-                        ✨ Expand
+                    <button onClick={() => handleAI("expand")} disabled={isProcessingAI} style={{
+                        display: "flex", alignItems: "center", gap: "4px", fontSize: "12px", whiteSpace: "nowrap",
+                        padding: "6px 12px", borderRadius: "16px", background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.1)", color: "var(--foreground)", cursor: "pointer"
+                    }}>
+                        ✨ {t(lang, "expand")}
                     </button>
-                    <button onClick={() => handleAI("concise")} disabled={isProcessingAI} className="btn-secondary text-xs flex items-center gap-1 whitespace-nowrap">
-                        ✂️ Simplify {/* Changed text */}
+                    <button onClick={() => handleAI("concise")} disabled={isProcessingAI} style={{
+                        display: "flex", alignItems: "center", gap: "4px", fontSize: "12px", whiteSpace: "nowrap",
+                        padding: "6px 12px", borderRadius: "16px", background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.1)", color: "var(--foreground)", cursor: "pointer"
+                    }}>
+                        ✂️ {t(lang, "simplify")}
                     </button>
-                    <button onClick={() => handleAI("tone", "positive")} disabled={isProcessingAI} className="btn-secondary text-xs flex items-center gap-1 whitespace-nowrap">
-                        😊 Positive {/* Changed text */}
+                    <button onClick={() => handleAI("tone", "positive")} disabled={isProcessingAI} style={{
+                        display: "flex", alignItems: "center", gap: "4px", fontSize: "12px", whiteSpace: "nowrap",
+                        padding: "6px 12px", borderRadius: "16px", background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.1)", color: "var(--foreground)", cursor: "pointer"
+                    }}>
+                        😊 {t(lang, "positive")}
                     </button>
 
-                    <div className="h-4 w-px bg-white/10 mx-2" /> {/* Separator */}
+                    <div style={{ height: "16px", width: "1px", background: "rgba(255,255,255,0.2)", margin: "0 8px" }} />
 
-                    <label className={`btn-secondary text-xs flex items-center gap-1 whitespace-nowrap cursor-pointer ${uploading ? 'opacity-50' : ''}`}>
-                        {uploading ? <Loader2 size={12} className="animate-spin" /> : "📷 Add Image"}
-                        <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={uploading} />
+                    <label style={{
+                        display: "flex", alignItems: "center", gap: "4px", fontSize: "12px", whiteSpace: "nowrap",
+                        padding: "6px 12px", borderRadius: "16px", background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.1)", color: "var(--foreground)", cursor: "pointer",
+                        opacity: uploading ? 0.5 : 1
+                    }}>
+                        {uploading ? <Loader2 size={12} className="animate-spin" /> : "📷 " + t(lang, "addImage")}
+                        <input type="file" accept="image/*" style={{ display: "none" }} onChange={handleImageUpload} disabled={uploading} />
                     </label>
                 </div>
 
                 <textarea
-                    className="flex-1 bg-transparent resize-none focus:outline-none text-lg leading-relaxed placeholder:text-foreground-muted/30 mb-4" // Added mb-4
-                    placeholder="Start writing your thoughts..."
+                    style={{
+                        flex: 1,
+                        background: "transparent",
+                        resize: "none",
+                        outline: "none",
+                        fontSize: "16px",
+                        lineHeight: "1.6",
+                        color: "var(--foreground)",
+                        border: "none",
+                        marginBottom: "16px",
+                        width: "100%",
+                    }}
+                    placeholder={t(lang, "journalContentPlaceholder")}
                     value={content}
                     onChange={e => setContent(e.target.value)}
                 />
 
                 {/* Image Grid */}
                 {imageUrls.length > 0 && (
-                    <div className="flex gap-4 overflow-x-auto py-2">
+                    <div style={{
+                        display: "flex",
+                        gap: "12px",
+                        overflowX: "auto",
+                        paddingBottom: "8px",
+                    }}>
                         {imageUrls.map((url, i) => (
-                            <div key={i} className="relative group flex-shrink-0 h-32 w-32 rounded-lg overflow-hidden border border-white/10">
+                            <div key={i} style={{
+                                position: "relative",
+                                flexShrink: 0,
+                                width: "120px",
+                                height: "120px",
+                                borderRadius: "8px",
+                                overflow: "hidden",
+                                border: "1px solid rgba(255,255,255,0.1)",
+                            }}>
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img src={url} alt="Attachment" className="h-full w-full object-cover" />
+                                <img src={url} alt="Attachment" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                                 <button
                                     onClick={() => setImageUrls(prev => prev.filter((_, idx) => idx !== i))}
-                                    className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    style={{
+                                        position: "absolute",
+                                        top: "4px",
+                                        right: "4px",
+                                        background: "rgba(0,0,0,0.6)",
+                                        color: "white",
+                                        borderRadius: "50%",
+                                        width: "20px",
+                                        height: "20px",
+                                        border: "none",
+                                        cursor: "pointer",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        fontSize: "12px",
+                                    }}
                                 >
                                     ✕
                                 </button>
@@ -289,11 +394,30 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
                     </div>
                 )}
             </div>
-            {isProcessingAI && (
-                <div className="fixed inset-0 bg-background/50 backdrop-blur-sm z-50 flex items-center justify-center">
-                    <div className="glass-panel p-4 flex items-center gap-3">
-                        <Loader2 className="animate-spin text-primary" />
-                        <span>AI is refining your thoughts...</span>
+
+            {isProcessingAI && ( // Styles also inline
+                <div style={{
+                    position: "fixed",
+                    top: 0, left: 0, right: 0, bottom: 0,
+                    background: "rgba(0,0,0,0.5)",
+                    backdropFilter: "blur(4px)",
+                    zIndex: 9999,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                }}>
+                    <div style={{
+                        background: "rgba(20,20,20,0.9)",
+                        padding: "16px 24px",
+                        borderRadius: "12px",
+                        border: "1px solid rgba(255,255,255,0.1)",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "12px",
+                        color: "white",
+                    }}>
+                        <Loader2 className="animate-spin" color="var(--primary)" />
+                        <span>{t(lang, "aiRefining")}</span>
                     </div>
                 </div>
             )}

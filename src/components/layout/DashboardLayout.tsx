@@ -7,9 +7,13 @@ import { useEffect, useRef } from "react";
 import { logOut } from "@/lib/firebase/auth";
 import VoiceCommandOverlay from "@/components/dashboard/VoiceCommandOverlay";
 import { ChevronLeft } from "lucide-react";
+import { useSettings } from "@/context/SettingsContext";
+import { t } from "@/lib/translations";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
+  const { settings } = useSettings();
+  const lang = settings.language;
   const router = useRouter();
   const pathname = usePathname();
   const greetingTriggered = useRef(false);
@@ -135,7 +139,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               }}>
                 <ChevronLeft size={20} />
               </div>
-              <span style={{ fontWeight: 500 }}>Back</span>
+              <span style={{ fontWeight: 500 }}>{t(lang, "back")}</span>
             </button>
           </div>
         )}

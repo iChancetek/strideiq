@@ -44,12 +44,14 @@ export interface Activity {
 }
 
 export function useActivities() {
-    const [user] = useAuthState(auth);
+    const [user, authLoading] = useAuthState(auth);
     const [activities, setActivities] = useState<Activity[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
     useEffect(() => {
+        if (authLoading) return; // Wait for auth to resolve
+
         if (!user) {
             setActivities([]);
             setLoading(false);

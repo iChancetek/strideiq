@@ -2,44 +2,26 @@
 
 import { useState, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { useSettings } from "@/context/SettingsContext";
+import { t } from "@/lib/translations";
 
-interface SessionData {
-    distanceMiles: number;
-    durationSeconds: number;
-    calories: number;
-    steps: number;
-    mode: string;
-    environment: string;
-    mileSplits: number[];
-    pausedDuration: number;
-    weatherSnapshot?: {
-        temp: number;
-        condition: string;
-        humidity: number;
-        wind: number;
-    };
-}
-
-interface Props {
-    session: SessionData;
-    onSave: (data: {
-        notes: string;
-        title: string;
-        mediaFiles: File[];
-        isPublic: boolean;
-    }) => Promise<void>;
-    onDiscard: () => void;
-}
+// ... existing interfaces
 
 export default function PostSessionModal({ session, onSave, onDiscard }: Props) {
     const { user } = useAuth();
+    const { settings } = useSettings();
+    const lang = settings.language;
     const [title, setTitle] = useState(() => {
         const hour = new Date().getHours();
         let timeOfDay = "Morning";
         if (hour >= 12 && hour < 17) timeOfDay = "Afternoon";
         if (hour >= 17 && hour < 21) timeOfDay = "Evening";
         if (hour >= 21) timeOfDay = "Night";
-        const label = session.mode === "run" ? "Run" : session.mode === "walk" ? "Walk" : session.mode === "hike" ? "Hike" : "Ride";
+
+        // Note: Simple localization for time of day would be better, but for now we keep it English or basic
+        // Ideally: t(lang, timeOfDay.toLowerCase())
+        // For mode:
+        const label = t(lang, session.mode.toLowerCase() as any) || session.mode;
         return `${timeOfDay} ${label}`;
     });
     const [notes, setNotes] = useState("");
@@ -130,10 +112,10 @@ export default function PostSessionModal({ session, onSave, onDiscard }: Props) 
                 }}>
                     <div style={{ fontSize: "48px", marginBottom: "8px" }}>{modeIcon}</div>
                     <div style={{ fontSize: "14px", color: "var(--foreground-muted)", textTransform: "uppercase", letterSpacing: "2px", marginBottom: "4px" }}>
-                        Session Complete
+                        {t(lang, "sessionComplete")}
                     </div>
                     <div style={{ fontSize: "13px", color: "var(--primary)" }}>
-                        {new Date().toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })} at {new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        {new Date().toLocaleDateString(lang === 'en' ? 'en-US' : lang, { weekday: "long", month: "short", day: "numeric" })}
                     </div>
                 </div>
 
@@ -146,12 +128,12 @@ export default function PostSessionModal({ session, onSave, onDiscard }: Props) 
                     margin: "0",
                 }}>
                     {[
-                        { label: "Distance", value: `${session.distanceMiles.toFixed(2)}`, unit: "mi" },
-                        { label: "Time", value: formatTime(session.durationSeconds), unit: "" },
-                        { label: session.mode === "bike" ? "Speed" : "Pace", value: getPace(), unit: "" },
-                        { label: "Calories", value: `${session.calories}`, unit: "kcal" },
-                        { label: "Steps", value: session.steps.toLocaleString(), unit: "" },
-                        { label: "Elevation", value: "--", unit: "ft" },
+                        { label: t(lang, "distance"), value: `${session.distanceMiles.toFixed(2)}`, unit: settings.units === "imperial" ? "mi" : "km" },
+                        { label: t(lang, "time"), value: formatTime(session.durationSeconds), unit: "" },
+                        { label: session.mode === "bike" ? t(lang, "speed") : t(lang, "pace"), value: getPace(), unit: "" },
+                        { label: t(lang, "calories"), value: `${session.calories}`, unit: "kcal" },
+                        { label: t(lang, "steps"), value: session.steps.toLocaleString(), unit: "" },
+                        { label: "Elevation", value: "--", unit: "ft" }, // todo: localize elevation
                     ].map((stat, i) => (
                         <div key={i} style={{
                             textAlign: "center",
@@ -173,7 +155,7 @@ export default function PostSessionModal({ session, onSave, onDiscard }: Props) 
                         type="text"
                         value={title}
                         onChange={e => setTitle(e.target.value)}
-                        placeholder="Name your activity..."
+                        placeholder={t(lang, "nameYourActivity")}
                         style={{
                             width: "100%",
                             padding: "12px",
@@ -190,7 +172,7 @@ export default function PostSessionModal({ session, onSave, onDiscard }: Props) 
                     <textarea
                         value={notes}
                         onChange={e => setNotes(e.target.value)}
-                        placeholder="How did it feel? Add a description..."
+                        placeholder={t(lang, "howDidItFeel")}
                         rows={3}
                         style={{
                             width: "100%",
@@ -226,7 +208,7 @@ export default function PostSessionModal({ session, onSave, onDiscard }: Props) 
                                 fontWeight: 500,
                             }}
                         >
-                            📷 Add Photos / Videos
+                            📷 {t(lang, "addPhotosVideos")}
                         </button>
                         <input
                             ref={fileInputRef}
@@ -292,9 +274,9 @@ export default function PostSessionModal({ session, onSave, onDiscard }: Props) 
                     justifyContent: "space-between",
                 }}>
                     <div>
-                        <div style={{ fontSize: "14px", fontWeight: 600 }}>Share to Feed</div>
+                        <div style={{ fontSize: "14px", fontWeight: 600 }}>{t(lang, "shareToFeed")}</div>
                         <div style={{ fontSize: "12px", color: "var(--foreground-muted)" }}>
-                            {isPublic ? "Visible to all users" : "Only you can see this"}
+                            {isPublic ? t(lang, "visibleToAll") : t(lang, "onlyYou")}
                         </div>
                     </div>
                     <button
@@ -345,7 +327,7 @@ export default function PostSessionModal({ session, onSave, onDiscard }: Props) 
                             cursor: saving ? "not-allowed" : "pointer",
                         }}
                     >
-                        {saving ? "Saving..." : "Save Activity"}
+                        {saving ? t(lang, "sessionSaving") : t(lang, "saveActivity")}
                     </button>
                     <button
                         onClick={onDiscard}
@@ -360,7 +342,7 @@ export default function PostSessionModal({ session, onSave, onDiscard }: Props) 
                             cursor: saving ? "not-allowed" : "pointer",
                         }}
                     >
-                        Discard
+                        {t(lang, "discard")}
                     </button>
                 </div>
             </div>

@@ -21,6 +21,14 @@ type TranslationKeys = {
     aiCoach: string;
     settings: string;
     logOut: string;
+    friends: string;
+    leaderboard: string;
+    steps: string;
+    stepsBoard: string;
+    training: string;
+    meditation: string;
+    fasting: string;
+    journal: string;
 
     // Dashboard
     welcomeBack: string;
@@ -37,19 +45,16 @@ type TranslationKeys = {
     ride: string;
 
     // Session Tracker
-    startActivity: string;
-    stop: string;
-    saving: string;
-    paused: string;
-    distance: string;
-    time: string;
-    pace: string;
-    speed: string;
-    steps: string;
-    calories: string;
+    // indoor/outdoor used from settings
+    startSession: string;
+    stopSession: string;
+    sessionPaused: string;
+    sessionSaving: string;
+    locatingGPS: string;
+    sessionTooShort: string;
+    failedToSave: string;
+    splits: string;
     mileSplits: string;
-    sessionComplete: string;
-    tooShort: string;
 
     // Post Session Modal
     nameYourActivity: string;
@@ -85,6 +90,10 @@ type TranslationKeys = {
     displayName: string;
     email: string;
     changePhoto: string;
+    recommendedPhoto: string;
+    photoUpdated: string;
+    photoUploadFailed: string;
+    photoTooLarge: string;
     sessionPreferences: string;
     activityMode: string;
     environment: string;
@@ -93,6 +102,7 @@ type TranslationKeys = {
     voiceCoaching: string;
     voiceCoachingDesc: string;
     testVoice: string;
+    voiceCheck: string;
     weatherAnnouncements: string;
     weatherDesc: string;
     showMap: string;
@@ -142,6 +152,21 @@ type TranslationKeys = {
     countStepsRelax: string;
     speedElevation: string;
     trailElevation: string;
+
+    // Journal
+    journalTitlePlaceholder: string;
+    journalContentPlaceholder: string;
+    fixGrammar: string;
+    expand: string;
+    simplify: string;
+    positive: string;
+    addImage: string;
+    aiRefining: string;
+    saveEntry: string;
+    unsavedChanges: string;
+    confirmDelete: string;
+    confirmDiscard: string;
+    saveBeforeLeaving: string;
 };
 
 const translations: Record<Language, TranslationKeys> = {
@@ -154,6 +179,25 @@ const translations: Record<Language, TranslationKeys> = {
         aiCoach: "AI Coach",
         settings: "Settings",
         logOut: "Log Out",
+        friends: "Friends",
+        leaderboard: "Leaderboard",
+        stepsBoard: "Steps Board",
+        training: "Training Plan",
+        meditation: "Meditation",
+        fasting: "Fasting",
+        journal: "Journal",
+
+        // Session Tracker
+        startSession: "START",
+        stopSession: "STOP",
+        sessionPaused: "PAUSED",
+        sessionSaving: "SAVING...",
+        locatingGPS: "Locating GPS Satellites...",
+        sessionTooShort: "Session too short to save.",
+        failedToSave: "Failed to save session",
+        splits: "Splits",
+        mileSplits: "MILE SPLITS",
+
         welcomeBack: "Welcome Back",
         todayStats: "Today's Stats",
         weeklyGoal: "Weekly Goal",
@@ -206,6 +250,10 @@ const translations: Record<Language, TranslationKeys> = {
         displayName: "Display Name",
         email: "Email",
         changePhoto: "Change Photo",
+        recommendedPhoto: "Recommended: Square JPG/PNG, max 2MB",
+        photoUpdated: "Profile photo updated!",
+        photoUploadFailed: "Failed to upload photo.",
+        photoTooLarge: "File is too large. Max 2MB.",
         sessionPreferences: "Session Preferences",
         activityMode: "Activity Mode",
         environment: "Environment",
@@ -214,6 +262,7 @@ const translations: Record<Language, TranslationKeys> = {
         voiceCoaching: "Voice Coaching",
         voiceCoachingDesc: "AI announcements at mile splits",
         testVoice: "Test Voice Volume",
+        voiceCheck: "Voice coaching is active. Audio volume check.",
         weatherAnnouncements: "Weather Announcements",
         weatherDesc: "Weather update at session start",
         showMap: "Show Map",
@@ -255,6 +304,19 @@ const translations: Record<Language, TranslationKeys> = {
         countStepsRelax: "Count steps & relax",
         speedElevation: "Speed & elevation",
         trailElevation: "Trail & elevation",
+        journalTitlePlaceholder: "Title your entry...",
+        journalContentPlaceholder: "Start writing your thoughts...",
+        fixGrammar: "Fix Grammar",
+        expand: "Expand",
+        simplify: "Simplify",
+        positive: "Positive",
+        addImage: "Add Image",
+        aiRefining: "AI is refining your thoughts...",
+        saveEntry: "Save Entry",
+        unsavedChanges: "You have unsaved changes.",
+        confirmDelete: "Are you sure you want to delete this entry?",
+        confirmDiscard: "Are you sure you want to DISCARD changes?",
+        saveBeforeLeaving: "Do you want to SAVE them before leaving?",
     },
     es: {
         dashboard: "Tablero",
@@ -265,6 +327,25 @@ const translations: Record<Language, TranslationKeys> = {
         aiCoach: "Entrenador IA",
         settings: "Configuración",
         logOut: "Cerrar Sesión",
+        friends: "Amigos",
+        leaderboard: "Clasificación",
+        stepsBoard: "Tabla de Pasos",
+        training: "Plan de Entrenamiento",
+        meditation: "Meditación",
+        fasting: "Ayuno",
+        journal: "Diario",
+
+        // Session Tracker
+        startSession: "INICIAR",
+        stopSession: "PARAR",
+        sessionPaused: "PAUSADO",
+        sessionSaving: "GUARDANDO...",
+        locatingGPS: "Buscando satélites GPS...",
+        sessionTooShort: "Sesión demasiado corta para guardar.",
+        failedToSave: "Error al guardar la sesión",
+        splits: "Parciales",
+        mileSplits: "PARCIALES DE MILLA",
+
         welcomeBack: "Bienvenido de Vuelta",
         todayStats: "Estadísticas de Hoy",
         weeklyGoal: "Meta Semanal",
@@ -317,6 +398,10 @@ const translations: Record<Language, TranslationKeys> = {
         displayName: "Nombre para Mostrar",
         email: "Correo",
         changePhoto: "Cambiar Foto",
+        recommendedPhoto: "Recomendado: Cuadrado JPG/PNG, máx 2MB",
+        photoUpdated: "¡Foto de perfil actualizada!",
+        photoUploadFailed: "Error al subir foto.",
+        photoTooLarge: "El archivo es demasiado grande. Máx 2MB.",
         sessionPreferences: "Preferencias de Sesión",
         activityMode: "Modo de Actividad",
         environment: "Entorno",
@@ -325,6 +410,7 @@ const translations: Record<Language, TranslationKeys> = {
         voiceCoaching: "Entrenamiento por Voz",
         voiceCoachingDesc: "Anuncios de IA en los parciales",
         testVoice: "Probar Volumen de Voz",
+        voiceCheck: "El entrenamiento por voz está activo. Prueba de volumen.",
         weatherAnnouncements: "Anuncios del Clima",
         weatherDesc: "Actualización del clima al inicio",
         showMap: "Mostrar Mapa",
@@ -366,6 +452,19 @@ const translations: Record<Language, TranslationKeys> = {
         countStepsRelax: "Cuenta pasos y relájate",
         speedElevation: "Velocidad y elevación",
         trailElevation: "Sendero y elevación",
+        journalTitlePlaceholder: "Titula tu entrada...",
+        journalContentPlaceholder: "Empieza a escribir tus pensamientos...",
+        fixGrammar: "Corregir Gramática",
+        expand: "Expandir",
+        simplify: "Simplificar",
+        positive: "Positivo",
+        addImage: "Sube Imagen",
+        aiRefining: "La IA está refinando tus pensamientos...",
+        saveEntry: "Guardar Entrada",
+        unsavedChanges: "Tienes cambios sin guardar.",
+        confirmDelete: "¿Estás seguro de que quieres eliminar esta entrada?",
+        confirmDiscard: "¿Estás seguro de que quieres DESCARTAR los cambios?",
+        saveBeforeLeaving: "¿Quieres GUARDARLOS antes de salir?",
     },
     fr: {
         dashboard: "Tableau de Bord",
@@ -376,6 +475,25 @@ const translations: Record<Language, TranslationKeys> = {
         aiCoach: "Coach IA",
         settings: "Paramètres",
         logOut: "Déconnexion",
+        friends: "Amis",
+        leaderboard: "Classement",
+        stepsBoard: "Tableau des Pas",
+        training: "Plan d'Entraînement",
+        meditation: "Méditation",
+        fasting: "Jeûne",
+        journal: "Journal",
+
+        // Session Tracker
+        startSession: "DÉMARRER",
+        stopSession: "ARRÊTER",
+        sessionPaused: "PAUSE",
+        sessionSaving: "ENREGISTREMENT...",
+        locatingGPS: "Recherche de satellites GPS...",
+        sessionTooShort: "Session trop courte pour être enregistrée.",
+        failedToSave: "Échec de l'enregistrement de la session",
+        splits: "Temps intermédiaires",
+        mileSplits: "TEMPS AU MILE",
+
         welcomeBack: "Bon Retour",
         todayStats: "Stats du Jour",
         weeklyGoal: "Objectif Hebdomadaire",
@@ -428,6 +546,10 @@ const translations: Record<Language, TranslationKeys> = {
         displayName: "Nom d'Affichage",
         email: "E-mail",
         changePhoto: "Changer la Photo",
+        recommendedPhoto: "Recommandé : Carré JPG/PNG, max 2Mo",
+        photoUpdated: "Photo de profil mise à jour !",
+        photoUploadFailed: "Échec du téléchargement de la photo.",
+        photoTooLarge: "Le fichier est trop volumineux. Max 2Mo.",
         sessionPreferences: "Préférences de Session",
         activityMode: "Mode d'Activité",
         environment: "Environnement",
@@ -436,6 +558,7 @@ const translations: Record<Language, TranslationKeys> = {
         voiceCoaching: "Coaching Vocal",
         voiceCoachingDesc: "Annonces IA aux parcours",
         testVoice: "Tester le Volume Vocal",
+        voiceCheck: "Le coaching vocal est actif. Vérification du volume.",
         weatherAnnouncements: "Annonces Météo",
         weatherDesc: "Mise à jour météo au démarrage",
         showMap: "Afficher la Carte",
@@ -477,6 +600,19 @@ const translations: Record<Language, TranslationKeys> = {
         countStepsRelax: "Compter les pas et se détendre",
         speedElevation: "Vitesse et élévation",
         trailElevation: "Sentier et élévation",
+        journalTitlePlaceholder: "Titre de votre entrée...",
+        journalContentPlaceholder: "Commencez à écrire vos pensées...",
+        fixGrammar: "Corriger Grammaire",
+        expand: "Développer",
+        simplify: "Simplifier",
+        positive: "Positif",
+        addImage: "Ajouter Image",
+        aiRefining: "L'IA affine vos pensées...",
+        saveEntry: "Sauvegarder l'entrée",
+        unsavedChanges: "Vous avez des modifications non enregistrées.",
+        confirmDelete: "Êtes-vous sûr de vouloir supprimer cette entrée ?",
+        confirmDiscard: "Êtes-vous sûr de vouloir ABANDONNER les modifications ?",
+        saveBeforeLeaving: "Voulez-vous les SAUVEGARDER avant de quitter ?",
     },
     zh: {
         dashboard: "仪表板",
@@ -487,6 +623,25 @@ const translations: Record<Language, TranslationKeys> = {
         aiCoach: "AI教练",
         settings: "设置",
         logOut: "退出",
+        friends: "好友",
+        leaderboard: "排行榜",
+        stepsBoard: "步数榜",
+        training: "训练计划",
+        meditation: "冥想",
+        fasting: "断食",
+        journal: "日记",
+
+        // Session Tracker
+        startSession: "开始",
+        stopSession: "停止",
+        sessionPaused: "暂停",
+        sessionSaving: "保存中...",
+        locatingGPS: "正在定位 GPS...",
+        sessionTooShort: "运动时间太短，无法保存。",
+        failedToSave: "保存失败",
+        splits: "分段",
+        mileSplits: "英里分段",
+
         welcomeBack: "欢迎回来",
         todayStats: "今日统计",
         weeklyGoal: "周目标",
@@ -539,6 +694,10 @@ const translations: Record<Language, TranslationKeys> = {
         displayName: "显示名称",
         email: "邮箱",
         changePhoto: "更换照片",
+        recommendedPhoto: "推荐：正方形 JPG/PNG，最大 2MB",
+        photoUpdated: "头像已更新！",
+        photoUploadFailed: "上传照片失败。",
+        photoTooLarge: "文件过大。最大 2MB。",
         sessionPreferences: "运动偏好",
         activityMode: "活动模式",
         environment: "环境",
@@ -547,6 +706,7 @@ const translations: Record<Language, TranslationKeys> = {
         voiceCoaching: "语音指导",
         voiceCoachingDesc: "每英里AI语音播报",
         testVoice: "测试语音音量",
+        voiceCheck: "语音指导已激活。音量测试。",
         weatherAnnouncements: "天气播报",
         weatherDesc: "开始时天气更新",
         showMap: "显示地图",
@@ -588,6 +748,19 @@ const translations: Record<Language, TranslationKeys> = {
         countStepsRelax: "数步数放松",
         speedElevation: "速度和海拔",
         trailElevation: "步道和海拔",
+        journalTitlePlaceholder: "给你的日记起个标题...",
+        journalContentPlaceholder: "开始写下你的想法...",
+        fixGrammar: "修正语法",
+        expand: "扩展",
+        simplify: "简化",
+        positive: "积极",
+        addImage: "添加图片",
+        aiRefining: "AI正在优化你的想法...",
+        saveEntry: "保存日记",
+        unsavedChanges: "你有未保存的更改。",
+        confirmDelete: "确定要删除这篇日记吗？",
+        confirmDiscard: "确定要放弃更改吗？",
+        saveBeforeLeaving: "离开前要保存吗？",
     },
     ar: {
         dashboard: "لوحة القيادة",
@@ -598,6 +771,25 @@ const translations: Record<Language, TranslationKeys> = {
         aiCoach: "المدرب الذكي",
         settings: "الإعدادات",
         logOut: "تسجيل الخروج",
+        friends: "الأصدقاء",
+        leaderboard: "لائحة المتصدرين",
+        stepsBoard: "لوحة الخطوات",
+        training: "خطة التدريب",
+        meditation: "تأمل",
+        fasting: "صيام",
+        journal: "مذكرات",
+
+        // Session Tracker
+        startSession: "ابدا",
+        stopSession: "قف",
+        sessionPaused: "متوقف",
+        sessionSaving: "جار الحفظ...",
+        locatingGPS: "تحديد موقع الأقمار الصناعية...",
+        sessionTooShort: "الجلسة قصيرة جداً للحفظ.",
+        failedToSave: "فشل حفظ الجلسة",
+        splits: "أوقات",
+        mileSplits: "أوقات الميل",
+
         welcomeBack: "مرحبًا بعودتك",
         todayStats: "إحصائيات اليوم",
         weeklyGoal: "الهدف الأسبوعي",
@@ -650,6 +842,10 @@ const translations: Record<Language, TranslationKeys> = {
         displayName: "اسم العرض",
         email: "البريد الإلكتروني",
         changePhoto: "تغيير الصورة",
+        recommendedPhoto: "موصى به: مربع JPG/PNG، بحد أقصى 2 ميجابايت",
+        photoUpdated: "تم تحديث صورة الملف الشخصي!",
+        photoUploadFailed: "فشل تحميل الصورة.",
+        photoTooLarge: "الملف كبير جدًا. بحد أقصى 2 ميجابايت.",
         sessionPreferences: "تفضيلات الجلسة",
         activityMode: "نوع النشاط",
         environment: "البيئة",
@@ -658,6 +854,7 @@ const translations: Record<Language, TranslationKeys> = {
         voiceCoaching: "التدريب الصوتي",
         voiceCoachingDesc: "إعلانات صوتية عند كل ميل",
         testVoice: "اختبار مستوى الصوت",
+        voiceCheck: "التدريب الصوتي نشط. التحقق من مستوى الصوت.",
         weatherAnnouncements: "إعلانات الطقس",
         weatherDesc: "تحديث الطقس عند البداية",
         showMap: "إظهار الخريطة",
@@ -699,6 +896,19 @@ const translations: Record<Language, TranslationKeys> = {
         countStepsRelax: "عد الخطوات واسترخ",
         speedElevation: "السرعة والارتفاع",
         trailElevation: "المسار والارتفاع",
+        journalTitlePlaceholder: "ضع عنوانًا لمذكرتك...",
+        journalContentPlaceholder: "ابدأ بكتابة أفكارك...",
+        fixGrammar: "تصحيح القواعد",
+        expand: "توسيع",
+        simplify: "تبسيط",
+        positive: "إيجابي",
+        addImage: "إضافة صورة",
+        aiRefining: "الذكاء الاصطناعي يحسن أفكارك...",
+        saveEntry: "حفظ المذكرة",
+        unsavedChanges: "لديك تغييرات غير محفوظة.",
+        confirmDelete: "هل أنت متأكد أنك تريد حذف هذه المذكرة؟",
+        confirmDiscard: "هل أنت متأكد أنك تريد تجاهل التغييرات؟",
+        saveBeforeLeaving: "هل تريد حفظها قبل المغادرة؟",
     },
 };
 
