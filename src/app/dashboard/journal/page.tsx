@@ -3,6 +3,8 @@
 import { useAuth } from "@/context/AuthContext";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { db } from "@/lib/firebase/config";
+import { collection, query, orderBy, limit, getDocs } from "firebase/firestore";
 
 interface JournalEntry {
     id: string;
@@ -24,14 +26,23 @@ export default function JournalDashboard() {
 
         async function fetchEntries() {
             try {
-                const token = await user?.getIdToken();
-                const res = await fetch("/api/journal/list", {
-                    headers: { "Authorization": `Bearer ${token}` }
+                const q = query(
+                    collection(db, "users", user!.uid, "journal_entries"),
+                    orderBy("createdAt", "desc"),
+                    limit(50)
+                );
+                const snapshot = await getDocs(q);
+
+                const fetchedEntries = snapshot.docs.map(doc => {
+                    const data = doc.data();
+                    return {
+                        id: doc.id,
+                        ...data,
+                        createdAt: data.createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
+                    } as JournalEntry;
                 });
-                if (res.ok) {
-                    const data = await res.json();
-                    setEntries(data.entries);
-                }
+
+                setEntries(fetchedEntries);
             } catch (e) {
                 console.error("Failed to fetch journal", e);
             } finally {

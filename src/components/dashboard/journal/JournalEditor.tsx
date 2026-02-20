@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation"; // Correct import
 import { Loader2, Wand2, Check, ArrowLeft } from "lucide-react";
 import { useSettings } from "@/context/SettingsContext"; // Import settings
 import { t } from "@/lib/translations"; // Import translations
+import { db } from "@/lib/firebase/config";
+import { collection, doc, addDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 
 interface JournalEditorProps {
     initialData?: {
@@ -85,32 +87,38 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
 
     const handleSaveWithImages = async () => {
         if (!title.trim() && !content.trim() && mediaItems.length === 0) return;
+        if (!user) return;
+
         setIsSaving(true);
         try {
-            const token = await user?.getIdToken();
-            const res = await fetch("/api/journal/save", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    id: initialData?.id, // if editing
-                    userId: user?.uid,
+            const collectionRef = collection(db, "users", user.uid, "journal_entries");
+
+            if (initialData?.id) {
+                // Update
+                const docRef = doc(collectionRef, initialData.id);
+                await updateDoc(docRef, {
                     title,
                     content,
-                    media: mediaItems
-                })
-            });
-
-            if (res.ok) {
-                setIsDirty(false); // Reset dirty state so we don't prompt on exit
-                router.push("/dashboard/journal");
+                    media: mediaItems.length > 0 ? mediaItems : null,
+                    updatedAt: serverTimestamp()
+                });
             } else {
-                alert(t(lang, "error"));
+                // Create
+                await addDoc(collectionRef, {
+                    title,
+                    content,
+                    type: "journal",
+                    media: mediaItems.length > 0 ? mediaItems : null,
+                    createdAt: serverTimestamp(),
+                    updatedAt: serverTimestamp()
+                });
             }
-        } catch (e) {
-            console.error(e);
+
+            setIsDirty(false); // Reset dirty state so we don't prompt on exit
+            router.push("/dashboard/journal");
+        } catch (e: any) {
+            console.error("Journal save error:", e);
+            alert(`Error: ${e.message || t(lang, "error")}`);
         } finally {
             setIsSaving(false);
         }
@@ -164,28 +172,18 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
     };
 
     const handleDelete = async () => {
-        if (!initialData?.id || !confirm(t(lang, "confirmDelete"))) return; // Localized
+        if (!initialData?.id || !user || !confirm(t(lang, "confirmDelete"))) return; // Localized
 
         setIsSaving(true);
         try {
-            const token = await user?.getIdToken();
-            const res = await fetch("/api/journal/delete", {
-                method: "DELETE",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${token}`
-                },
-                body: JSON.stringify({ id: initialData.id, userId: user?.uid })
-            });
+            const docRef = doc(db, "users", user.uid, "journal_entries", initialData.id);
+            await deleteDoc(docRef);
 
-            if (res.ok) {
-                setIsDirty(false);
-                router.push("/dashboard/journal");
-            } else {
-                alert(t(lang, "error"));
-            }
-        } catch (e) {
-            console.error(e);
+            setIsDirty(false);
+            router.push("/dashboard/journal");
+        } catch (e: any) {
+            console.error("Delete error:", e);
+            alert(`Error: ${e.message || t(lang, "error")}`);
         } finally {
             setIsSaving(false);
         }
