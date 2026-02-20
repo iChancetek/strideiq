@@ -1,5 +1,4 @@
 import { adminDb } from "@/lib/firebase/admin";
-import { getAuth } from "firebase-admin/auth";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { Timestamp } from "firebase-admin/firestore";
@@ -13,13 +12,8 @@ export async function POST(req: Request) {
 
         let userId = bodyUserId;
         if (!userId) {
-            const idToken = (await headers()).get("Authorization")?.split("Bearer ")[1];
-            if (!idToken) {
-                return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-            }
-            const decodedToken = await getAuth().verifyIdToken(idToken);
-            userId = decodedToken.uid;
-            console.log("Extracted user from token:", userId);
+            console.log("Validation Failed: Unauthorized");
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
         if (!content && !title && (!imageUrls || imageUrls.length === 0) && (!media || media.length === 0)) {
