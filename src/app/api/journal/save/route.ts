@@ -7,7 +7,7 @@ import { Timestamp } from "firebase-admin/firestore";
 export async function POST(req: Request) {
     try {
         const body = await req.json();
-        const { id, title, content, type = "journal", imageUrls, userId: bodyUserId } = body;
+        const { id, title, content, type = "journal", imageUrls, media, userId: bodyUserId } = body;
 
         let userId = bodyUserId;
         if (!userId) {
@@ -19,9 +19,12 @@ export async function POST(req: Request) {
             userId = decodedToken.uid;
         }
 
-        if (!content && !title && (!imageUrls || imageUrls.length === 0)) {
+        if (!content && !title && (!imageUrls || imageUrls.length === 0) && (!media || media.length === 0)) {
             return NextResponse.json({ error: "Empty entry" }, { status: 400 });
         }
+
+        // Combine legacy imageUrls into media array for DB storage if needed, or store them separately.
+        const finalMedia = media || (imageUrls ? imageUrls.map((url: string) => ({ url, type: "image" })) : null);
 
         // If ID exists, update. Else create new.
         const collectionRef = adminDb.collection("users").doc(userId).collection("journal_entries");
@@ -30,7 +33,7 @@ export async function POST(req: Request) {
             await collectionRef.doc(id).update({
                 title,
                 content,
-                imageUrls: imageUrls || null,
+                media: finalMedia,
                 updatedAt: Timestamp.now()
             });
             return NextResponse.json({ success: true, id });
@@ -39,7 +42,7 @@ export async function POST(req: Request) {
                 title,
                 content,
                 type,
-                imageUrls: imageUrls || null,
+                media: finalMedia,
                 createdAt: Timestamp.now(),
                 updatedAt: Timestamp.now()
             });
