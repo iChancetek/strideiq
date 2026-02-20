@@ -109,14 +109,30 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
             const finalMediaItems = mediaItems.length > 0 ? mediaItems : null;
 
             let savePromise;
-            if (initialData?.id) {
+            if (initialData?.id && !isNew) {
                 const docRef = doc(collectionRef, initialData.id);
+                // We wrap updateDoc in a fallback in case the local ID was orphaned (never actually saved to server)
                 savePromise = updateDoc(docRef, {
                     title,
                     content,
                     media: finalMediaItems,
                     updatedAt: serverTimestamp()
+                }).catch(async (err) => {
+                    // If the document doesn't exist on the server, create it fresh instead of crashing
+                    if (err.code === 'not-found' || err.message.includes('NOT_FOUND')) {
+                        console.warn("Document not found on server, attempting to recreate it...");
+                        return addDoc(collectionRef, {
+                            title,
+                            content,
+                            type: "journal",
+                            media: finalMediaItems,
+                            createdAt: serverTimestamp(),
+                            updatedAt: serverTimestamp()
+                        });
+                    }
+                    throw err; // Re-throw other errors
                 });
+
             } else {
                 savePromise = addDoc(collectionRef, {
                     title,
