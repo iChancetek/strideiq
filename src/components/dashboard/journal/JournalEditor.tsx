@@ -98,34 +98,36 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
             }
 
             setIsSaving(true);
-            const collectionRef = collection(db, "users", user.uid, "journal_entries");
+            const token = await user.getIdToken();
+            const payload = {
+                id: initialData?.id,
+                userId: user.uid,
+                title,
+                content,
+                media: mediaItems.length > 0 ? mediaItems : null
+            };
 
-            if (initialData?.id) {
-                // Update
-                const docRef = doc(collectionRef, initialData.id);
-                await updateDoc(docRef, {
-                    title,
-                    content,
-                    media: mediaItems.length > 0 ? mediaItems : null,
-                    updatedAt: serverTimestamp()
-                });
+            const res = await fetch("/api/journal/save", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await res.json();
+
+            if (res.ok && data.success) {
+                setIsDirty(false); // Reset dirty state so we don't prompt on exit
+                router.push("/dashboard/journal");
             } else {
-                // Create
-                await addDoc(collectionRef, {
-                    title,
-                    content,
-                    type: "journal",
-                    media: mediaItems.length > 0 ? mediaItems : null,
-                    createdAt: serverTimestamp(),
-                    updatedAt: serverTimestamp()
-                });
+                console.error("API Error: ", data);
+                alert(`Server Error: ${data.error || "Unknown server error."}`);
             }
-
-            setIsDirty(false); // Reset dirty state so we don't prompt on exit
-            router.push("/dashboard/journal");
         } catch (e: any) {
-            console.error("Journal save error:", e);
-            alert(`Save Error: ${e.message || "An unknown error occurred."}`);
+            console.error("Journal save network or parse error:", e);
+            alert(`Network Error: ${e.message || "Failed to reach the server."}`);
         } finally {
             setIsSaving(false);
         }
@@ -183,14 +185,28 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
 
         setIsSaving(true);
         try {
-            const docRef = doc(db, "users", user.uid, "journal_entries", initialData.id);
-            await deleteDoc(docRef);
+            const token = await user.getIdToken();
+            const res = await fetch("/api/journal/delete", {
+                method: "DELETE",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify({ id: initialData.id, userId: user.uid })
+            });
 
-            setIsDirty(false);
-            router.push("/dashboard/journal");
+            const data = await res.json();
+
+            if (res.ok) {
+                setIsDirty(false);
+                router.push("/dashboard/journal");
+            } else {
+                console.error("Delete Error", data);
+                alert(`Delete Error: ${data.error || "Failed to delete"}`);
+            }
         } catch (e: any) {
-            console.error("Delete error:", e);
-            alert(`Error: ${e.message || t(lang, "error")}`);
+            console.error("Delete network error:", e);
+            alert(`Network Error: ${e.message || "Failed to reach the server."}`);
         } finally {
             setIsSaving(false);
         }
