@@ -9,6 +9,8 @@ interface JournalEntry {
     title: string;
     content: string;
     createdAt: string;
+    imageUrls?: string[];
+    media?: { type: string, url: string }[];
 }
 
 export default function JournalDashboard() {
@@ -177,6 +179,12 @@ export default function JournalDashboard() {
 
                                     <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "12px", fontSize: "11px", color: "var(--foreground-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>
                                         📅 {new Date(entry.createdAt).toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })}
+                                        {/* Media Indicators */}
+                                        <div style={{ marginLeft: "auto", display: "flex", gap: "4px", fontSize: "14px" }}>
+                                            {(entry.imageUrls?.length || 0) > 0 || entry.media?.some(m => m.type === "image") ? "📷" : ""}
+                                            {entry.media?.some(m => m.type === "audio") ? "🎤" : ""}
+                                            {entry.media?.some(m => m.type === "video") ? "📹" : ""}
+                                        </div>
                                     </div>
 
                                     <h3 style={{ fontWeight: 700, fontSize: "18px", marginBottom: "10px", lineHeight: "1.3" }}>

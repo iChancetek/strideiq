@@ -15,6 +15,7 @@ interface JournalEditorProps {
         mood?: string;
         tags?: string[];
         imageUrls?: string[];
+        media?: { url: string, type: string }[];
     };
     isNew?: boolean;
 }
@@ -30,7 +31,16 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
     const [isSaving, setIsSaving] = useState(false);
     const [isProcessingAI, setIsProcessingAI] = useState(false);
     const [uploading, setUploading] = useState(false);
-    const [imageUrls, setImageUrls] = useState<string[]>(initialData?.imageUrls || []);
+    const [mediaItems, setMediaItems] = useState<{ url: string, type: string }[]>(() => {
+        const initial: { url: string, type: string }[] = [];
+        if (initialData?.imageUrls) {
+            initialData.imageUrls.forEach(url => initial.push({ url, type: "image" }));
+        }
+        if (initialData?.media) {
+            initialData.media.forEach(m => initial.push(m));
+        }
+        return initial;
+    });
 
     // Safety Check: Track unsaved changes
     const [isDirty, setIsDirty] = useState(false);
@@ -38,14 +48,15 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
     useEffect(() => {
         const initialTitle = initialData?.title || "";
         const initialContent = initialData?.content || "";
-        const initialImages = initialData?.imageUrls || [];
+
+        const initialLength = (initialData?.imageUrls?.length || 0) + (initialData?.media?.length || 0);
 
         const isTitleChanged = title !== initialTitle;
         const isContentChanged = content !== initialContent;
-        const isImagesChanged = JSON.stringify(imageUrls) !== JSON.stringify(initialImages);
+        const isMediaChanged = mediaItems.length !== initialLength;
 
-        setIsDirty(isTitleChanged || isContentChanged || isImagesChanged);
-    }, [title, content, imageUrls, initialData]);
+        setIsDirty(isTitleChanged || isContentChanged || isMediaChanged);
+    }, [title, content, mediaItems, initialData]);
 
     const handleAI = async (command: string, tone?: string) => {
         if (!content.trim()) return;
@@ -73,7 +84,7 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
     };
 
     const handleSaveWithImages = async () => {
-        if (!title.trim() && !content.trim() && imageUrls.length === 0) return;
+        if (!title.trim() && !content.trim() && mediaItems.length === 0) return;
         setIsSaving(true);
         try {
             const token = await user?.getIdToken();
@@ -88,7 +99,7 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
                     userId: user?.uid,
                     title,
                     content,
-                    imageUrls
+                    media: mediaItems
                 })
             });
 
@@ -120,7 +131,7 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
         }
     };
 
-    const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const handleMediaUpload = async (event: React.ChangeEvent<HTMLInputElement>, type: "image" | "audio" | "video") => {
         const file = event.target.files?.[0];
         if (!file) return;
 
@@ -140,7 +151,7 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
 
             const data = await res.json();
             if (data.url) {
-                setImageUrls(prev => [...prev, data.url]);
+                setMediaItems(prev => [...prev, { url: data.url, type }]);
             } else {
                 alert(t(lang, "error"));
             }
@@ -326,7 +337,25 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
                         opacity: uploading ? 0.5 : 1
                     }}>
                         {uploading ? <Loader2 size={12} className="animate-spin" /> : "📷 " + t(lang, "addImage")}
-                        <input type="file" accept="image/*" style={{ display: "none" }} onChange={handleImageUpload} disabled={uploading} />
+                        <input type="file" accept="image/*" style={{ display: "none" }} onChange={e => handleMediaUpload(e, "image")} disabled={uploading} />
+                    </label>
+
+                    <label style={{
+                        display: "flex", alignItems: "center", gap: "4px", fontSize: "12px", whiteSpace: "nowrap",
+                        padding: "6px 12px", borderRadius: "16px", background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.1)", color: "var(--foreground)", cursor: "pointer",
+                        opacity: uploading ? 0.5 : 1
+                    }}>
+                        {uploading ? <Loader2 size={12} className="animate-spin" /> : "🎤 Voice"}
+                        <input type="file" accept="audio/*" capture="user" style={{ display: "none" }} onChange={e => handleMediaUpload(e, "audio")} disabled={uploading} />
+                    </label>
+
+                    <label style={{
+                        display: "flex", alignItems: "center", gap: "4px", fontSize: "12px", whiteSpace: "nowrap",
+                        padding: "6px 12px", borderRadius: "16px", background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.1)", color: "var(--foreground)", cursor: "pointer",
+                        opacity: uploading ? 0.5 : 1
+                    }}>
+                        {uploading ? <Loader2 size={12} className="animate-spin" /> : "📹 Video"}
+                        <input type="file" accept="video/*" capture="environment" style={{ display: "none" }} onChange={e => handleMediaUpload(e, "video")} disabled={uploading} />
                     </label>
                 </div>
 
@@ -349,28 +378,40 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
                     onChange={e => setContent(e.target.value)}
                 />
 
-                {/* Image Grid */}
-                {imageUrls.length > 0 && (
+                {/* Media Grid */}
+                {mediaItems.length > 0 && (
                     <div style={{
                         display: "flex",
                         gap: "12px",
                         overflowX: "auto",
                         paddingBottom: "8px",
                     }}>
-                        {imageUrls.map((url, i) => (
+                        {mediaItems.map((media, i) => (
                             <div key={i} style={{
                                 position: "relative",
                                 flexShrink: 0,
-                                width: "120px",
+                                width: "160px",
                                 height: "120px",
                                 borderRadius: "8px",
                                 overflow: "hidden",
                                 border: "1px solid rgba(255,255,255,0.1)",
+                                background: "rgba(0,0,0,0.5)",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center"
                             }}>
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img src={url} alt="Attachment" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                                {media.type === "image" && (
+                                    // eslint-disable-next-line @next/next/no-img-element
+                                    <img src={media.url} alt="Attachment" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                                )}
+                                {media.type === "video" && (
+                                    <video src={media.url} controls style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                                )}
+                                {media.type === "audio" && (
+                                    <audio src={media.url} controls style={{ width: "100%" }} />
+                                )}
                                 <button
-                                    onClick={() => setImageUrls(prev => prev.filter((_, idx) => idx !== i))}
+                                    onClick={() => setMediaItems(prev => prev.filter((_, idx) => idx !== i))}
                                     style={{
                                         position: "absolute",
                                         top: "4px",

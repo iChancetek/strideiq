@@ -2,7 +2,7 @@ import { adminDb } from "@/lib/firebase/admin";
 import { getAuth } from "firebase-admin/auth";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
-import { FieldValue } from "firebase-admin/firestore";
+import { Timestamp } from "firebase-admin/firestore";
 
 export async function POST(req: Request) {
     try {
@@ -31,7 +31,7 @@ export async function POST(req: Request) {
                 title,
                 content,
                 imageUrls: imageUrls || null,
-                updatedAt: FieldValue.serverTimestamp()
+                updatedAt: Timestamp.now()
             });
             return NextResponse.json({ success: true, id });
         } else {
@@ -40,8 +40,8 @@ export async function POST(req: Request) {
                 content,
                 type,
                 imageUrls: imageUrls || null,
-                createdAt: FieldValue.serverTimestamp(),
-                updatedAt: FieldValue.serverTimestamp()
+                createdAt: Timestamp.now(),
+                updatedAt: Timestamp.now()
             });
             return NextResponse.json({ success: true, id: docRef.id });
         }
