@@ -4,10 +4,13 @@ import { useActivities, Activity } from "@/hooks/useActivities";
 import { useAuth } from "@/context/AuthContext";
 import ActivityFeedCard from "@/components/dashboard/ActivityFeedCard";
 import Link from "next/link";
+import { useState } from "react";
+import ManualActivityModal from "@/components/dashboard/ManualActivityModal";
 
 export default function ActivitiesPage() {
     const { user } = useAuth();
     const { activities, loading } = useActivities();
+    const [isManualModalOpen, setIsManualModalOpen] = useState(false);
 
     // Sort activities by date (newest first)
     const sortedActivities = [...activities].sort(
@@ -43,20 +46,37 @@ export default function ActivitiesPage() {
                 marginBottom: "24px",
             }}>
                 <h1 style={{ fontSize: "28px", fontWeight: 800 }}>Activity Feed</h1>
-                <Link
-                    href="/dashboard/run"
-                    style={{
-                        padding: "10px 20px",
-                        borderRadius: "var(--radius-full, 24px)",
-                        background: "var(--primary)",
-                        color: "#fff",
-                        textDecoration: "none",
-                        fontSize: "14px",
-                        fontWeight: 600,
-                    }}
-                >
-                    + New Activity
-                </Link>
+                <div style={{ display: "flex", gap: "12px" }}>
+                    <button
+                        onClick={() => setIsManualModalOpen(true)}
+                        style={{
+                            padding: "10px 20px",
+                            borderRadius: "var(--radius-full, 24px)",
+                            background: "rgba(255,255,255,0.05)",
+                            border: "1px solid rgba(255,255,255,0.1)",
+                            color: "#fff",
+                            cursor: "pointer",
+                            fontSize: "14px",
+                            fontWeight: 600,
+                        }}
+                    >
+                        Log Manually
+                    </button>
+                    <Link
+                        href="/dashboard/run"
+                        style={{
+                            padding: "10px 20px",
+                            borderRadius: "var(--radius-full, 24px)",
+                            background: "var(--primary)",
+                            color: "#fff",
+                            textDecoration: "none",
+                            fontSize: "14px",
+                            fontWeight: 600,
+                        }}
+                    >
+                        + New Activity
+                    </Link>
+                </div>
             </div>
 
             {/* Weekly Summary Card */}
@@ -125,6 +145,11 @@ export default function ActivitiesPage() {
                     />
                 ))
             )}
+
+            <ManualActivityModal
+                isOpen={isManualModalOpen}
+                onClose={() => setIsManualModalOpen(false)}
+            />
         </div>
     );
 }

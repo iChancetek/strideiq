@@ -1,46 +1,56 @@
 require('dotenv').config({ path: '.env.local' });
-const { initializeApp, cert } = require('firebase-admin/app');
-const { getFirestore } = require('firebase-admin/firestore');
+const { initializeApp } = require('firebase/app');
+const { getFirestore, collection, query, where, getDocs, orderBy, limit, initializeFirestore } = require('firebase/firestore');
 
-const serviceAccount = {
-    projectId: process.env.FIREBASE_PROJECT_ID,
-    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-    privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n')
+const firebaseConfig = {
+    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+    measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-initializeApp({
-    credential: cert(serviceAccount)
-});
-
-const db = getFirestore();
+const app = initializeApp(firebaseConfig);
+const db = initializeFirestore(app, { experimentalForceLongPolling: true });
 
 async function check() {
-    console.log("Looking for user...");
-    const usersSnap = await db.collection("users").where("email", "==", "chancellor@ichancetek.com").get();
-    let uid = "bXQpE5oXo4Z0Xm9X2gZbM1rE2xU2"; // Fallback to a known dev UID if search fails, though it should be lowercase chancellor
+    console.log("Looking for all users...");
+    const usersRef = collection(db, "users");
+    const usersSnap = await getDocs(usersRef);
 
-    if (!usersSnap.empty) {
-        uid = usersSnap.docs[0].id;
-    } else {
-        const usersSnap2 = await db.collection("users").where("email", "==", "Chancellor@ichancetek.com").get();
-        if (!usersSnap2.empty) uid = usersSnap2.docs[0].id;
+    console.log(`Found ${usersSnap.size} user documents.`);
+    let targetUids = [];
+
+    usersSnap.forEach(doc => {
+        const d = doc.data();
+        if (d.email && d.email.toLowerCase() === "chancellor@ichancetek.com") {
+            console.log(`MATCHED EMAIL: ${d.email} | UID: ${doc.id}`);
+            targetUids.push(doc.id);
+        }
+    });
+
+    if (targetUids.length === 0) {
+        console.log("No users found matching that email.");
+        return;
     }
 
-    console.log("Querying for UID:", uid);
+    // Check activities for all matched UIDs
+    for (const uid of targetUids) {
+        console.log(`\n--- Querying for UID: ${uid} ---`);
+        const actsRef = collection(db, "users", uid, "activities");
+        const q = query(actsRef, orderBy("date", "desc"), limit(10));
+        const activitiesSnap = await getDocs(q);
 
-    // Check activities
-    const activitiesSnap = await db.collection("users").doc(uid).collection("activities")
-        .orderBy("date", "desc")
-        .limit(10)
-        .get();
-
-    console.log(`Found ${activitiesSnap.size} recent activities.`);
-    activitiesSnap.forEach(doc => {
-        const data = doc.data();
-        let d = data.date;
-        if (d && d.toDate) d = d.toDate();
-        console.log(`- ID: ${doc.id} | ${data.distance} miles | ${data.duration}s | Type: ${data.type} | Date: ${d}`);
-    });
+        console.log(`Found ${activitiesSnap.size} recent activities.`);
+        activitiesSnap.forEach(doc => {
+            const data = doc.data();
+            let d = data.date;
+            if (d && d.toDate) d = d.toDate();
+            console.log(`- ID: ${doc.id} | ${data.distance} miles | ${data.duration}s | Type: ${data.type} | Date: ${d}`);
+        });
+    }
 }
 
 check().then(() => process.exit(0)).catch(e => { console.error(e); process.exit(1); });
