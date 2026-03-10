@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useRef, useState } from "react";
 import Link from "next/link";
 import { useSettings } from "@/context/SettingsContext";
 import {
@@ -76,6 +76,15 @@ const agents: Agent[] = [
 export default function Home() {
   const { settings, toggleTheme } = useSettings();
   const isDark = settings.theme === "dark";
+  const [isMuted, setIsMuted] = useState(true);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  const toggleMute = () => {
+    if (videoRef.current) {
+      videoRef.current.muted = !isMuted;
+      setIsMuted(!isMuted);
+    }
+  };
 
   return (
     <main style={{ minHeight: "100vh", display: "flex", flexDirection: "column", position: "relative", overflowX: "hidden" }}>
@@ -213,93 +222,152 @@ export default function Home() {
           padding: "120px 24px 80px",
           position: "relative",
           zIndex: 1,
+          overflow: "hidden",
         }}
       >
-        {/* Pill label */}
-        <div className="section-label anim-fade-up" style={{ animationDelay: "0s" }}>
-          <Zap size={12} />
-          Powered by Agentic AI
-        </div>
-
-        {/* Headline */}
-        <h1
-          className="anim-fade-up anim-fade-up-delay-1"
-          style={{
-            fontSize: "clamp(44px, 8vw, 86px)",
-            lineHeight: 1.05,
-            marginBottom: "24px",
-            maxWidth: "880px",
-          }}
-        >
-          Intelligent Movement.<br />
-          <span className="text-gradient">Agentic Performance.</span>
-        </h1>
-
-        {/* Subheadline */}
-        <p
-          className="anim-fade-up anim-fade-up-delay-2"
-          style={{
-            fontSize: "clamp(17px, 2.5vw, 22px)",
-            color: "var(--foreground-muted)",
-            maxWidth: "640px",
-            lineHeight: 1.7,
-            marginBottom: "48px",
-          }}
-        >
-          The first AI-powered fitness platform with autonomous coaching agents that perceive your movement, adapt in real-time, and evolve with you.
-        </p>
-
-        {/* CTAs */}
-        <div
-          className="anim-fade-up anim-fade-up-delay-3"
-          style={{ display: "flex", gap: "16px", flexWrap: "wrap", justifyContent: "center", marginBottom: "72px" }}
-        >
-          <Link href="/signup" className="btn-primary" style={{ padding: "16px 40px", fontSize: "16px" }}>
-            Start Training
-            <ArrowRight size={18} />
-          </Link>
-          <Link href="/learn-more" className="btn-ghost" style={{ padding: "16px 36px", fontSize: "16px" }}>
-            Learn More
-          </Link>
-        </div>
-
-        {/* Stat badges */}
-        <div
-          className="anim-fade-up anim-fade-up-delay-4"
-          style={{ display: "flex", gap: "16px", flexWrap: "wrap", justifyContent: "center" }}
-        >
-          {[
-            { label: "6 Autonomous Agents" },
-            { label: "Real-Time Adaptation" },
-            { label: "Voice AI Coaching" },
-          ].map(stat => (
-            <div key={stat.label} className="stat-badge" style={{ fontSize: "13px" }}>
-              <span className="text-gradient" style={{ fontWeight: 700, fontSize: "15px" }}>✦</span>
-              {stat.label}
-            </div>
-          ))}
-        </div>
-
-        {/* Scroll indicator */}
-        <div
+        {/* ── Video Background ── */}
+        <video
+          ref={videoRef}
+          src="/videos/StridetIQ.mp4"
+          autoPlay
+          loop
+          muted
+          playsInline
           style={{
             position: "absolute",
-            bottom: "36px",
-            left: "50%",
-            transform: "translateX(-50%)",
+            inset: 0,
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            zIndex: 0,
+            opacity: 0.35,
+          }}
+        />
+        {/* Gradient overlay so text stays legible */}
+        <div style={{
+          position: "absolute",
+          inset: 0,
+          background: isDark
+            ? "linear-gradient(to bottom, rgba(5,5,5,0.7) 0%, rgba(5,5,5,0.3) 50%, rgba(5,5,5,0.75) 100%)"
+            : "linear-gradient(to bottom, rgba(255,255,255,0.75) 0%, rgba(255,255,255,0.35) 50%, rgba(255,255,255,0.8) 100%)",
+          zIndex: 1,
+        }} />
+
+        {/* Mute / Unmute button */}
+        <button
+          onClick={toggleMute}
+          aria-label={isMuted ? "Unmute video" : "Mute video"}
+          style={{
+            position: "absolute",
+            bottom: "28px",
+            right: "28px",
+            zIndex: 10,
+            background: "rgba(0,0,0,0.45)",
+            backdropFilter: "blur(10px)",
+            border: "1px solid rgba(255,255,255,0.15)",
+            borderRadius: "50%",
+            width: "44px",
+            height: "44px",
             display: "flex",
-            flexDirection: "column",
             alignItems: "center",
-            gap: "6px",
-            color: "var(--foreground-subtle)",
-            fontSize: "11px",
-            letterSpacing: "0.12em",
-            textTransform: "uppercase",
+            justifyContent: "center",
+            cursor: "pointer",
+            fontSize: "18px",
+            color: "#fff",
+            transition: "background 0.2s",
           }}
         >
-          <span>Scroll</span>
-          <ChevronDown size={16} style={{ animation: "scroll-down 1.4s ease infinite" }} />
-        </div>
+          {isMuted ? "🔇" : "🔊"}
+        </button>
+
+        {/* All hero content sits above video — needs relative + z-index */}
+        <div style={{ position: "relative", zIndex: 2, display: "flex", flexDirection: "column", alignItems: "center" }}>
+          {/* Pill label */}
+          <div className="section-label anim-fade-up" style={{ animationDelay: "0s" }}>
+            <Zap size={12} />
+            Powered by Agentic AI
+          </div>
+
+          {/* Headline */}
+          <h1
+            className="anim-fade-up anim-fade-up-delay-1"
+            style={{
+              fontSize: "clamp(44px, 8vw, 86px)",
+              lineHeight: 1.05,
+              marginBottom: "24px",
+              maxWidth: "880px",
+            }}
+          >
+            Intelligent Movement.<br />
+            <span className="text-gradient">Agentic Performance.</span>
+          </h1>
+
+          {/* Subheadline */}
+          <p
+            className="anim-fade-up anim-fade-up-delay-2"
+            style={{
+              fontSize: "clamp(17px, 2.5vw, 22px)",
+              color: "var(--foreground-muted)",
+              maxWidth: "640px",
+              lineHeight: 1.7,
+              marginBottom: "48px",
+            }}
+          >
+            The first AI-powered fitness platform with autonomous coaching agents that perceive your movement, adapt in real-time, and evolve with you.
+          </p>
+
+          {/* CTAs */}
+          <div
+            className="anim-fade-up anim-fade-up-delay-3"
+            style={{ display: "flex", gap: "16px", flexWrap: "wrap", justifyContent: "center", marginBottom: "72px" }}
+          >
+            <Link href="/signup" className="btn-primary" style={{ padding: "16px 40px", fontSize: "16px" }}>
+              Start Training
+              <ArrowRight size={18} />
+            </Link>
+            <Link href="/learn-more" className="btn-ghost" style={{ padding: "16px 36px", fontSize: "16px" }}>
+              Learn More
+            </Link>
+          </div>
+
+          {/* Stat badges */}
+          <div
+            className="anim-fade-up anim-fade-up-delay-4"
+            style={{ display: "flex", gap: "16px", flexWrap: "wrap", justifyContent: "center" }}
+          >
+            {[
+              { label: "6 Autonomous Agents" },
+              { label: "Real-Time Adaptation" },
+              { label: "Voice AI Coaching" },
+            ].map(stat => (
+              <div key={stat.label} className="stat-badge" style={{ fontSize: "13px" }}>
+                <span className="text-gradient" style={{ fontWeight: 700, fontSize: "15px" }}>✦</span>
+                {stat.label}
+              </div>
+            ))}
+          </div>
+
+          {/* Scroll indicator */}
+          <div
+            style={{
+              position: "absolute",
+              bottom: "36px",
+              left: "50%",
+              transform: "translateX(-50%)",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "6px",
+              color: "var(--foreground-subtle)",
+              fontSize: "11px",
+              letterSpacing: "0.12em",
+              textTransform: "uppercase",
+            }}
+          >
+            <span>Scroll</span>
+            <ChevronDown size={16} style={{ animation: "scroll-down 1.4s ease infinite" }} />
+          </div>
+        </div>{/* end hero content wrapper */}
       </section>
 
       {/* ─── DIVIDER ─── */}

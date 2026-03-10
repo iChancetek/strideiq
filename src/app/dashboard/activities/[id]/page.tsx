@@ -281,6 +281,7 @@ export default function ActivityDetailPage() {
                                     <option value="Run">Run</option>
                                     <option value="Walk">Walk</option>
                                     <option value="Bike">Bike</option>
+                                    <option value="Hike">Hike</option>
                                     <option value="HIIT">HIIT</option>
                                 </select>
                             </div>

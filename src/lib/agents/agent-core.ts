@@ -157,6 +157,18 @@ export class AgentCore {
         return this.autoPauseEnabled ? this.movementAgent.getIsPaused() : false;
     }
 
+    /** Manual pause — callable from UI button, works even without autoPause enabled */
+    manualPause(): void {
+        const event = this.movementAgent.manualPause();
+        this.emit(event);
+    }
+
+    /** Manual resume — callable from UI button, works even without autoPause enabled */
+    manualResume(): void {
+        const event = this.movementAgent.manualResume();
+        this.emit(event);
+    }
+
     /** Get total paused seconds */
     getPausedSeconds(): number {
         return this.autoPauseEnabled ? this.movementAgent.getTotalPausedSeconds() : 0;

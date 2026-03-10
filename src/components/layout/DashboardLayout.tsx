@@ -99,15 +99,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const showBackButton = pathname !== "/dashboard";
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh" }}>
+    <div style={{ display: "flex", minHeight: "100svh" }}>
       <Sidebar onLogout={handleLogout} />
-      <main style={{
-        flex: 1,
-        marginLeft: "300px",
-        padding: "40px",
-        width: "calc(100% - 300px)",
-        position: "relative"
-      }} className="main-content">
+      <main
+        style={{
+          flex: 1,
+          marginLeft: "300px",
+          padding: "40px",
+          width: "calc(100% - 300px)",
+          position: "relative",
+          overflowY: "auto",
+          minHeight: "100svh",
+          boxSizing: "border-box",
+        }}
+        className="main-content"
+      >
 
         {/* Global Back Button */}
         {showBackButton && (
@@ -149,21 +155,40 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </main>
 
       <style jsx global>{`
+        /* ── Mobile portrait layout (PWA-first) ───────────────────────────── */
         @media (max-width: 768px) {
           .main-content {
             margin-left: 0 !important;
             width: 100% !important;
-            padding: 20px !important;
-            padding-top: max(20px, env(safe-area-inset-top) + 20px) !important;
-            padding-bottom: 120px !important; /* Increased for bottom nav/mic */
+            padding: 16px !important;
+            padding-top: max(16px, env(safe-area-inset-top, 16px)) !important;
+            /* Bottom padding: leaves room for PWA bottom bar + safe area */
+            padding-bottom: calc(90px + env(safe-area-inset-bottom, 0px)) !important;
+            min-height: 100svh !important;
+            box-sizing: border-box !important;
+            overflow-y: auto !important;
+            -webkit-overflow-scrolling: touch !important;
           }
 
           .back-button-wrapper {
             position: sticky;
             top: 10px;
             z-index: 40;
-            margin-bottom: 20px;
-            margin-left: -10px; /* Slight offset alignment */
+            margin-bottom: 16px;
+          }
+
+          /* Prevent content clipping inside session tracker iframe contexts */
+          .session-tracker-wrap {
+            height: auto !important;
+            min-height: 75svh;
+          }
+        }
+
+        /* Prevent rubber-band overscroll from destabilizing the session */
+        @media (max-width: 768px) {
+          html, body {
+            overscroll-behavior: none;
+            -webkit-overflow-scrolling: touch;
           }
         }
       `}</style>

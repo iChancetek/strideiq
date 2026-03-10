@@ -9,7 +9,7 @@ const updateActivitySchema = z.object({
     duration: z.number().min(0).optional(), // seconds
     calories: z.number().min(0).optional(),
     notes: z.string().optional(),
-    type: z.enum(["Run", "Walk", "Bike", "Treadmill", "HIIT"]).optional(),
+    type: z.enum(["Run", "Walk", "Bike", "Hike", "Treadmill", "HIIT"]).optional(),
     media: z.array(z.object({
         type: z.enum(["image", "video"]),
         url: z.string(),

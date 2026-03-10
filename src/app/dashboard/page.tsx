@@ -87,28 +87,23 @@ export default function Dashboard() {
 
     return (
         <DashboardLayout>
-            <header style={{ marginBottom: "30px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <header className="dash-header">
                 <div>
-                    <h1 style={{ fontSize: "32px", marginBottom: "5px" }}>Dashboard</h1>
-                    <p style={{ color: "var(--foreground-muted)" }}>Your daily fitness command center.</p>
+                    <h1 style={{ fontSize: "clamp(22px, 5vw, 32px)", marginBottom: "5px" }}>Dashboard</h1>
+                    <p style={{ color: "var(--foreground-muted)", fontSize: "clamp(13px, 3vw, 15px)" }}>Your daily fitness command center.</p>
                 </div>
                 <button className="btn-primary" onClick={() => router.push("/dashboard/run?autostart=true")}>Start Run</button>
             </header>
 
             {/* Stats Grid */}
-            <div style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-                gap: "20px",
-                marginBottom: "30px"
-            }}>
+            <div className="dash-stats-grid">
                 <StatCard title="Weekly Distance" value={stats.weeklyDistance.toFixed(1)} unit="mi" trend="neutral" />
                 <StatCard title="Avg Pace" value={stats.avgPace} unit="/mi" trend="neutral" />
                 <StatCard title="Active Calories" value={Math.round(stats.totalCalories).toLocaleString()} unit="kcal" trend="neutral" />
                 <StatCard title="Streak" value={stats.streak} unit="days" trend="up" trendLabel="Keep it up!" />
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: "25px", alignItems: "start" }}>
+            <div className="dash-main-grid">
 
                 {/* Left Column: Coach & Mindset */}
                 <div style={{ display: "flex", flexDirection: "column", gap: "25px" }}>
@@ -233,6 +228,46 @@ export default function Dashboard() {
                     </section>
                 </div>
             </div>
+
+            <style jsx>{`
+                .dash-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 24px;
+                    flex-wrap: wrap;
+                    gap: 12px;
+                }
+                .dash-stats-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+                    gap: 16px;
+                    margin-bottom: 24px;
+                }
+                .dash-main-grid {
+                    display: grid;
+                    grid-template-columns: 1fr 2fr;
+                    gap: 25px;
+                    align-items: start;
+                }
+                @media (max-width: 768px) {
+                    .dash-header {
+                        flex-direction: column;
+                        align-items: flex-start;
+                    }
+                    .dash-header .btn-primary {
+                        width: 100%;
+                        text-align: center;
+                    }
+                    .dash-stats-grid {
+                        grid-template-columns: 1fr 1fr;
+                        gap: 12px;
+                    }
+                    .dash-main-grid {
+                        grid-template-columns: 1fr;
+                    }
+                }
+            `}</style>
         </DashboardLayout>
     );
 }

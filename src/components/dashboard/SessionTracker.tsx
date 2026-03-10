@@ -79,6 +79,7 @@ export default function SessionTracker() {
     const [saving, setSaving] = useState(false);
     const [showPostModal, setShowPostModal] = useState(false);
     const [pendingSessionData, setPendingSessionData] = useState<any>(null);
+    const [mapVisible, setMapVisible] = useState(settings.showMap);
 
     const watchId = useRef<number | null>(null);
     const lastAcceptedPos = useRef<[number, number] | null>(null);
@@ -193,9 +194,15 @@ export default function SessionTracker() {
         // 1. Accuracy gate — reject poor readings
         if (accuracy > GPS_ACCURACY_THRESHOLD) return;
 
+        // 2. Immediate auto-resume: if we're paused and GPS shows movement, resume now
+        if (isPausedRef.current && speed !== null && speed > 0.5) {
+            setIsPaused(false);
+            agentCoreRef.current?.manualResume();
+        }
+
         const dtSec = lastPosTimestamp.current > 0 ? (now - lastPosTimestamp.current) / 1000 : 0;
 
-        // 2. Apply exponential moving average smoothing
+        // 3. Apply exponential moving average smoothing
         let smoothLat: number, smoothLng: number;
         // If it's been >5 seconds since the last point (e.g. background wake), reset smoothing to prevent losing distance to 'rubber banding'
         if (smoothedPos.current && dtSec < 5) {
@@ -216,10 +223,10 @@ export default function SessionTracker() {
                 smoothLat, smoothLng
             );
 
-            // 3. Minimum distance threshold — ignore stationary jitter
+            // 4. Minimum distance threshold — ignore stationary jitter
             if (segmentKm < MIN_DISTANCE_THRESHOLD) return;
 
-            // 4. Speed sanity check — reject teleportation glitch (only if dt is normal scale, ignore huge jumps from backgrounding hours)
+            // 5. Speed sanity check — reject teleportation glitch (only if dt is normal scale, ignore huge jumps from backgrounding hours)
             if (dtSec > 0 && dtSec < 3600) {
                 const speedKmh = (segmentKm / dtSec) * 3600;
                 if (speedKmh > MAX_SPEED_KMH) return;
@@ -422,13 +429,12 @@ export default function SessionTracker() {
 
     const toggleManualPause = () => {
         if (isPaused) {
+            // Resume: update agent state cleanly (no fake GPS)
+            agentCoreRef.current?.manualResume();
             setIsPaused(false);
-            // Let the movement agent know we resumed manually
-            agentCoreRef.current?.onPositionUpdate(
-                { lat: 0, lng: 0, speed: 1, accuracy: 5, timestamp: Date.now() },
-                distanceRef.current * 0.621371
-            );
         } else {
+            // Pause: update agent state cleanly
+            agentCoreRef.current?.manualPause();
             setIsPaused(true);
         }
     };
@@ -465,7 +471,7 @@ export default function SessionTracker() {
 
     const activityLabel = getActivityLabel(mode);
     const isIndoor = environment === "indoor";
-    const showMapView = !isIndoor && settings.showMap;
+    const showMapView = !isIndoor && mapVisible;
 
     // ── Stats-only view (indoor or map off) ───────────────────────────────────
     if (isIndoor || !showMapView) {
@@ -550,6 +556,24 @@ export default function SessionTracker() {
                                 >
                                     {isPaused ? "▶ Resume" : "⏸ Pause"}
                                 </button>
+                                {/* Map toggle — only shown for outdoor when map capable */}
+                                {!isIndoor && (
+                                    <button
+                                        onClick={() => setMapVisible(v => !v)}
+                                        title={mapVisible ? "Hide Map" : "Show Map"}
+                                        style={{
+                                            background: "rgba(255,255,255,0.08)",
+                                            color: "var(--foreground)",
+                                            border: "2px solid rgba(255,255,255,0.15)",
+                                            padding: "14px 18px",
+                                            fontSize: "18px",
+                                            borderRadius: "var(--radius-full)",
+                                            cursor: "pointer",
+                                        }}
+                                    >
+                                        {mapVisible ? "🗺" : "📊"}
+                                    </button>
+                                )}
                                 <button
                                     onClick={stopSession}
                                     disabled={saving}
@@ -689,6 +713,23 @@ export default function SessionTracker() {
                             }}
                         >
                             {isPaused ? "▶ Resume" : "⏸ Pause"}
+                        </button>
+                        {/* Map toggle button */}
+                        <button
+                            onClick={() => setMapVisible(v => !v)}
+                            title={"Hide Map (GPS still active)"}
+                            style={{
+                                background: "rgba(0,0,0,0.35)",
+                                color: "#fff",
+                                border: "2px solid rgba(255,255,255,0.2)",
+                                padding: "14px 18px",
+                                fontSize: "18px",
+                                borderRadius: "var(--radius-full)",
+                                cursor: "pointer",
+                                backdropFilter: "blur(8px)",
+                            }}
+                        >
+                            📊
                         </button>
                         <button
                             onClick={stopSession}

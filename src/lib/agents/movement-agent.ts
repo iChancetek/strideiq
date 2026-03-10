@@ -64,8 +64,8 @@ export class MovementAgent {
             };
         }
 
-        if (this.isPaused && avgSpeed >= this.speedThresholdMph) {
-            // User resumed
+        if (this.isPaused && (avgSpeed >= this.speedThresholdMph)) {
+            // User resumed (window-based detection for low-speed scenarios)
             this.isPaused = false;
             if (this.pauseStartTime) {
                 this.totalPausedMs += Date.now() - this.pauseStartTime;
@@ -79,6 +79,33 @@ export class MovementAgent {
         }
 
         return null;
+    }
+
+    /** Immediately resume from a manual UI action (no GPS needed) */
+    manualResume(): AgentEvent {
+        this.isPaused = false;
+        this.speedBuffer = []; // reset window so next movement is detected cleanly
+        if (this.pauseStartTime) {
+            this.totalPausedMs += Date.now() - this.pauseStartTime;
+            this.pauseStartTime = null;
+        }
+        return {
+            type: "session:resume",
+            message: "Session resumed.",
+            timestamp: Date.now(),
+        };
+    }
+
+    /** Immediately pause from a manual UI action */
+    manualPause(): AgentEvent {
+        this.isPaused = true;
+        this.speedBuffer = []; // reset so resume detection starts fresh
+        this.pauseStartTime = Date.now();
+        return {
+            type: "session:pause",
+            message: "Session paused.",
+            timestamp: Date.now(),
+        };
     }
 
     getIsPaused(): boolean {
