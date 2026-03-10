@@ -238,9 +238,10 @@ export default function Home() {
             inset: 0,
             width: "100%",
             height: "100%",
-            objectFit: "cover",
+            objectFit: "contain",
             zIndex: 0,
-            opacity: 0.35,
+            opacity: 0.85,
+            backgroundColor: "#000",
           }}
         />
         {/* Gradient overlay so text stays legible */}
@@ -248,8 +249,8 @@ export default function Home() {
           position: "absolute",
           inset: 0,
           background: isDark
-            ? "linear-gradient(to bottom, rgba(5,5,5,0.7) 0%, rgba(5,5,5,0.3) 50%, rgba(5,5,5,0.75) 100%)"
-            : "linear-gradient(to bottom, rgba(255,255,255,0.75) 0%, rgba(255,255,255,0.35) 50%, rgba(255,255,255,0.8) 100%)",
+            ? "linear-gradient(to bottom, rgba(5,5,5,0.85) 0%, rgba(5,5,5,0.2) 50%, rgba(5,5,5,0.85) 100%)"
+            : "linear-gradient(to bottom, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.85) 100%)",
           zIndex: 1,
         }} />
 
