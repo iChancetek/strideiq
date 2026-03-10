@@ -38,6 +38,21 @@ export default function ActivitiesPage() {
 
     return (
         <div style={{ maxWidth: "640px", margin: "0 auto", paddingBottom: "40px" }}>
+            {/* Back Arrow */}
+            <div style={{ marginBottom: "12px" }}>
+                <Link href="/dashboard" style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    color: "var(--foreground-muted)",
+                    textDecoration: "none",
+                    fontSize: "14px",
+                    fontWeight: 600,
+                }}>
+                    ← Dashboard
+                </Link>
+            </div>
+
             {/* Header */}
             <div style={{
                 display: "flex",

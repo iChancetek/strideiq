@@ -59,6 +59,21 @@ export default function JournalDashboard() {
 
     return (
         <div style={{ maxWidth: "900px", margin: "0 auto", padding: "0 16px", paddingBottom: "40px" }}>
+            {/* Back Arrow */}
+            <div style={{ marginBottom: "12px", marginTop: "8px" }}>
+                <Link href="/dashboard" style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    color: "var(--foreground-muted)",
+                    textDecoration: "none",
+                    fontSize: "14px",
+                    fontWeight: 600,
+                }}>
+                    ← Dashboard
+                </Link>
+            </div>
+
             {/* Header */}
             <header style={{ marginBottom: "32px" }}>
                 <div style={{

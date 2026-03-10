@@ -3,6 +3,7 @@
 import FastingTimer from "@/components/dashboard/fasting/FastingTimer";
 import { useAuth } from "@/context/AuthContext";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 export default function FastingPage() {
     const { user } = useAuth();
@@ -20,7 +21,7 @@ export default function FastingPage() {
                 });
                 if (res.ok) {
                     const data = await res.json();
-                    setHistory(data.logs);
+                    setHistory(data.logs || []);
                 }
             } catch (e) {
                 console.error(e);
@@ -33,6 +34,22 @@ export default function FastingPage() {
 
     return (
         <div style={{ maxWidth: "900px", margin: "0 auto", padding: "0 16px", paddingBottom: "40px" }}>
+            {/* Back Arrow */}
+            <div style={{ marginBottom: "16px", marginTop: "8px" }}>
+                <Link href="/dashboard" style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    color: "var(--foreground-muted)",
+                    textDecoration: "none",
+                    fontSize: "14px",
+                    fontWeight: 600,
+                    transition: "color 0.2s",
+                }}>
+                    ← Dashboard
+                </Link>
+            </div>
+
             {/* Header */}
             <header style={{ marginBottom: "32px", textAlign: "center", position: "relative" }}>
                 <div style={{
