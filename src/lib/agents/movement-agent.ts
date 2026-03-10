@@ -24,6 +24,21 @@ export class MovementAgent {
     processPosition(pos: GeoPosition): AgentEvent | null {
         // Convert speed from m/s to mph; fallback to 0 if null
         const speedMph = pos.speed != null ? pos.speed * 2.23694 : 0;
+
+        // ── Immediate pause: GPS explicitly reports speed = 0 ─────────────
+        // Don't wait for the window — pause the moment the device is at standstill.
+        const isDefinitelyStopped = pos.speed === 0 || pos.speed === null;
+        if (!this.isPaused && isDefinitelyStopped) {
+            this.speedBuffer = []; // reset window so resume detection starts fresh
+            this.isPaused = true;
+            this.pauseStartTime = Date.now();
+            return {
+                type: "session:pause",
+                message: "Your session has been paused.",
+                timestamp: Date.now(),
+            };
+        }
+
         this.speedBuffer.push(speedMph);
 
         // Keep sliding window trimmed
@@ -31,7 +46,7 @@ export class MovementAgent {
             this.speedBuffer.shift();
         }
 
-        // Need a full window before making decisions
+        // Need a full window before making windowed decisions
         if (this.speedBuffer.length < this.windowSize) {
             return null;
         }
@@ -39,7 +54,7 @@ export class MovementAgent {
         const avgSpeed = this.speedBuffer.reduce((a, b) => a + b, 0) / this.speedBuffer.length;
 
         if (!this.isPaused && avgSpeed < this.speedThresholdMph) {
-            // User has stopped
+            // User has stopped (window-based detection for non-zero but very slow speed)
             this.isPaused = true;
             this.pauseStartTime = Date.now();
             return {

@@ -98,60 +98,36 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
             }
 
             setIsSaving(true);
-            const collectionRef = collection(db, "users", user.uid, "journal_entries");
+            const token = await user.getIdToken();
+            const payload = {
+                id: initialData?.id,
+                userId: user.uid,
+                title,
+                content,
+                media: mediaItems.length > 0 ? mediaItems : null
+            };
 
-            // Firebase Client SDK can silently hang on iOS PWAs. 
-            // We race the promise against a 10s timeout to force an alert if it locks.
-            const timeoutPromise = new Promise((_, reject) =>
-                setTimeout(() => reject(new Error("Save request timed out. Please refresh the app.")), 10000)
-            );
+            const res = await fetch("/api/journal/save", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify(payload)
+            });
 
-            const finalMediaItems = mediaItems.length > 0 ? mediaItems : null;
+            const data = await res.json();
 
-            let savePromise;
-            if (initialData?.id && !isNew) {
-                const docRef = doc(collectionRef, initialData.id);
-                // We wrap updateDoc in a fallback in case the local ID was orphaned (never actually saved to server)
-                savePromise = updateDoc(docRef, {
-                    title,
-                    content,
-                    media: finalMediaItems,
-                    updatedAt: serverTimestamp()
-                }).catch(async (err) => {
-                    // If the document doesn't exist on the server, create it fresh instead of crashing
-                    if (err.code === 'not-found' || err.message.includes('NOT_FOUND')) {
-                        console.warn("Document not found on server, attempting to recreate it...");
-                        return addDoc(collectionRef, {
-                            title,
-                            content,
-                            type: "journal",
-                            media: finalMediaItems,
-                            createdAt: serverTimestamp(),
-                            updatedAt: serverTimestamp()
-                        });
-                    }
-                    throw err; // Re-throw other errors
-                });
-
+            if (res.ok && data.success) {
+                setIsDirty(false); // Reset dirty state so we don't prompt on exit
+                router.push("/dashboard/journal");
             } else {
-                savePromise = addDoc(collectionRef, {
-                    title,
-                    content,
-                    type: "journal",
-                    media: finalMediaItems,
-                    createdAt: serverTimestamp(),
-                    updatedAt: serverTimestamp()
-                });
+                console.error("API Error: ", data);
+                alert(`Server Error: ${data.error || "Unknown server error."}`);
             }
-
-            await Promise.race([savePromise, timeoutPromise]);
-
-            setIsDirty(false); // Reset dirty state so we don't prompt on exit
-            router.push("/dashboard/journal");
-
         } catch (e: any) {
-            console.error("Journal save error:", e);
-            alert(`Save Error: ${e.message || "An unknown error occurred."}`);
+            console.error("Journal save network or parse error:", e);
+            alert(`Network Error: ${e.message || "Failed to reach the server."}`);
         } finally {
             setIsSaving(false);
         }

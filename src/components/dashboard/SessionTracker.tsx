@@ -420,6 +420,19 @@ export default function SessionTracker() {
         }
     };
 
+    const toggleManualPause = () => {
+        if (isPaused) {
+            setIsPaused(false);
+            // Let the movement agent know we resumed manually
+            agentCoreRef.current?.onPositionUpdate(
+                { lat: 0, lng: 0, speed: 1, accuracy: 5, timestamp: Date.now() },
+                distanceRef.current * 0.621371
+            );
+        } else {
+            setIsPaused(true);
+        }
+    };
+
     const handleDiscardSession = () => {
         setShowPostModal(false);
         setPendingSessionData(null);
@@ -514,15 +527,37 @@ export default function SessionTracker() {
                         </div>
                     )}
 
-                    <div style={{ position: "absolute", bottom: 30, left: "50%", transform: "translateX(-50%)", display: "flex", gap: "20px" }}>
+                    <div style={{ position: "absolute", bottom: 30, left: "50%", transform: "translateX(-50%)", display: "flex", gap: "16px", alignItems: "center" }}>
                         {!isTracking ? (
                             <button onClick={triggerCountdown} className="btn-primary" style={{ padding: "16px 48px", fontSize: "18px", borderRadius: "var(--radius-full)" }}>
                                 {t(lang, "startSession")} {t(lang, mode.toLowerCase() as any)?.toUpperCase() || mode.toUpperCase()}
                             </button>
                         ) : (
-                            <button onClick={stopSession} disabled={saving} style={{ background: saving ? "#888" : "#ff4444", color: "white", border: "none", padding: "16px 48px", fontSize: "18px", borderRadius: "var(--radius-full)", fontWeight: "bold", cursor: saving ? "not-allowed" : "pointer" }}>
-                                {saving ? t(lang, "sessionSaving") : t(lang, "stopSession")}
-                            </button>
+                            <>
+                                <button
+                                    onClick={toggleManualPause}
+                                    style={{
+                                        background: isPaused ? "var(--primary)" : "rgba(255,170,0,0.15)",
+                                        color: isPaused ? "#000" : "var(--warning)",
+                                        border: `2px solid ${isPaused ? "var(--primary)" : "var(--warning)"}`,
+                                        padding: "14px 28px",
+                                        fontSize: "17px",
+                                        borderRadius: "var(--radius-full)",
+                                        fontWeight: "bold",
+                                        cursor: "pointer",
+                                        minWidth: "120px",
+                                    }}
+                                >
+                                    {isPaused ? "▶ Resume" : "⏸ Pause"}
+                                </button>
+                                <button
+                                    onClick={stopSession}
+                                    disabled={saving}
+                                    style={{ background: saving ? "#888" : "#ff4444", color: "white", border: "none", padding: "14px 36px", fontSize: "17px", borderRadius: "var(--radius-full)", fontWeight: "bold", cursor: saving ? "not-allowed" : "pointer" }}
+                                >
+                                    {saving ? t(lang, "sessionSaving") : t(lang, "stopSession")}
+                                </button>
+                            </>
                         )}
                     </div>
                 </div>
@@ -631,15 +666,38 @@ export default function SessionTracker() {
             </MapContainer>
 
             {/* Controls */}
-            <div style={{ position: "absolute", bottom: 30, left: "50%", transform: "translateX(-50%)", zIndex: 400, display: "flex", gap: "20px" }}>
+            <div style={{ position: "absolute", bottom: 30, left: "50%", transform: "translateX(-50%)", zIndex: 400, display: "flex", gap: "16px", alignItems: "center" }}>
                 {!isTracking ? (
                     <button onClick={triggerCountdown} className="btn-primary" style={{ padding: "16px 48px", fontSize: "18px", borderRadius: "var(--radius-full)" }}>
                         {t(lang, "startSession")} {t(lang, mode.toLowerCase() as any)?.toUpperCase() || mode.toUpperCase()}
                     </button>
                 ) : (
-                    <button onClick={stopSession} disabled={saving} style={{ background: saving ? "#888" : "#ff4444", color: "white", border: "none", padding: "16px 48px", fontSize: "18px", borderRadius: "var(--radius-full)", fontWeight: "bold", cursor: saving ? "not-allowed" : "pointer" }}>
-                        {saving ? t(lang, "sessionSaving") : t(lang, "stopSession")}
-                    </button>
+                    <>
+                        <button
+                            onClick={toggleManualPause}
+                            style={{
+                                background: isPaused ? "var(--primary)" : "rgba(255,170,0,0.15)",
+                                color: isPaused ? "#000" : "var(--warning)",
+                                border: `2px solid ${isPaused ? "var(--primary)" : "var(--warning)"}`,
+                                padding: "14px 28px",
+                                fontSize: "17px",
+                                borderRadius: "var(--radius-full)",
+                                fontWeight: "bold",
+                                cursor: "pointer",
+                                minWidth: "120px",
+                                backdropFilter: "blur(8px)",
+                            }}
+                        >
+                            {isPaused ? "▶ Resume" : "⏸ Pause"}
+                        </button>
+                        <button
+                            onClick={stopSession}
+                            disabled={saving}
+                            style={{ background: saving ? "#888" : "#ff4444", color: "white", border: "none", padding: "14px 36px", fontSize: "17px", borderRadius: "var(--radius-full)", fontWeight: "bold", cursor: saving ? "not-allowed" : "pointer", backdropFilter: "blur(8px)" }}
+                        >
+                            {saving ? t(lang, "sessionSaving") : t(lang, "stopSession")}
+                        </button>
+                    </>
                 )}
             </div>
 

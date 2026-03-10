@@ -114,18 +114,23 @@ export async function updateUserStats(userId: string, activity: any) {
             const mNewTotalSteps = (mData.totalSteps || 0) + (activity.steps || 0);
             const mNewAvgPace = mNewTotalMiles > 0 ? (mNewTotalTime / mNewTotalMiles) : 0;
 
-            // Get User Profile
-            const userProfileRef = adminDb.collection("users").doc(userId);
-            const userProfileDoc = await transaction.get(userProfileRef);
-            let userData = { displayName: "Runner", photoURL: null };
-            if (userProfileDoc.exists) {
-                const docData = userProfileDoc.data();
-                if (docData) {
-                    userData = {
-                        displayName: docData.displayName || "Runner",
-                        photoURL: docData.photoURL || null
-                    };
+            // Get User Profile (safe read — user doc may not exist for all auth providers)
+            let userData = { displayName: "Runner", photoURL: null as string | null };
+            try {
+                const userProfileRef = adminDb.collection("users").doc(userId);
+                const userProfileDoc = await transaction.get(userProfileRef);
+                if (userProfileDoc.exists) {
+                    const docData = userProfileDoc.data();
+                    if (docData) {
+                        userData = {
+                            displayName: docData.displayName || "Runner",
+                            photoURL: docData.photoURL || null
+                        };
+                    }
                 }
+            } catch (profileErr) {
+                // Non-fatal: user profile doc missing. Use defaults.
+                console.warn("Could not read user profile doc (using defaults):", profileErr);
             }
 
             transaction.set(leaderboardRef, {

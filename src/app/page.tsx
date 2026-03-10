@@ -1,145 +1,458 @@
+"use client";
+
+import React from "react";
 import Link from "next/link";
+import { useSettings } from "@/context/SettingsContext";
+import {
+  Sun, Moon, Zap, Mic2, CloudSun, Music2, Activity, Home as HomeIcon, ArrowRight, ChevronDown
+} from "lucide-react";
+
+type Agent = {
+  icon: React.ReactNode;
+  color: string;
+  glowColor: string;
+  title: string;
+  description: string;
+  delay: string;
+};
+
+const agents: Agent[] = [
+  {
+    icon: <Activity size={28} />,
+    color: "var(--primary)",
+    glowColor: "var(--primary-glow)",
+    title: "Movement Intelligence",
+    description:
+      "Detects stop/start movement using GPS + accelerometer analysis. Auto-pauses when truly stopped, prevents false pauses on hills.",
+    delay: "anim-fade-up-delay-1",
+  },
+  {
+    icon: <Mic2 size={28} />,
+    color: "var(--secondary)",
+    glowColor: "var(--secondary-glow)",
+    title: "Adaptive Coaching",
+    description:
+      "Voice announcements at every mile with split times, pace trends, and motivational encouragement that evolves based on your performance.",
+    delay: "anim-fade-up-delay-2",
+  },
+  {
+    icon: <CloudSun size={28} />,
+    color: "var(--accent)",
+    glowColor: "rgba(255,0,85,0.2)",
+    title: "Environmental Awareness",
+    description:
+      "Real-time weather intelligence with safety advice. Alerts for extreme heat, rain, and storm conditions at outdoor session start.",
+    delay: "anim-fade-up-delay-3",
+  },
+  {
+    icon: <Music2 size={28} />,
+    color: "var(--primary)",
+    glowColor: "var(--primary-glow)",
+    title: "Media Coordination",
+    description:
+      "Smart audio ducking during voice prompts and BPM-matched playlist suggestions tailored to your activity mode.",
+    delay: "anim-fade-up-delay-4",
+  },
+  {
+    icon: <Zap size={28} />,
+    color: "var(--secondary)",
+    glowColor: "var(--secondary-glow)",
+    title: "Mode Intelligence",
+    description:
+      "Automatically adjusts speed thresholds, coaching style, and display metrics for Running, Walking, and Biking modes.",
+    delay: "anim-fade-up-delay-5",
+  },
+  {
+    icon: <HomeIcon size={28} />,
+    color: "var(--accent)",
+    glowColor: "rgba(255,0,85,0.2)",
+    title: "Indoor / Outdoor Context",
+    description:
+      "Seamless transition between indoor and outdoor sessions. GPS-free treadmill mode with battery optimization.",
+    delay: "anim-fade-up-delay-6",
+  },
+];
 
 export default function Home() {
+  const { settings, toggleTheme } = useSettings();
+  const isDark = settings.theme === "dark";
+
   return (
-    <main style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
-      {/* Navbar */}
-      <nav className="glass-panel" style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        right: 0,
-        padding: "20px 40px",
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        zIndex: 100
-      }}>
+    <main style={{ minHeight: "100vh", display: "flex", flexDirection: "column", position: "relative", overflowX: "hidden" }}>
+
+      {/* ─── BACKGROUND ORBS ─── */}
+      <div aria-hidden="true" style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 0, overflow: "hidden" }}>
+        <div style={{
+          position: "absolute",
+          top: "-15%",
+          left: "-10%",
+          width: "55vw",
+          height: "55vw",
+          background: `radial-gradient(circle, ${isDark ? "rgba(204,255,0,0.07)" : "rgba(139,186,0,0.06)"} 0%, transparent 70%)`,
+          animation: "orb-move 18s ease-in-out infinite",
+          borderRadius: "50%",
+        }} />
+        <div style={{
+          position: "absolute",
+          top: "20%",
+          right: "-15%",
+          width: "45vw",
+          height: "45vw",
+          background: `radial-gradient(circle, ${isDark ? "rgba(0,229,255,0.06)" : "rgba(0,153,184,0.05)"} 0%, transparent 70%)`,
+          animation: "orb-move 24s ease-in-out infinite reverse",
+          borderRadius: "50%",
+        }} />
+        <div style={{
+          position: "absolute",
+          bottom: "10%",
+          left: "30%",
+          width: "35vw",
+          height: "35vw",
+          background: `radial-gradient(circle, ${isDark ? "rgba(255,0,85,0.04)" : "rgba(255,0,85,0.03)"} 0%, transparent 70%)`,
+          animation: "orb-move 20s ease-in-out 5s infinite",
+          borderRadius: "50%",
+        }} />
+      </div>
+
+      {/* ─── NAVBAR ─── */}
+      <nav
+        className="glass-panel"
+        style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          padding: "0 40px",
+          height: "68px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          zIndex: 100,
+        }}
+      >
+        {/* Logo */}
         <div style={{ display: "flex", alignItems: "baseline", gap: "10px" }}>
-          <h1 style={{ fontSize: "24px", letterSpacing: "-0.5px" }}>
+          <h1 style={{ fontSize: "22px", letterSpacing: "-0.5px", fontFamily: "var(--font-heading)", fontWeight: 800 }}>
             Stride<span className="text-gradient">IQ</span>
           </h1>
-          <span style={{ fontSize: "12px", color: "var(--foreground-muted)", fontWeight: 400, letterSpacing: "0.5px" }}>
+          <span style={{ fontSize: "11px", color: "var(--foreground-muted)", fontWeight: 400, letterSpacing: "0.4px" }}>
             by ChanceTEK Fitness
           </span>
         </div>
-        <div style={{ display: "flex", gap: "20px" }}>
-          <Link href="/login" style={{ fontWeight: 500, opacity: 0.8 }}>Log In</Link>
-          <Link href="/signup" className="text-gradient" style={{ fontWeight: 600 }}>Get Started</Link>
+
+        {/* Nav Links */}
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <Link
+            href="/login"
+            style={{
+              fontWeight: 500,
+              fontSize: "14px",
+              color: "var(--foreground-muted)",
+              padding: "8px 16px",
+              borderRadius: "var(--radius-full)",
+              transition: "color var(--transition-fast), background var(--transition-fast)",
+            }}
+            onMouseEnter={e => {
+              (e.currentTarget as HTMLAnchorElement).style.color = "var(--foreground)";
+              (e.currentTarget as HTMLAnchorElement).style.background = "var(--surface-glass)";
+            }}
+            onMouseLeave={e => {
+              (e.currentTarget as HTMLAnchorElement).style.color = "var(--foreground-muted)";
+              (e.currentTarget as HTMLAnchorElement).style.background = "transparent";
+            }}
+          >
+            Log In
+          </Link>
+          <Link href="/signup" className="btn-primary" style={{ padding: "10px 24px", fontSize: "14px" }}>
+            Get Started
+          </Link>
+          {/* Theme Toggle */}
+          <button
+            onClick={toggleTheme}
+            aria-label="Toggle theme"
+            style={{
+              marginLeft: "4px",
+              width: "40px",
+              height: "40px",
+              borderRadius: "var(--radius-full)",
+              border: "1px solid var(--surface-glass-border)",
+              background: "var(--surface-glass)",
+              color: "var(--foreground-muted)",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              transition: "background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast)",
+              flexShrink: 0,
+            }}
+            onMouseEnter={e => {
+              const btn = e.currentTarget as HTMLButtonElement;
+              btn.style.color = "var(--foreground)";
+              btn.style.borderColor = isDark ? "rgba(204,255,0,0.4)" : "rgba(0,99,140,0.3)";
+            }}
+            onMouseLeave={e => {
+              const btn = e.currentTarget as HTMLButtonElement;
+              btn.style.color = "var(--foreground-muted)";
+              btn.style.borderColor = "var(--surface-glass-border)";
+            }}
+          >
+            {isDark ? <Sun size={17} /> : <Moon size={17} />}
+          </button>
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <section style={{
-        height: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "center",
-        alignItems: "center",
-        textAlign: "center",
-        padding: "0 20px",
-        background: "radial-gradient(circle at center, rgba(0, 229, 255, 0.1) 0%, rgba(5, 5, 5, 0) 70%)"
-      }}>
-        <div style={{ fontSize: "14px", color: "var(--secondary)", textTransform: "uppercase", letterSpacing: "3px", marginBottom: "20px", fontWeight: 600 }}>
+      {/* ─── HERO SECTION ─── */}
+      <section
+        style={{
+          minHeight: "100vh",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          alignItems: "center",
+          textAlign: "center",
+          padding: "120px 24px 80px",
+          position: "relative",
+          zIndex: 1,
+        }}
+      >
+        {/* Pill label */}
+        <div className="section-label anim-fade-up" style={{ animationDelay: "0s" }}>
+          <Zap size={12} />
           Powered by Agentic AI
         </div>
-        <h1 style={{ fontSize: "clamp(40px, 8vw, 80px)", lineHeight: 1.1, marginBottom: "20px" }}>
+
+        {/* Headline */}
+        <h1
+          className="anim-fade-up anim-fade-up-delay-1"
+          style={{
+            fontSize: "clamp(44px, 8vw, 86px)",
+            lineHeight: 1.05,
+            marginBottom: "24px",
+            maxWidth: "880px",
+          }}
+        >
           Intelligent Movement.<br />
           <span className="text-gradient">Agentic Performance.</span>
         </h1>
-        <p style={{
-          fontSize: "clamp(18px, 4vw, 24px)",
-          color: "var(--foreground-muted)",
-          maxWidth: "700px",
-          marginBottom: "40px"
-        }}>
+
+        {/* Subheadline */}
+        <p
+          className="anim-fade-up anim-fade-up-delay-2"
+          style={{
+            fontSize: "clamp(17px, 2.5vw, 22px)",
+            color: "var(--foreground-muted)",
+            maxWidth: "640px",
+            lineHeight: 1.7,
+            marginBottom: "48px",
+          }}
+        >
           The first AI-powered fitness platform with autonomous coaching agents that perceive your movement, adapt in real-time, and evolve with you.
         </p>
-        <div style={{ display: "flex", gap: "20px", flexWrap: "wrap", justifyContent: "center" }}>
-          <Link href="/signup" className="btn-primary" style={{ padding: "16px 48px", fontSize: "18px" }}>
+
+        {/* CTAs */}
+        <div
+          className="anim-fade-up anim-fade-up-delay-3"
+          style={{ display: "flex", gap: "16px", flexWrap: "wrap", justifyContent: "center", marginBottom: "72px" }}
+        >
+          <Link href="/signup" className="btn-primary" style={{ padding: "16px 40px", fontSize: "16px" }}>
             Start Training
+            <ArrowRight size={18} />
           </Link>
-          <Link href="/learn-more" className="glass-panel" style={{
-            padding: "16px 32px",
-            borderRadius: "var(--radius-full)",
-            color: "white",
-            fontSize: "18px",
-            fontFamily: "var(--font-heading)",
-            cursor: "pointer",
-            textDecoration: "none"
-          }}>
+          <Link href="/learn-more" className="btn-ghost" style={{ padding: "16px 36px", fontSize: "16px" }}>
             Learn More
           </Link>
         </div>
-      </section>
 
-      {/* Value Props — AI Agents */}
-      <section style={{ padding: "100px 20px", maxWidth: "1200px", margin: "0 auto", width: "100%" }}>
-        <h2 style={{ fontSize: "40px", marginBottom: "16px", textAlign: "center" }}>
-          6 Autonomous AI Agents
-        </h2>
-        <p style={{ textAlign: "center", color: "var(--foreground-muted)", marginBottom: "60px", maxWidth: "600px", margin: "0 auto 60px" }}>
-          StrideIQ deploys a team of intelligent agents that work together to deliver a personalized, real-time coaching experience.
-        </p>
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-          gap: "30px"
-        }}>
-          <div className="glass-panel" style={{ padding: "40px", borderRadius: "var(--radius-lg)" }}>
-            <div style={{ fontSize: "32px", marginBottom: "12px" }}>🏃</div>
-            <h3 style={{ fontSize: "22px", marginBottom: "10px", color: "var(--primary)" }}>Movement Intelligence</h3>
-            <p style={{ color: "var(--foreground-muted)", lineHeight: 1.6 }}>
-              Detects stop/start movement using GPS + accelerometer analysis. Auto-pauses when truly stopped, prevents false pauses on hills.
-            </p>
-          </div>
-          <div className="glass-panel" style={{ padding: "40px", borderRadius: "var(--radius-lg)" }}>
-            <div style={{ fontSize: "32px", marginBottom: "12px" }}>🎤</div>
-            <h3 style={{ fontSize: "22px", marginBottom: "10px", color: "var(--secondary)" }}>Adaptive Coaching</h3>
-            <p style={{ color: "var(--foreground-muted)", lineHeight: 1.6 }}>
-              Voice announcements at every mile with split times, pace trends, and motivational encouragement that evolves based on your performance.
-            </p>
-          </div>
-          <div className="glass-panel" style={{ padding: "40px", borderRadius: "var(--radius-lg)" }}>
-            <div style={{ fontSize: "32px", marginBottom: "12px" }}>🌦</div>
-            <h3 style={{ fontSize: "22px", marginBottom: "10px", color: "var(--accent)" }}>Environmental Awareness</h3>
-            <p style={{ color: "var(--foreground-muted)", lineHeight: 1.6 }}>
-              Real-time weather intelligence with safety advice. Alerts for extreme heat, rain, and storm conditions at outdoor session start.
-            </p>
-          </div>
-          <div className="glass-panel" style={{ padding: "40px", borderRadius: "var(--radius-lg)" }}>
-            <div style={{ fontSize: "32px", marginBottom: "12px" }}>🎵</div>
-            <h3 style={{ fontSize: "22px", marginBottom: "10px", color: "var(--primary)" }}>Media Coordination</h3>
-            <p style={{ color: "var(--foreground-muted)", lineHeight: 1.6 }}>
-              Smart audio ducking during voice prompts and BPM-matched playlist suggestions tailored to your activity mode.
-            </p>
-          </div>
-          <div className="glass-panel" style={{ padding: "40px", borderRadius: "var(--radius-lg)" }}>
-            <div style={{ fontSize: "32px", marginBottom: "12px" }}>🚶</div>
-            <h3 style={{ fontSize: "22px", marginBottom: "10px", color: "var(--secondary)" }}>Mode Intelligence</h3>
-            <p style={{ color: "var(--foreground-muted)", lineHeight: 1.6 }}>
-              Automatically adjusts speed thresholds, coaching style, and display metrics for Running, Walking, and Biking modes.
-            </p>
-          </div>
-          <div className="glass-panel" style={{ padding: "40px", borderRadius: "var(--radius-lg)" }}>
-            <div style={{ fontSize: "32px", marginBottom: "12px" }}>🏠</div>
-            <h3 style={{ fontSize: "22px", marginBottom: "10px", color: "var(--accent)" }}>Indoor / Outdoor Context</h3>
-            <p style={{ color: "var(--foreground-muted)", lineHeight: 1.6 }}>
-              Seamless transition between indoor and outdoor sessions. GPS-free treadmill mode with battery optimization.
-            </p>
-          </div>
+        {/* Stat badges */}
+        <div
+          className="anim-fade-up anim-fade-up-delay-4"
+          style={{ display: "flex", gap: "16px", flexWrap: "wrap", justifyContent: "center" }}
+        >
+          {[
+            { label: "6 Autonomous Agents" },
+            { label: "Real-Time Adaptation" },
+            { label: "Voice AI Coaching" },
+          ].map(stat => (
+            <div key={stat.label} className="stat-badge" style={{ fontSize: "13px" }}>
+              <span className="text-gradient" style={{ fontWeight: 700, fontSize: "15px" }}>✦</span>
+              {stat.label}
+            </div>
+          ))}
+        </div>
+
+        {/* Scroll indicator */}
+        <div
+          style={{
+            position: "absolute",
+            bottom: "36px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "6px",
+            color: "var(--foreground-subtle)",
+            fontSize: "11px",
+            letterSpacing: "0.12em",
+            textTransform: "uppercase",
+          }}
+        >
+          <span>Scroll</span>
+          <ChevronDown size={16} style={{ animation: "scroll-down 1.4s ease infinite" }} />
         </div>
       </section>
 
-      {/* Footer */}
-      <footer style={{
-        padding: "40px 20px",
-        borderTop: "1px solid rgba(255,255,255,0.1)",
-        textAlign: "center",
-        color: "var(--foreground-muted)"
-      }}>
-        <p>© 2026 StrideIQ by ChanceTEK Fitness. All rights reserved.</p>
-        <p style={{ fontSize: "12px", marginTop: "8px", opacity: 0.6 }}>Intelligent Movement. Agentic Performance.</p>
+      {/* ─── DIVIDER ─── */}
+      <div className="divider" style={{ margin: "0 8%" }} />
+
+      {/* ─── AGENTS SECTION ─── */}
+      <section
+        style={{
+          padding: "120px 24px",
+          maxWidth: "1160px",
+          margin: "0 auto",
+          width: "100%",
+          position: "relative",
+          zIndex: 1,
+        }}
+      >
+        {/* Section header */}
+        <div style={{ textAlign: "center", marginBottom: "80px" }}>
+          <div className="section-label" style={{ justifyContent: "center" }}>
+            Intelligence Stack
+          </div>
+          <h2
+            style={{
+              fontSize: "clamp(32px, 5vw, 52px)",
+              marginBottom: "20px",
+            }}
+          >
+            6 Autonomous AI Agents
+          </h2>
+          <p
+            style={{
+              color: "var(--foreground-muted)",
+              fontSize: "18px",
+              maxWidth: "540px",
+              margin: "0 auto",
+              lineHeight: 1.65,
+            }}
+          >
+            StrideIQ deploys a team of intelligent agents that work together to deliver a personalized, real-time coaching experience.
+          </p>
+        </div>
+
+        {/* Cards grid */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+            gap: "24px",
+          }}
+        >
+          {agents.map((agent) => (
+            <div key={agent.title} className={`feature-card anim-fade-up ${agent.delay}`}>
+              {/* Icon */}
+              <div
+                style={{
+                  width: "56px",
+                  height: "56px",
+                  borderRadius: "var(--radius-md)",
+                  background: `${agent.glowColor}`,
+                  border: `1px solid ${agent.color}30`,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: agent.color,
+                  marginBottom: "24px",
+                }}
+              >
+                {agent.icon}
+              </div>
+
+              {/* Title */}
+              <h3
+                style={{
+                  fontSize: "19px",
+                  marginBottom: "12px",
+                  color: agent.color,
+                  fontWeight: 700,
+                  letterSpacing: "-0.02em",
+                }}
+              >
+                {agent.title}
+              </h3>
+
+              {/* Description */}
+              <p style={{ color: "var(--foreground-muted)", lineHeight: 1.7, fontSize: "15px" }}>
+                {agent.description}
+              </p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ─── CTA BANNER ─── */}
+      <section
+        style={{
+          position: "relative",
+          zIndex: 1,
+          padding: "80px 24px 120px",
+          textAlign: "center",
+        }}
+      >
+        <div
+          style={{
+            maxWidth: "720px",
+            margin: "0 auto",
+            background: isDark
+              ? "linear-gradient(135deg, rgba(204,255,0,0.06) 0%, rgba(0,229,255,0.04) 100%)"
+              : "linear-gradient(135deg, rgba(139,186,0,0.07) 0%, rgba(0,153,184,0.05) 100%)",
+            border: "1px solid var(--surface-glass-border)",
+            borderRadius: "var(--radius-xl)",
+            padding: "64px 48px",
+            backdropFilter: "blur(20px)",
+          }}
+        >
+          <h2 style={{ fontSize: "clamp(28px, 4vw, 44px)", marginBottom: "16px" }}>
+            Ready to train smarter?
+          </h2>
+          <p style={{ color: "var(--foreground-muted)", fontSize: "17px", marginBottom: "36px", lineHeight: 1.65 }}>
+            Join thousands of athletes experiencing the future of autonomous AI coaching. Free to start.
+          </p>
+          <Link href="/signup" className="btn-primary" style={{ padding: "16px 48px", fontSize: "16px" }}>
+            Get Started Free
+            <ArrowRight size={18} />
+          </Link>
+        </div>
+      </section>
+
+      {/* ─── FOOTER ─── */}
+      <footer
+        style={{
+          position: "relative",
+          zIndex: 1,
+          padding: "32px 40px",
+          borderTop: "1px solid var(--surface-glass-border)",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: "16px",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "baseline", gap: "8px" }}>
+          <span style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: "16px" }}>
+            Stride<span className="text-gradient">IQ</span>
+          </span>
+          <span style={{ fontSize: "11px", color: "var(--foreground-subtle)" }}>by ChanceTEK Fitness</span>
+        </div>
+        <p style={{ fontSize: "13px", color: "var(--foreground-subtle)" }}>
+          © 2026 StrideIQ by ChanceTEK Fitness. All rights reserved.
+        </p>
+        <p style={{ fontSize: "12px", color: "var(--foreground-subtle)", fontStyle: "italic" }}>
+          Intelligent Movement. Agentic Performance.
+        </p>
       </footer>
     </main>
   );
