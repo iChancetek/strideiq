@@ -238,7 +238,8 @@ export default function Home() {
             inset: 0,
             width: "100%",
             height: "100%",
-            objectFit: "contain",
+            objectFit: "cover",
+            objectPosition: "center",
             zIndex: 0,
             opacity: 0.85,
             backgroundColor: "#000",
@@ -347,28 +348,29 @@ export default function Home() {
               </div>
             ))}
           </div>
-
-          {/* Scroll indicator */}
-          <div
-            style={{
-              position: "absolute",
-              bottom: "36px",
-              left: "50%",
-              transform: "translateX(-50%)",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: "6px",
-              color: "var(--foreground-subtle)",
-              fontSize: "11px",
-              letterSpacing: "0.12em",
-              textTransform: "uppercase",
-            }}
-          >
-            <span>Scroll</span>
-            <ChevronDown size={16} style={{ animation: "scroll-down 1.4s ease infinite" }} />
-          </div>
         </div>{/* end hero content wrapper */}
+
+        {/* Scroll indicator */}
+        <div
+          style={{
+            position: "absolute",
+            bottom: "36px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "6px",
+            color: "var(--foreground-subtle)",
+            fontSize: "11px",
+            letterSpacing: "0.12em",
+            textTransform: "uppercase",
+            zIndex: 10,
+          }}
+        >
+          <span>Scroll</span>
+          <ChevronDown size={16} style={{ animation: "scroll-down 1.4s ease infinite" }} />
+        </div>
       </section>
 
       {/* ─── DIVIDER ─── */}
@@ -523,6 +525,6 @@ export default function Home() {
           Intelligent Movement. Agentic Performance.
         </p>
       </footer>
-    </main>
+    </main >
   );
 }
