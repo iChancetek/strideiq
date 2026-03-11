@@ -65,6 +65,9 @@ export default function SessionTracker() {
     const environment = settings.environment;
     const modeConfig = getModeConfig(mode);
 
+    // ── Session persistence key ───────────────────────────────────────────────
+    const SESSION_KEY = "strideiq_active_session";
+
     // Session state
     const [isTracking, setIsTracking] = useState(false);
     const [path, setPath] = useState<[number, number][]>([]);
@@ -80,6 +83,7 @@ export default function SessionTracker() {
     const [showPostModal, setShowPostModal] = useState(false);
     const [pendingSessionData, setPendingSessionData] = useState<any>(null);
     const [mapVisible, setMapVisible] = useState(settings.showMap);
+    const [sessionRestoreData, setSessionRestoreData] = useState<any>(null); // orphaned session from prior page load
 
     const watchId = useRef<number | null>(null);
     const lastAcceptedPos = useRef<[number, number] | null>(null);
@@ -88,6 +92,9 @@ export default function SessionTracker() {
     const agentCoreRef = useRef<AgentCore | null>(null);
     const distanceRef = useRef(0); // mirror of distance state for use in refs
     const stepsRef = useRef(0);    // estimated step count
+    const sessionStartTsRef = useRef<number>(0); // wall-clock timestamp when session started
+    const totalPausedMsRef = useRef<number>(0);   // accumulated paused wall-clock ms
+    const pauseStartWallRef = useRef<number | null>(null); // when current pause began (wall clock)
     const [steps, setSteps] = useState(0);
 
     // ── Accumulated-segment timer (backgrounding-safe) ────────────────────────
@@ -100,23 +107,80 @@ export default function SessionTracker() {
     useEffect(() => { isPausedRef.current = isPaused; }, [isPaused]);
     useEffect(() => { isTrackingRef.current = isTracking; }, [isTracking]);
 
+    // ── Check for orphaned session from previous page load ────────────────────
+    useEffect(() => {
+        try {
+            const saved = sessionStorage.getItem(SESSION_KEY);
+            if (saved) {
+                const data = JSON.parse(saved);
+                // Only offer restore if the session was active within the last 2 hours
+                if (data.startTs && (Date.now() - data.startTs) < 2 * 3600 * 1000) {
+                    console.log("[AUTH_SESSION_RESTORE] Found orphaned session:", data);
+                    setSessionRestoreData(data);
+                } else {
+                    sessionStorage.removeItem(SESSION_KEY);
+                }
+            }
+        } catch (e) { /* ignore */ }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // ── Persist session state to sessionStorage on each tick ─────────────────
+    const persistSession = useCallback(() => {
+        if (!isTrackingRef.current) return;
+        try {
+            sessionStorage.setItem(SESSION_KEY, JSON.stringify({
+                startTs: sessionStartTsRef.current,
+                totalPausedMs: totalPausedMsRef.current,
+                distanceKm: distanceRef.current,
+                steps: stepsRef.current,
+                mode,
+                environment,
+                savedAt: Date.now(),
+            }));
+        } catch (e) { /* ignore storage quota errors */ }
+    }, [mode, environment]);
+
+    // ── Page Visibility API: resync timer when phone unlocks / app foregrounds ─
+    useEffect(() => {
+        const onVisibilityChange = () => {
+            if (document.visibilityState === "visible" && isTrackingRef.current && !isPausedRef.current) {
+                // Recalculate elapsed time from wall clock — setInterval may have missed ticks
+                const now = Date.now();
+                const wallElapsed = (now - sessionStartTsRef.current - totalPausedMsRef.current) / 1000;
+                if (wallElapsed > activeTimeRef.current) {
+                    console.log("[BACKGROUND_TIMER_RESUME] Resyncing timer from wall clock.", {
+                        stored: activeTimeRef.current,
+                        actual: wallElapsed,
+                    });
+                    activeTimeRef.current = Math.round(wallElapsed);
+                    setElapsedTime(activeTimeRef.current);
+                    lastTickRef.current = now;
+                }
+            }
+        };
+        document.addEventListener("visibilitychange", onVisibilityChange);
+        return () => document.removeEventListener("visibilitychange", onVisibilityChange);
+    }, []);
+
     useEffect(() => {
         if (isTracking && !isPaused) {
             lastTickRef.current = Date.now();
             timerRef.current = setInterval(() => {
                 if (isPausedRef.current || !isTrackingRef.current) return;
                 const now = Date.now();
+                // Wall-clock delta — survives iOS/Android PWA backgrounding
                 const delta = Math.round((now - lastTickRef.current) / 1000);
-                // REMOVED cap to prevent iOS PWA backgrounding from losing actual elapsed time
                 activeTimeRef.current += delta;
                 lastTickRef.current = now;
                 setElapsedTime(activeTimeRef.current);
+                persistSession(); // write snapshot every second
             }, 1000);
         }
         return () => {
             if (timerRef.current) clearInterval(timerRef.current);
         };
-    }, [isTracking, isPaused]);
+    }, [isTracking, isPaused, persistSession]);
 
     // ── Screen Wake Lock ──────────────────────────────────────────────────────
     const wakeLockRef = useRef<any>(null);
@@ -291,6 +355,10 @@ export default function SessionTracker() {
         distanceRef.current = 0;
         setElapsedTime(0);
         activeTimeRef.current = 0;
+        lastTickRef.current = Date.now();
+        sessionStartTsRef.current = Date.now(); // ← wall-clock session start
+        totalPausedMsRef.current = 0;
+        pauseStartWallRef.current = null;
         setIsPaused(false);
         setMileSplits([]);
         setWeatherBanner(null);
@@ -298,6 +366,9 @@ export default function SessionTracker() {
         lastAcceptedPos.current = null;
         smoothedPos.current = null;
         lastPosTimestamp.current = 0;
+        stepsRef.current = 0;
+        setSteps(0);
+        console.log("[SESSION_START] mode=" + mode + " env=" + environment);
 
         // Initialize Agent Core
         const core = new AgentCore({
@@ -322,6 +393,19 @@ export default function SessionTracker() {
                 }
             );
         }
+
+        // Write initial snapshot
+        try {
+            sessionStorage.setItem(SESSION_KEY, JSON.stringify({
+                startTs: sessionStartTsRef.current,
+                totalPausedMs: 0,
+                distanceKm: 0,
+                steps: 0,
+                mode,
+                environment,
+                savedAt: Date.now(),
+            }));
+        } catch (e) { /* ignore */ }
     };
 
     const stopSession = async () => {
@@ -345,9 +429,11 @@ export default function SessionTracker() {
         const finalActiveSeconds = activeTimeRef.current;
         const miles = finalDistanceKm * 0.621371;
         const durationSeconds = finalActiveSeconds;
+        console.log("[SESSION_END] miles=" + miles.toFixed(2) + " duration=" + durationSeconds + "s");
 
         if (miles < 0.05) {
             alert("Session too short to save.");
+            sessionStorage.removeItem(SESSION_KEY);
             lastAcceptedPos.current = null;
             smoothedPos.current = null;
             stepsRef.current = 0;
@@ -375,9 +461,26 @@ export default function SessionTracker() {
         setShowPostModal(true);
     };
 
+    /** Retry wrapper — up to 3 attempts with exponential backoff */
+    async function retryAsync<T>(fn: () => Promise<T>, attempts = 3): Promise<T> {
+        let lastErr: any;
+        for (let i = 0; i < attempts; i++) {
+            try {
+                return await fn();
+            } catch (e) {
+                lastErr = e;
+                if (i < attempts - 1) {
+                    await new Promise(r => setTimeout(r, 500 * Math.pow(2, i)));
+                }
+            }
+        }
+        throw lastErr;
+    }
+
     const handlePostSessionSave = async (data: { notes: string; title: string; mediaFiles: File[]; isPublic: boolean }) => {
         if (!pendingSessionData) return;
         setSaving(true);
+        console.log("[SESSION_SAVE_ATTEMPT] Starting save...");
         try {
             // Upload media files to Firebase Storage
             const mediaItems: { type: "image" | "video"; url: string; path: string; createdAt: string }[] = [];
@@ -395,7 +498,7 @@ export default function SessionTracker() {
                 }
             }
 
-            await addActivity({
+            await retryAsync(() => addActivity({
                 type: getActivityType(mode),
                 distance: pendingSessionData.distanceMiles,
                 duration: pendingSessionData.durationSeconds,
@@ -411,13 +514,15 @@ export default function SessionTracker() {
                 pausedDuration: pendingSessionData.pausedDuration,
                 ...(pendingSessionData.weatherSnapshot ? { weatherSnapshot: pendingSessionData.weatherSnapshot } : {}),
                 ...(mediaItems.length > 0 ? { media: mediaItems } : {}),
-            });
+            }), 3);
 
+            console.log("[SESSION_SAVE_SUCCESS] Activity saved successfully.");
+            sessionStorage.removeItem(SESSION_KEY); // Clear orphan checkpoint
             setShowPostModal(false);
             setPendingSessionData(null);
         } catch (e: any) {
-            console.error("Save error:", e);
-            alert(`Failed to save session: ${e.message || "Unknown error"}`);
+            console.error("[SESSION_SAVE_FAILURE]", e);
+            alert(`Failed to save session: ${e.message || "Unknown error"}. Please try again.`);
         } finally {
             setSaving(false);
             lastAcceptedPos.current = null;
@@ -429,19 +534,26 @@ export default function SessionTracker() {
 
     const toggleManualPause = () => {
         if (isPaused) {
-            // Resume: update agent state cleanly (no fake GPS)
+            // Resume: track wall-clock pause duration for accurate background timer
+            if (pauseStartWallRef.current !== null) {
+                totalPausedMsRef.current += Date.now() - pauseStartWallRef.current;
+                pauseStartWallRef.current = null;
+            }
             agentCoreRef.current?.manualResume();
             setIsPaused(false);
+            console.log("[SESSION_RESUME] Manual resume. totalPausedMs=" + totalPausedMsRef.current);
         } else {
-            // Pause: update agent state cleanly
+            pauseStartWallRef.current = Date.now(); // start tracking pause wall time
             agentCoreRef.current?.manualPause();
             setIsPaused(true);
+            console.log("[SESSION_PAUSE] Manual pause.");
         }
     };
 
     const handleDiscardSession = () => {
         setShowPostModal(false);
         setPendingSessionData(null);
+        sessionStorage.removeItem(SESSION_KEY);
         lastAcceptedPos.current = null;
         smoothedPos.current = null;
         stepsRef.current = 0;
@@ -480,6 +592,51 @@ export default function SessionTracker() {
                 {countdown !== null && (
                     <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 500, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column" }}>
                         <div style={{ fontSize: "120px", fontWeight: "bold", color: "var(--primary)", animation: "ping 1s infinite" }}>{countdown}</div>
+                    </div>
+                )}
+
+                {/* Session Restore Banner */}
+                {sessionRestoreData && !isTracking && (
+                    <div style={{
+                        position: "absolute", top: 0, left: 0, right: 0, zIndex: 600,
+                        background: "rgba(204,255,0,0.12)", borderBottom: "1px solid rgba(204,255,0,0.3)",
+                        padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px",
+                    }}>
+                        <div>
+                            <div style={{ fontWeight: 700, fontSize: "14px" }}>⚡ Restore previous session?</div>
+                            <div style={{ fontSize: "12px", color: "var(--foreground-muted)" }}>
+                                {/* How long ago */}
+                                {sessionRestoreData.mode} · {((Date.now() - sessionRestoreData.startTs) / 60000).toFixed(0)} min ago
+                            </div>
+                        </div>
+                        <div style={{ display: "flex", gap: "8px" }}>
+                            <button
+                                onClick={() => {
+                                    // Restore elapsed time from wall clock
+                                    const elapsed = Math.round((Date.now() - sessionRestoreData.startTs - (sessionRestoreData.totalPausedMs || 0)) / 1000);
+                                    sessionStartTsRef.current = sessionRestoreData.startTs;
+                                    totalPausedMsRef.current = sessionRestoreData.totalPausedMs || 0;
+                                    activeTimeRef.current = elapsed;
+                                    distanceRef.current = sessionRestoreData.distanceKm || 0;
+                                    stepsRef.current = sessionRestoreData.steps || 0;
+                                    setElapsedTime(elapsed);
+                                    setDistance(sessionRestoreData.distanceKm || 0);
+                                    setSteps(sessionRestoreData.steps || 0);
+                                    setSessionRestoreData(null);
+                                    setIsTracking(true);
+                                    console.log("[AUTH_SESSION_RESTORE] Session restored. elapsed=" + elapsed + "s");
+                                }}
+                                style={{ padding: "8px 16px", background: "var(--primary)", color: "#000", border: "none", borderRadius: "20px", fontWeight: 700, cursor: "pointer", fontSize: "13px" }}
+                            >
+                                Restore
+                            </button>
+                            <button
+                                onClick={() => { sessionStorage.removeItem(SESSION_KEY); setSessionRestoreData(null); }}
+                                style={{ padding: "8px 12px", background: "rgba(255,255,255,0.08)", color: "var(--foreground-muted)", border: "none", borderRadius: "20px", cursor: "pointer", fontSize: "13px" }}
+                            >
+                                Dismiss
+                            </button>
+                        </div>
                     </div>
                 )}
 

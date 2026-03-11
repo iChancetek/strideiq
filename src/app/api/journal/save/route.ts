@@ -33,26 +33,27 @@ export async function POST(req: Request) {
         console.log("adminDb collection ref obtained.");
 
         if (id) {
-            console.log(`Updating document ${id}...`);
-            await collectionRef.doc(id).update({
-                title,
-                content,
-                media: finalMedia,
-                updatedAt: Timestamp.now()
-            });
-            console.log(`Update successful ${id}`);
+            console.log(`[JOURNAL_SAVE_ATTEMPT] Updating document ${id}...`);
+            await collectionRef.doc(id).set({
+                title: title ?? null,
+                content: content ?? null,
+                type,
+                media: finalMedia ?? null,
+                updatedAt: Timestamp.now(),
+            }, { merge: true });
+            console.log(`[JOURNAL_SAVE_SUCCESS] Updated document ${id}`);
             return NextResponse.json({ success: true, id });
         } else {
-            console.log(`Creating new document...`);
+            console.log(`[JOURNAL_SAVE_ATTEMPT] Creating new document for user ${userId}...`);
             const docRef = await collectionRef.add({
-                title,
-                content,
+                title: title ?? "",
+                content: content ?? "",
                 type,
-                media: finalMedia,
+                media: finalMedia ?? null,
                 createdAt: Timestamp.now(),
-                updatedAt: Timestamp.now()
+                updatedAt: Timestamp.now(),
             });
-            console.log(`Creation successful ID: ${docRef.id}`);
+            console.log(`[JOURNAL_SAVE_SUCCESS] Created document ${docRef.id}`);
             return NextResponse.json({ success: true, id: docRef.id });
         }
 
