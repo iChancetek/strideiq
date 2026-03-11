@@ -98,36 +98,46 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
             }
 
             setIsSaving(true);
-            const token = await user.getIdToken();
-            const payload = {
-                id: initialData?.id,
-                userId: user.uid,
-                title,
-                content,
-                media: mediaItems.length > 0 ? mediaItems : null
-            };
 
-            const res = await fetch("/api/journal/save", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${token}`
-                },
-                body: JSON.stringify(payload)
-            });
+            // ── Write directly to Firestore client SDK ──────────────────────────
+            // The Admin SDK API route fails with "5 NOT_FOUND" when FIREBASE_SERVICE_ACCOUNT_KEY
+            // is not configured. The client SDK uses the correctly configured Firebase project.
+            const { collection: col, doc: docRef, addDoc: addD, setDoc, serverTimestamp: sts } = await import("firebase/firestore");
 
-            const data = await res.json();
+            let savedId: string;
 
-            if (res.ok && data.success) {
-                setIsDirty(false); // Reset dirty state so we don't prompt on exit
-                router.push("/dashboard/journal");
+            if (initialData?.id) {
+                // EDIT existing entry — use setDoc with merge:true (never throws NOT_FOUND)
+                const ref = docRef(db, "users", user.uid, "journal_entries", initialData.id);
+                await setDoc(ref, {
+                    title: title || "",
+                    content: content || "",
+                    type: "journal",
+                    media: mediaItems.length > 0 ? mediaItems : null,
+                    updatedAt: sts(),
+                }, { merge: true });
+                savedId = initialData.id;
+                console.log("[JOURNAL_SAVE_SUCCESS] Updated entry", savedId);
             } else {
-                console.error("API Error: ", data);
-                alert(`Server Error: ${data.error || "Unknown server error."}`);
+                // NEW entry — addDoc creates with auto-generated ID
+                const colRef = col(db, "users", user.uid, "journal_entries");
+                const newDoc = await addD(colRef, {
+                    title: title || "",
+                    content: content || "",
+                    type: "journal",
+                    media: mediaItems.length > 0 ? mediaItems : null,
+                    createdAt: sts(),
+                    updatedAt: sts(),
+                });
+                savedId = newDoc.id;
+                console.log("[JOURNAL_SAVE_SUCCESS] Created entry", savedId);
             }
+
+            setIsDirty(false);
+            router.push("/dashboard/journal");
         } catch (e: any) {
-            console.error("Journal save network or parse error:", e);
-            alert(`Network Error: ${e.message || "Failed to reach the server."}`);
+            console.error("[JOURNAL_SAVE_FAILURE]", e);
+            alert(`Save failed: ${e.message || "Unknown error"}. Please try again.`);
         } finally {
             setIsSaving(false);
         }

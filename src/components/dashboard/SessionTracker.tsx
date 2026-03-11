@@ -227,9 +227,20 @@ export default function SessionTracker() {
         switch (event.type) {
             case "session:pause":
                 setIsPaused(true);
+                // Start wall-clock tracking for this pause — critical for background timer accuracy
+                if (pauseStartWallRef.current === null) {
+                    pauseStartWallRef.current = Date.now();
+                    console.log("[SESSION_PAUSE] Agent auto-pause initiated.");
+                }
                 break;
             case "session:resume":
                 setIsPaused(false);
+                // Accumulate wall-clock pause duration
+                if (pauseStartWallRef.current !== null) {
+                    totalPausedMsRef.current += Date.now() - pauseStartWallRef.current;
+                    pauseStartWallRef.current = null;
+                    console.log("[SESSION_RESUME] Agent auto-resume. totalPausedMs=" + totalPausedMsRef.current);
+                }
                 break;
             case "coaching:mile":
             case "coaching:pr":
@@ -260,8 +271,14 @@ export default function SessionTracker() {
 
         // 2. Immediate auto-resume: if we're paused and GPS shows movement, resume now
         if (isPausedRef.current && speed !== null && speed > 0.5) {
-            setIsPaused(false);
+            // Accumulate the wall-clock time this pause lasted
+            if (pauseStartWallRef.current !== null) {
+                totalPausedMsRef.current += Date.now() - pauseStartWallRef.current;
+                pauseStartWallRef.current = null;
+            }
             agentCoreRef.current?.manualResume();
+            setIsPaused(false);
+            console.log("[SESSION_RESUME] Auto-resume via GPS. totalPausedMs=" + totalPausedMsRef.current);
         }
 
         const dtSec = lastPosTimestamp.current > 0 ? (now - lastPosTimestamp.current) / 1000 : 0;

@@ -6,7 +6,8 @@ import {
     query,
     orderBy,
     onSnapshot,
-    Timestamp
+    Timestamp,
+    addDoc,
 } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase/config";
 import { useAuthState } from "react-firebase-hooks/auth";
@@ -86,22 +87,27 @@ export function useActivities() {
     const addActivity = async (activity: Omit<Activity, "id" | "date" | "pace"> & { date: Date }) => {
         if (!user) throw new Error("User not authenticated");
 
-        const response = await fetch("/api/activity/create", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                userId: user.uid,
-                ...activity,
-                // Duration is passed in seconds directly (matches Zod schema)
-            }),
+        // ── Write directly to Firestore client SDK ────────────────────────────
+        // The Admin SDK API route (/api/activity/create) throws "5 NOT_FOUND"
+        // when FIREBASE_SERVICE_ACCOUNT_KEY is not set in production.
+        // The client SDK uses the correctly configured Firebase project.
+
+        // Calculate pace string (sec/mi → "M:SS")
+        const paceSeconds = activity.distance > 0 ? activity.duration / activity.distance : 0;
+        const paceMin = Math.floor(paceSeconds / 60);
+        const paceSec = Math.floor(paceSeconds % 60);
+        const paceStr = `${paceMin}:${paceSec < 10 ? "0" : ""}${paceSec}`;
+
+        const colRef = collection(db, "users", user.uid, "activities");
+        const docRef = await addDoc(colRef, {
+            ...activity,
+            date: Timestamp.fromDate(activity.date),
+            createdAt: Timestamp.now(),
+            pace: paceStr,
         });
 
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || "Failed to create activity");
-        }
-
-        return response.json();
+        console.log("[SESSION_SAVE_SUCCESS] Activity written:", docRef.id);
+        return { activityId: docRef.id };
     };
 
     const updateActivity = async (activityId: string, updates: Partial<Activity>) => {
