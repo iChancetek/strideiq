@@ -35,11 +35,15 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
     const [uploading, setUploading] = useState(false);
     const [mediaItems, setMediaItems] = useState<{ url: string, type: string }[]>(() => {
         const initial: { url: string, type: string }[] = [];
-        if (initialData?.imageUrls) {
-            initialData.imageUrls.forEach(url => initial.push({ url, type: "image" }));
+        if (Array.isArray(initialData?.imageUrls)) {
+            initialData.imageUrls.forEach(url => {
+                if (typeof url === "string") initial.push({ url, type: "image" });
+            });
         }
-        if (initialData?.media) {
-            initialData.media.forEach(m => initial.push(m));
+        if (Array.isArray(initialData?.media)) {
+            initialData.media.forEach(m => {
+                if (m && typeof m === "object" && m.url) initial.push(m);
+            });
         }
         return initial;
     });
@@ -105,22 +109,30 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
 
             let savedId: string;
 
+            // Enforce a strict 10 second timeout for the network write. 
+            // If the user's connection flakes, Firebase will hang the promise indefinitely waiting for the server, freezing the UI.
+            const timeoutPromise = new Promise<never>((_, reject) =>
+                setTimeout(() => reject(new Error("Network timeout: The server took too long to respond. Please check your connection.")), 10000)
+            );
+
             if (initialData?.id) {
-                // EDIT existing entry — use setDoc with merge:true (never throws NOT_FOUND)
+                // EDIT existing entry
                 const ref = doc(db, "users", user.uid, "journal_entries", initialData.id);
-                await setDoc(ref, {
+                const writePromise = setDoc(ref, {
                     title: title || "",
                     content: content || "",
                     type: "journal",
                     media: mediaItems.length > 0 ? mediaItems : null,
                     updatedAt: serverTimestamp(),
                 }, { merge: true });
+
+                await Promise.race([writePromise, timeoutPromise]);
                 savedId = initialData.id;
                 console.log("[JOURNAL_SAVE_SUCCESS] Updated entry", savedId);
             } else {
-                // NEW entry — addDoc creates with auto-generated ID
+                // NEW entry
                 const colRef = collection(db, "users", user.uid, "journal_entries");
-                const newDoc = await addDoc(colRef, {
+                const writePromise = addDoc(colRef, {
                     title: title || "",
                     content: content || "",
                     type: "journal",
@@ -128,6 +140,8 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
                     createdAt: serverTimestamp(),
                     updatedAt: serverTimestamp(),
                 });
+
+                const newDoc = await Promise.race([writePromise, timeoutPromise]);
                 savedId = newDoc.id;
                 console.log("[JOURNAL_SAVE_SUCCESS] Created entry", savedId);
             }
