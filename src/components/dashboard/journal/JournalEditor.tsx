@@ -7,7 +7,7 @@ import { Loader2, Wand2, Check, ArrowLeft } from "lucide-react";
 import { useSettings } from "@/context/SettingsContext"; // Import settings
 import { t } from "@/lib/translations"; // Import translations
 import { db } from "@/lib/firebase/config";
-import { collection, doc, addDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
+import { collection, doc, addDoc, updateDoc, deleteDoc, setDoc, serverTimestamp } from "firebase/firestore";
 
 interface JournalEditorProps {
     initialData?: {
@@ -102,32 +102,31 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
             // ── Write directly to Firestore client SDK ──────────────────────────
             // The Admin SDK API route fails with "5 NOT_FOUND" when FIREBASE_SERVICE_ACCOUNT_KEY
             // is not configured. The client SDK uses the correctly configured Firebase project.
-            const { collection: col, doc: docRef, addDoc: addD, setDoc, serverTimestamp: sts } = await import("firebase/firestore");
 
             let savedId: string;
 
             if (initialData?.id) {
                 // EDIT existing entry — use setDoc with merge:true (never throws NOT_FOUND)
-                const ref = docRef(db, "users", user.uid, "journal_entries", initialData.id);
+                const ref = doc(db, "users", user.uid, "journal_entries", initialData.id);
                 await setDoc(ref, {
                     title: title || "",
                     content: content || "",
                     type: "journal",
                     media: mediaItems.length > 0 ? mediaItems : null,
-                    updatedAt: sts(),
+                    updatedAt: serverTimestamp(),
                 }, { merge: true });
                 savedId = initialData.id;
                 console.log("[JOURNAL_SAVE_SUCCESS] Updated entry", savedId);
             } else {
                 // NEW entry — addDoc creates with auto-generated ID
-                const colRef = col(db, "users", user.uid, "journal_entries");
-                const newDoc = await addD(colRef, {
+                const colRef = collection(db, "users", user.uid, "journal_entries");
+                const newDoc = await addDoc(colRef, {
                     title: title || "",
                     content: content || "",
                     type: "journal",
                     media: mediaItems.length > 0 ? mediaItems : null,
-                    createdAt: sts(),
-                    updatedAt: sts(),
+                    createdAt: serverTimestamp(),
+                    updatedAt: serverTimestamp(),
                 });
                 savedId = newDoc.id;
                 console.log("[JOURNAL_SAVE_SUCCESS] Created entry", savedId);

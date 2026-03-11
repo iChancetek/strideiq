@@ -12,6 +12,7 @@ export class MovementAgent {
     private isPaused = false;
     private pauseStartTime: number | null = null;
     private totalPausedMs = 0;
+    private manualResumeTime: number = 0;
 
     constructor(config: ModeConfig, sensitivity: AutoPauseSensitivity) {
         this.windowSize = getStopWindowSize(sensitivity);
@@ -27,8 +28,11 @@ export class MovementAgent {
 
         // ── Immediate pause: GPS explicitly reports speed = 0 ─────────────
         // Don't wait for the window — pause the moment the device is at standstill.
+        // Wait 10 seconds after a manual resume before allowing auto-pause to trigger again
         const isDefinitelyStopped = pos.speed === 0 || pos.speed === null;
-        if (!this.isPaused && isDefinitelyStopped) {
+        const gracePeriodActive = Date.now() - this.manualResumeTime < 10000;
+
+        if (!this.isPaused && isDefinitelyStopped && !gracePeriodActive) {
             this.speedBuffer = []; // reset window so resume detection starts fresh
             this.isPaused = true;
             this.pauseStartTime = Date.now();
@@ -85,6 +89,7 @@ export class MovementAgent {
     manualResume(): AgentEvent {
         this.isPaused = false;
         this.speedBuffer = []; // reset window so next movement is detected cleanly
+        this.manualResumeTime = Date.now(); // Activate grace period against instant auto-pause
         if (this.pauseStartTime) {
             this.totalPausedMs += Date.now() - this.pauseStartTime;
             this.pauseStartTime = null;
