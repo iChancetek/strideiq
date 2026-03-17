@@ -1,7 +1,7 @@
 runConfig:
   cpu: 1
   memoryMiB: 512
-  minInstances: 0
+  minInstances: 1
   maxInstances: 10
   concurrency: 80
 env:
@@ -29,3 +29,6 @@ env:
   - variable: OPENAI_API_KEY
     secret: OPENAI_API_KEY
     availability: ["BUILD", "RUNTIME"]
+  - variable: FIREBASE_SERVICE_ACCOUNT_KEY
+    secret: FIREBASE_SERVICE_ACCOUNT_KEY
+    availability: ["RUNTIME"]

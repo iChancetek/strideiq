@@ -20,7 +20,11 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Missing fields" }, { status: 400 });
         }
 
-        const logRef = adminDb.collection("users").doc(userId).collection("fasting_logs").doc();
+        // Ensure the parent users/{uid} doc exists before writing to subcollections
+        const userDocRef = adminDb.collection("users").doc(userId);
+        await userDocRef.set({ uid: userId }, { merge: true });
+
+        const logRef = userDocRef.collection("fasting_logs").doc();
         await logRef.set({
             startTime,
             endTime,

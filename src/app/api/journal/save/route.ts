@@ -28,8 +28,13 @@ export async function POST(req: Request) {
         console.log("Final media array derived.");
 
         console.log("Attempting to get adminDb collection ref...");
+        // Ensure the parent users/{uid} doc exists before writing to subcollections
+        // This prevents NOT_FOUND errors for new users whose profile hasn't synced yet
+        const userDocRef = adminDb.collection("users").doc(userId);
+        await userDocRef.set({ uid: userId }, { merge: true });
+
         // If ID exists, update. Else create new.
-        const collectionRef = adminDb.collection("users").doc(userId).collection("journal_entries");
+        const collectionRef = userDocRef.collection("journal_entries");
         console.log("adminDb collection ref obtained.");
 
         if (id) {

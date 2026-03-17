@@ -36,8 +36,12 @@ export async function DELETE(req: Request) {
             const dateObj = activity.date?.toDate ? activity.date.toDate() : new Date(activity.date);
             const monthKey = `${dateObj.getFullYear()}-${(dateObj.getMonth() + 1).toString().padStart(2, "0")}`;
 
+            // Ensure the parent users/{uid} doc exists before writing to subcollections
+            const userDocRef = adminDb.collection("users").doc(userId);
+            await userDocRef.set({ uid: userId }, { merge: true });
+
             // Decrement all-time stats
-            const allTimeRef = adminDb.collection("users").doc(userId).collection("stats").doc("allTime");
+            const allTimeRef = userDocRef.collection("stats").doc("allTime");
             await allTimeRef.set({
                 totalMiles: FieldValue.increment(-(activity.distance || 0)),
                 totalRuns: FieldValue.increment(-1),
@@ -46,7 +50,7 @@ export async function DELETE(req: Request) {
             }, { merge: true });
 
             // Decrement monthly stats
-            const monthlyRef = adminDb.collection("users").doc(userId).collection("stats").doc(monthKey);
+            const monthlyRef = userDocRef.collection("stats").doc(monthKey);
             await monthlyRef.set({
                 totalMiles: FieldValue.increment(-(activity.distance || 0)),
                 totalRuns: FieldValue.increment(-1),

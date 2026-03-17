@@ -31,9 +31,13 @@ export async function POST(req: Request) {
         const paceSec = Math.floor(pace % 60);
         const paceStr = `${paceMin}:${paceSec < 10 ? "0" : ""}${paceSec}`;
 
+        // Ensure the parent users/{uid} doc exists before writing to subcollections
+        // This prevents NOT_FOUND errors for new users whose profile hasn't synced yet
+        const userDocRef = adminDb.collection("users").doc(userId);
+        await userDocRef.set({ uid: userId }, { merge: true });
+
         // Save using Admin SDK — bypasses client auth rules
-        const docRef = await adminDb
-            .collection("users").doc(userId)
+        const docRef = await userDocRef
             .collection("activities")
             .add({
                 ...activityData,
