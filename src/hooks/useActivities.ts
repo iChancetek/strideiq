@@ -8,6 +8,8 @@ import {
     onSnapshot,
     Timestamp,
     addDoc,
+    doc,
+    setDoc,
 } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase/config";
 import { useAuthState } from "react-firebase-hooks/auth";
@@ -98,13 +100,29 @@ export function useActivities() {
         const paceSec = Math.floor(paceSeconds % 60);
         const paceStr = `${paceMin}:${paceSec < 10 ? "0" : ""}${paceSec}`;
 
+        // Enforce a 30s timeout — iOS long-polling + memoryLocalCache can be slow on mobile networks.
+        const timeoutPromise = new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error("Network timeout: The server took too long to respond. Please check your connection.")), 30000)
+        );
+
+        // Ensure the parent users/{uid} doc exists before writing to subcollections
+        // (client SDK subcollection writes can fail with NOT_FOUND if the parent doc was never created)
+        const userDocRef = doc(db, "users", user.uid);
+        await Promise.race([
+            setDoc(userDocRef, { uid: user.uid }, { merge: true }),
+            timeoutPromise
+        ]);
+
         const colRef = collection(db, "users", user.uid, "activities");
-        const docRef = await addDoc(colRef, {
-            ...activity,
-            date: Timestamp.fromDate(activity.date),
-            createdAt: Timestamp.now(),
-            pace: paceStr,
-        });
+        const docRef = await Promise.race([
+            addDoc(colRef, {
+                ...activity,
+                date: Timestamp.fromDate(activity.date),
+                createdAt: Timestamp.now(),
+                pace: paceStr,
+            }),
+            timeoutPromise
+        ]);
 
         console.log("[SESSION_SAVE_SUCCESS] Activity written:", docRef.id);
         return { activityId: docRef.id };
