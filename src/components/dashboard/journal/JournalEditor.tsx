@@ -109,10 +109,10 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
 
             let savedId: string;
 
-            // Enforce a strict 10 second timeout for the network write. 
-            // If the user's connection flakes, Firebase will hang the promise indefinitely waiting for the server, freezing the UI.
+            // Enforce a 30 second timeout — iOS long polling + memoryLocalCache can be slow on mobile networks.
+            // 10s was too tight; Firestore long-polling round trips can legitimately take 15-25s on weak connections.
             const timeoutPromise = new Promise<never>((_, reject) =>
-                setTimeout(() => reject(new Error("Network timeout: The server took too long to respond. Please check your connection.")), 10000)
+                setTimeout(() => reject(new Error("Network timeout: The server took too long to respond. Please check your connection.")), 30000)
             );
 
             if (initialData?.id) {
@@ -130,7 +130,14 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
                 savedId = initialData.id;
                 console.log("[JOURNAL_SAVE_SUCCESS] Updated entry", savedId);
             } else {
-                // NEW entry
+                // NEW entry — first ensure the parent users/{uid} doc exists
+                // (client SDK subcollection writes can fail with NOT_FOUND if the parent doc was never created)
+                const userDocRef = doc(db, "users", user.uid);
+                await Promise.race([
+                    setDoc(userDocRef, { uid: user.uid }, { merge: true }),
+                    timeoutPromise
+                ]);
+
                 const colRef = collection(db, "users", user.uid, "journal_entries");
                 const writePromise = addDoc(colRef, {
                     title: title || "",
