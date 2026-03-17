@@ -89,43 +89,29 @@ export function useActivities() {
     const addActivity = async (activity: Omit<Activity, "id" | "date" | "pace"> & { date: Date }) => {
         if (!user) throw new Error("User not authenticated");
 
-        // ── Write directly to Firestore client SDK ────────────────────────────
-        // The Admin SDK API route (/api/activity/create) throws "5 NOT_FOUND"
-        // when FIREBASE_SERVICE_ACCOUNT_KEY is not set in production.
-        // The client SDK uses the correctly configured Firebase project.
+        // Use the API route instead of client SDK to prevent "Network timeout" on mobile PWAs
+        // The API route handles the admin-level upsert of users/{uid} safely
+        const payload = {
+            ...activity,
+            userId: user.uid,
+            date: activity.date.toISOString(),
+        };
 
-        // Calculate pace string (sec/mi → "M:SS")
-        const paceSeconds = activity.distance > 0 ? activity.duration / activity.distance : 0;
-        const paceMin = Math.floor(paceSeconds / 60);
-        const paceSec = Math.floor(paceSeconds % 60);
-        const paceStr = `${paceMin}:${paceSec < 10 ? "0" : ""}${paceSec}`;
+        // Standard HTTP fetch is much more resilient to mobile backgrounding than Firestore long-polling
+        const response = await fetch("/api/activity/create", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+        });
 
-        // Enforce a 30s timeout — iOS long-polling + memoryLocalCache can be slow on mobile networks.
-        const timeoutPromise = new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error("Network timeout: The server took too long to respond. Please check your connection.")), 30000)
-        );
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || "Failed to save activity over network.");
+        }
 
-        // Ensure the parent users/{uid} doc exists before writing to subcollections
-        // (client SDK subcollection writes can fail with NOT_FOUND if the parent doc was never created)
-        const userDocRef = doc(db, "users", user.uid);
-        await Promise.race([
-            setDoc(userDocRef, { uid: user.uid }, { merge: true }),
-            timeoutPromise
-        ]);
-
-        const colRef = collection(db, "users", user.uid, "activities");
-        const docRef = await Promise.race([
-            addDoc(colRef, {
-                ...activity,
-                date: Timestamp.fromDate(activity.date),
-                createdAt: Timestamp.now(),
-                pace: paceStr,
-            }),
-            timeoutPromise
-        ]);
-
-        console.log("[SESSION_SAVE_SUCCESS] Activity written:", docRef.id);
-        return { activityId: docRef.id };
+        const data = await response.json();
+        console.log("[SESSION_SAVE_SUCCESS] Activity written via API:", data.activityId);
+        return { activityId: data.activityId };
     };
 
     const updateActivity = async (activityId: string, updates: Partial<Activity>) => {

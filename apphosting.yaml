@@ -32,3 +32,6 @@ env:
   - variable: FIREBASE_SERVICE_ACCOUNT_KEY
     secret: FIREBASE_SERVICE_ACCOUNT_KEY
     availability: ["BUILD", "RUNTIME"]
+  - variable: TAVILY_API_KEY
+    secret: TAVILY_API_KEY
+    availability: ["BUILD", "RUNTIME"]

@@ -103,55 +103,33 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
 
             setIsSaving(true);
 
-            // ── Write directly to Firestore client SDK ──────────────────────────
-            // The Admin SDK API route fails with "5 NOT_FOUND" when FIREBASE_SERVICE_ACCOUNT_KEY
-            // is not configured. The client SDK uses the correctly configured Firebase project.
-
-            let savedId: string;
-
-            // Enforce a 30 second timeout — iOS long polling + memoryLocalCache can be slow on mobile networks.
-            // 10s was too tight; Firestore long-polling round trips can legitimately take 15-25s on weak connections.
-            const timeoutPromise = new Promise<never>((_, reject) =>
-                setTimeout(() => reject(new Error("Network timeout: The server took too long to respond. Please check your connection.")), 30000)
-            );
+            // Use the API route instead of client SDK to prevent "Network timeout" on mobile PWAs due to weak connections blocking Firestore websocket setup
+            const payload: any = {
+                title: title || "",
+                content: content || "",
+                type: "journal",
+                media: mediaItems.length > 0 ? mediaItems : null,
+                userId: user.uid,
+            };
 
             if (initialData?.id) {
-                // EDIT existing entry
-                const ref = doc(db, "users", user.uid, "journal_entries", initialData.id);
-                const writePromise = setDoc(ref, {
-                    title: title || "",
-                    content: content || "",
-                    type: "journal",
-                    media: mediaItems.length > 0 ? mediaItems : null,
-                    updatedAt: serverTimestamp(),
-                }, { merge: true });
-
-                await Promise.race([writePromise, timeoutPromise]);
-                savedId = initialData.id;
-                console.log("[JOURNAL_SAVE_SUCCESS] Updated entry", savedId);
-            } else {
-                // NEW entry — first ensure the parent users/{uid} doc exists
-                // (client SDK subcollection writes can fail with NOT_FOUND if the parent doc was never created)
-                const userDocRef = doc(db, "users", user.uid);
-                await Promise.race([
-                    setDoc(userDocRef, { uid: user.uid }, { merge: true }),
-                    timeoutPromise
-                ]);
-
-                const colRef = collection(db, "users", user.uid, "journal_entries");
-                const writePromise = addDoc(colRef, {
-                    title: title || "",
-                    content: content || "",
-                    type: "journal",
-                    media: mediaItems.length > 0 ? mediaItems : null,
-                    createdAt: serverTimestamp(),
-                    updatedAt: serverTimestamp(),
-                });
-
-                const newDoc = await Promise.race([writePromise, timeoutPromise]);
-                savedId = newDoc.id;
-                console.log("[JOURNAL_SAVE_SUCCESS] Created entry", savedId);
+                payload.id = initialData.id;
             }
+
+            const response = await fetch("/api/journal/save", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || "Failed to save journal over network.");
+            }
+
+            const responseData = await response.json();
+            const savedId = responseData.id;
+            console.log("[JOURNAL_SAVE_SUCCESS] Saved entry via API", savedId);
 
             setIsDirty(false);
             router.push("/dashboard/journal");
