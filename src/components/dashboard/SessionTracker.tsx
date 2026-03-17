@@ -269,17 +269,7 @@ export default function SessionTracker() {
         // 1. Accuracy gate — reject poor readings
         if (accuracy > GPS_ACCURACY_THRESHOLD) return;
 
-        // 2. Immediate auto-resume: if we're paused and GPS shows movement, resume now
-        if (isPausedRef.current && speed !== null && speed > 0.5) {
-            // Accumulate the wall-clock time this pause lasted
-            if (pauseStartWallRef.current !== null) {
-                totalPausedMsRef.current += Date.now() - pauseStartWallRef.current;
-                pauseStartWallRef.current = null;
-            }
-            agentCoreRef.current?.manualResume();
-            setIsPaused(false);
-            console.log("[SESSION_RESUME] Auto-resume via GPS. totalPausedMs=" + totalPausedMsRef.current);
-        }
+        // 2. Immediate auto-resume hack removed — MovementAgent handles this instantaneously now.
 
         const dtSec = lastPosTimestamp.current > 0 ? (now - lastPosTimestamp.current) / 1000 : 0;
 

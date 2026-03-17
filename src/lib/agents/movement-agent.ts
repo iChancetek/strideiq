@@ -6,8 +6,6 @@ import { GeoPosition, AgentEvent, ModeConfig, AutoPauseSensitivity } from "./typ
 import { getStopWindowSize } from "./mode-agent";
 
 export class MovementAgent {
-    private speedBuffer: number[] = [];
-    private windowSize: number;
     private speedThresholdMph: number;
     private isPaused = false;
     private pauseStartTime: number | null = null;
@@ -15,7 +13,7 @@ export class MovementAgent {
     private manualResumeTime: number = 0;
 
     constructor(config: ModeConfig, sensitivity: AutoPauseSensitivity) {
-        this.windowSize = getStopWindowSize(sensitivity);
+        // We now ignore the sensitivity window size because the user requested instantaneous pause/resume
         this.speedThresholdMph = config.speedThresholdMph;
     }
 
@@ -26,14 +24,15 @@ export class MovementAgent {
         // Convert speed from m/s to mph; fallback to 0 if null
         const speedMph = pos.speed != null ? pos.speed * 2.23694 : 0;
 
-        // ── Immediate pause: GPS explicitly reports speed = 0 ─────────────
-        // Don't wait for the window — pause the moment the device is at standstill.
-        // Wait 10 seconds after a manual resume before allowing auto-pause to trigger again
-        const isDefinitelyStopped = pos.speed === 0 || pos.speed === null;
-        const gracePeriodActive = Date.now() - this.manualResumeTime < 10000;
+        // Give a 5-second grace period after a manual resume before auto-pausing again
+        const gracePeriodActive = Date.now() - this.manualResumeTime < 5000;
 
-        if (!this.isPaused && isDefinitelyStopped && !gracePeriodActive) {
-            this.speedBuffer = []; // reset window so resume detection starts fresh
+        if (gracePeriodActive) {
+            return null; // Ignore speed drops right after manual resume
+        }
+
+        // Instantaneous Auto-Pause
+        if (!this.isPaused && speedMph < this.speedThresholdMph) {
             this.isPaused = true;
             this.pauseStartTime = Date.now();
             return {
@@ -43,33 +42,8 @@ export class MovementAgent {
             };
         }
 
-        this.speedBuffer.push(speedMph);
-
-        // Keep sliding window trimmed
-        if (this.speedBuffer.length > this.windowSize) {
-            this.speedBuffer.shift();
-        }
-
-        // Need a full window before making windowed decisions
-        if (this.speedBuffer.length < this.windowSize) {
-            return null;
-        }
-
-        const avgSpeed = this.speedBuffer.reduce((a, b) => a + b, 0) / this.speedBuffer.length;
-
-        if (!this.isPaused && avgSpeed < this.speedThresholdMph) {
-            // User has stopped (window-based detection for non-zero but very slow speed)
-            this.isPaused = true;
-            this.pauseStartTime = Date.now();
-            return {
-                type: "session:pause",
-                message: "Your session has been paused.",
-                timestamp: Date.now(),
-            };
-        }
-
-        if (this.isPaused && (avgSpeed >= this.speedThresholdMph)) {
-            // User resumed (window-based detection for low-speed scenarios)
+        // Instantaneous Auto-Resume
+        if (this.isPaused && speedMph >= this.speedThresholdMph) {
             this.isPaused = false;
             if (this.pauseStartTime) {
                 this.totalPausedMs += Date.now() - this.pauseStartTime;
@@ -88,7 +62,6 @@ export class MovementAgent {
     /** Immediately resume from a manual UI action (no GPS needed) */
     manualResume(): AgentEvent {
         this.isPaused = false;
-        this.speedBuffer = []; // reset window so next movement is detected cleanly
         this.manualResumeTime = Date.now(); // Activate grace period against instant auto-pause
         if (this.pauseStartTime) {
             this.totalPausedMs += Date.now() - this.pauseStartTime;
@@ -104,7 +77,6 @@ export class MovementAgent {
     /** Immediately pause from a manual UI action */
     manualPause(): AgentEvent {
         this.isPaused = true;
-        this.speedBuffer = []; // reset so resume detection starts fresh
         this.pauseStartTime = Date.now();
         return {
             type: "session:pause",
@@ -126,7 +98,6 @@ export class MovementAgent {
     }
 
     reset(): void {
-        this.speedBuffer = [];
         this.isPaused = false;
         this.pauseStartTime = null;
         this.totalPausedMs = 0;
