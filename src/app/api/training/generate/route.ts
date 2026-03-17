@@ -96,26 +96,24 @@ export async function POST(req: Request) {
             { role: "user", content: userPrompt }
         ];
 
-        // 1. Initial Call (Tool Check)
+        // 1. Initial Call (Tool Check) - DO NOT force json_object here, it breaks tool_calls
         const response1 = await openai.chat.completions.create({
-            model: "gpt-4o", // Reverted to stable model
+            model: "gpt-4o",
             messages: messages,
             tools: tools as any,
             tool_choice: "auto",
-            response_format: { type: "json_object" },
-            max_completion_tokens: 4096, // Increased token limit
         });
 
         const msg1 = response1.choices[0].message;
 
         // Handle Tool Call (Race Date Lookup)
-        if (msg1.tool_calls) {
+        if (msg1.tool_calls && msg1.tool_calls.length > 0) {
             const toolCall = msg1.tool_calls[0];
 
-            // Reconstruct the message object correctly for the API
+            // Reconstruct the message object correctly
             const assistantMessage = {
                 role: "assistant",
-                content: msg1.content,
+                content: msg1.content || null,
                 tool_calls: msg1.tool_calls
             };
 
@@ -132,18 +130,16 @@ export async function POST(req: Request) {
                     content: raceDateResult
                 });
 
-                // 2. Final Generation with Real Date
+                // 2. Final Generation with Real Date (Force JSON here since no tools are being called)
                 const response2 = await openai.chat.completions.create({
                     model: "gpt-4o",
                     messages: messages,
                     response_format: { type: "json_object" },
-                    max_completion_tokens: 4096,
                 });
 
-                const finalContent = response2.choices[0].message.content;
-                const plan = JSON.parse(finalContent || "{}");
+                const finalContent = response2.choices[0].message.content || "{}";
+                const plan = JSON.parse(finalContent);
 
-                // Validate structure to prevent frontend crash
                 if (!plan.weeks || !Array.isArray(plan.weeks)) {
                     throw new Error("Invalid plan structure generated");
                 }
@@ -153,11 +149,21 @@ export async function POST(req: Request) {
         }
 
         // Direct Response (No Tool Used)
-        const finalContent = msg1.content;
-        const plan = JSON.parse(finalContent || "{}");
+        // If it didn't call a tool, we need to enforce JSON format by running it through again
+        // since the first pass didn't have response_format: json_object
+        const finalResponse = await openai.chat.completions.create({
+            model: "gpt-4o",
+            messages: messages,
+            response_format: { type: "json_object" },
+        });
+
+        const finalContent = finalResponse.choices[0].message.content || "{}";
+        const plan = JSON.parse(finalContent);
+        
         if (!plan.weeks || !Array.isArray(plan.weeks)) {
             throw new Error("Invalid plan structure generated");
         }
+        
         return NextResponse.json(plan);
 
     } catch (error: any) {
