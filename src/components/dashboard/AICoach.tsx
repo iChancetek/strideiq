@@ -14,6 +14,124 @@ interface IWindow extends Window {
     SpeechRecognition: any;
 }
 
+// ─────────────────────────────────────────────
+// Rich Content Renderer
+// Parses markdown-style links and embeds YouTube iframes
+// ─────────────────────────────────────────────
+function extractYouTubeId(url: string): string | null {
+    try {
+        const u = new URL(url);
+        if (u.hostname.includes("youtube.com")) {
+            return u.searchParams.get("v");
+        }
+        if (u.hostname === "youtu.be") {
+            return u.pathname.slice(1);
+        }
+    } catch {
+        // not a valid URL
+    }
+    return null;
+}
+
+function RenderRichContent({ text }: { text: string }) {
+    // Split on markdown links: [title](url)
+    const parts = text.split(/(\[[^\]]+\]\([^)]+\))/g);
+
+    const elements: React.ReactNode[] = [];
+
+    parts.forEach((part, idx) => {
+        const linkMatch = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
+        if (linkMatch) {
+            const [, title, url] = linkMatch;
+            const ytId = extractYouTubeId(url);
+            if (ytId) {
+                // Render as embedded YouTube player
+                elements.push(
+                    <div key={idx} style={{ margin: "12px 0" }}>
+                        <div style={{
+                            fontSize: "12px",
+                            color: "var(--foreground-muted)",
+                            marginBottom: "6px",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "6px"
+                        }}>
+                            <span>▶</span>
+                            <span style={{ fontWeight: 600 }}>{title}</span>
+                        </div>
+                        <div style={{
+                            position: "relative",
+                            width: "100%",
+                            paddingTop: "56.25%",
+                            borderRadius: "10px",
+                            overflow: "hidden",
+                            border: "1px solid rgba(255,255,255,0.15)"
+                        }}>
+                            <iframe
+                                style={{
+                                    position: "absolute",
+                                    top: 0,
+                                    left: 0,
+                                    width: "100%",
+                                    height: "100%",
+                                    border: "none"
+                                }}
+                                src={`https://www.youtube.com/embed/${ytId}?rel=0&modestbranding=1`}
+                                title={title}
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowFullScreen
+                            />
+                        </div>
+                    </div>
+                );
+            } else {
+                // Render as styled article link button
+                elements.push(
+                    <a
+                        key={idx}
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "5px",
+                            padding: "4px 10px",
+                            borderRadius: "20px",
+                            background: "rgba(255,255,255,0.07)",
+                            border: "1px solid rgba(255,255,255,0.18)",
+                            color: "var(--primary)",
+                            fontSize: "13px",
+                            fontWeight: 500,
+                            textDecoration: "none",
+                            transition: "background 0.2s ease",
+                            verticalAlign: "middle",
+                            margin: "2px 3px"
+                        }}
+                        onMouseEnter={(e) => {
+                            (e.currentTarget as HTMLAnchorElement).style.background = "rgba(255,255,255,0.12)";
+                        }}
+                        onMouseLeave={(e) => {
+                            (e.currentTarget as HTMLAnchorElement).style.background = "rgba(255,255,255,0.07)";
+                        }}
+                    >
+                        🔗 {title}
+                    </a>
+                );
+            }
+        } else if (part) {
+            // Render plain text preserving line breaks
+            const lines = part.split("\n");
+            lines.forEach((line, lineIdx) => {
+                if (lineIdx > 0) elements.push(<br key={`br-${idx}-${lineIdx}`} />);
+                if (line) elements.push(<span key={`t-${idx}-${lineIdx}`}>{line}</span>);
+            });
+        }
+    });
+
+    return <>{elements}</>;
+}
+
 export default function AICoach() {
     const [currentPersonaId, setCurrentPersonaId] = useState<PersonaId>("onyx");
     const activePersona = PERSONAS[currentPersonaId];
@@ -25,6 +143,7 @@ export default function AICoach() {
     const [loading, setLoading] = useState(false);
     const [isListening, setIsListening] = useState(false);
     const [voiceMode, setVoiceMode] = useState(false);
+    const [thinkingDots, setThinkingDots] = useState(".");
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const recognitionRef = useRef<any>(null);
@@ -32,6 +151,15 @@ export default function AICoach() {
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     };
+
+    // Animate thinking dots
+    useEffect(() => {
+        if (!loading) return;
+        const interval = setInterval(() => {
+            setThinkingDots(prev => prev.length >= 3 ? "." : prev + ".");
+        }, 400);
+        return () => clearInterval(interval);
+    }, [loading]);
 
     // Initialize Speech Recognition
     useEffect(() => {
@@ -181,7 +309,24 @@ export default function AICoach() {
                     fontSize: "12px",
                     color: "var(--foreground-muted)"
                 }}>
-                    <span>{activePersona.name} — {activePersona.role}</span>
+                    <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                        {activePersona.name} — {activePersona.role}
+                        <span style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "3px",
+                            padding: "2px 7px",
+                            borderRadius: "10px",
+                            background: "rgba(204,255,0,0.1)",
+                            border: "1px solid rgba(204,255,0,0.2)",
+                            color: "#CCFF00",
+                            fontSize: "10px",
+                            fontWeight: 700,
+                            letterSpacing: "0.04em"
+                        }}>
+                            🔍 SEARCH AI
+                        </span>
+                    </span>
                     <button
                         onClick={() => setVoiceMode(!voiceMode)}
                         style={{
@@ -216,17 +361,21 @@ export default function AICoach() {
                         justifyContent: msg.role === "user" ? "flex-end" : "flex-start"
                     }}>
                         <div style={{
-                            maxWidth: "80%",
+                            maxWidth: "85%",
                             padding: "12px 16px",
                             borderRadius: msg.role === "user" ? "var(--radius-md) var(--radius-md) 4px var(--radius-md)" : "var(--radius-md) var(--radius-md) var(--radius-md) 4px",
                             fontSize: "14px",
-                            lineHeight: 1.5,
+                            lineHeight: 1.6,
                             background: msg.role === "user" ? "var(--primary)" : "rgba(255,255,255,0.05)",
                             color: msg.role === "user" ? "#000" : "var(--foreground)",
                             fontWeight: msg.role === "user" ? 500 : 400,
                             border: msg.role === "user" ? "none" : "1px solid rgba(255,255,255,0.1)"
                         }}>
-                            {msg.content}
+                            {msg.role === "assistant" ? (
+                                <RenderRichContent text={msg.content} />
+                            ) : (
+                                msg.content
+                            )}
                         </div>
                     </div>
                 ))}
@@ -239,9 +388,20 @@ export default function AICoach() {
                             background: "rgba(255,255,255,0.05)",
                             border: "1px solid rgba(255,255,255,0.1)",
                             color: "var(--foreground-muted)",
-                            fontSize: "14px"
+                            fontSize: "14px",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "8px"
                         }}>
-                            Thinking...
+                            <span style={{
+                                display: "inline-block",
+                                width: "10px",
+                                height: "10px",
+                                borderRadius: "50%",
+                                background: activePersona.color,
+                                animation: "pulse 1s ease-in-out infinite"
+                            }} />
+                            <span>Searching & thinking{thinkingDots}</span>
                         </div>
                     </div>
                 )}
@@ -278,7 +438,7 @@ export default function AICoach() {
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-                    placeholder={`Ask ${activePersona.name.split(" ")[0]}...`}
+                    placeholder={`Ask ${activePersona.name.split(" ")[0]}... (videos, articles, advice)`}
                     style={{
                         flex: 1,
                         padding: "10px 16px",
@@ -314,6 +474,13 @@ export default function AICoach() {
                     Send
                 </button>
             </div>
+
+            <style>{`
+                @keyframes pulse {
+                    0%, 100% { opacity: 1; transform: scale(1); }
+                    50% { opacity: 0.4; transform: scale(0.7); }
+                }
+            `}</style>
         </div>
     );
 }
