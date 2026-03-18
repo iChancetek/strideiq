@@ -14,13 +14,19 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
         const userId = decodedToken.uid;
         const { id } = await params;
 
-        const docSnapshot = await adminDb.collection("users").doc(userId).collection("journal_entries").doc(id).get();
+        // Fetch from top-level 'entries' collection
+        const docSnapshot = await adminDb.collection("entries").doc(id).get();
 
         if (!docSnapshot.exists) {
             return NextResponse.json({ error: "Not found" }, { status: 404 });
         }
 
         const data = docSnapshot.data();
+
+        // Security: ensure this entry belongs to the requesting user
+        if (data?.userId !== userId) {
+            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
 
         return NextResponse.json({
             id: docSnapshot.id,

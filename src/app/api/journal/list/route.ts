@@ -7,15 +7,15 @@ export async function GET(req: Request) {
     try {
         const idToken = (await headers()).get("Authorization")?.split("Bearer ")[1];
         if (!idToken) {
-            // For client components fetching on load, we might handle auth differently (e.g. session cookie), 
-            // but here we expect Bearer token from client component fetch
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
         const decodedToken = await getAuth().verifyIdToken(idToken);
         const userId = decodedToken.uid;
 
-        const snapshot = await adminDb.collection("users").doc(userId).collection("journal_entries")
+        // Query top-level 'entries' collection by userId field
+        const snapshot = await adminDb.collection("entries")
+            .where("userId", "==", userId)
             .orderBy("createdAt", "desc")
             .limit(50)
             .get();
@@ -23,7 +23,6 @@ export async function GET(req: Request) {
         const entries = snapshot.docs.map(doc => ({
             id: doc.id,
             ...doc.data(),
-            // Convert timestamps to strings for serialization
             createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
             updatedAt: doc.data().updatedAt?.toDate?.()?.toISOString() || new Date().toISOString(),
         }));

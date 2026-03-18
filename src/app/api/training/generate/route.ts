@@ -1,5 +1,7 @@
 import { OpenAI } from "openai";
 import { NextResponse } from "next/server";
+import { adminDb } from "@/lib/firebase/admin";
+import { Timestamp } from "firebase-admin/firestore";
 
 const tools = [
     {
@@ -50,7 +52,7 @@ async function tavilySearch(query: string) {
 
 export async function POST(req: Request) {
     try {
-        const { goal, raceName, timeline, level, daysPerWeek } = await req.json();
+        const { goal, raceName, timeline, level, daysPerWeek, userId } = await req.json();
 
         if (!process.env.OPENAI_API_KEY) {
             return NextResponse.json({ error: "OpenAI API Key missing" }, { status: 500 });
@@ -96,7 +98,7 @@ export async function POST(req: Request) {
             { role: "user", content: userPrompt }
         ];
 
-        // 1. Initial Call (Tool Check) - DO NOT force json_object here, it breaks tool_calls
+        // 1. Initial Call (Tool Check)
         const response1 = await openai.chat.completions.create({
             model: "gpt-4o",
             messages: messages,
@@ -108,18 +110,15 @@ export async function POST(req: Request) {
 
         // Handle Tool Call (Race Date Lookup)
         if (msg1.tool_calls && msg1.tool_calls.length > 0) {
-            const toolCall = msg1.tool_calls[0];
+            const toolCall = msg1.tool_calls[0] as any;
 
-            // Reconstruct the message object correctly
             const assistantMessage = {
                 role: "assistant",
                 content: msg1.content || null,
                 tool_calls: msg1.tool_calls
             };
 
-            // @ts-ignore
             if (toolCall.function.name === "tavily_search_race") {
-                // @ts-ignore
                 const args = JSON.parse(toolCall.function.arguments);
                 const raceDateResult = await tavilySearch(args.query);
 
@@ -130,7 +129,6 @@ export async function POST(req: Request) {
                     content: raceDateResult
                 });
 
-                // 2. Final Generation with Real Date (Force JSON here since no tools are being called)
                 const response2 = await openai.chat.completions.create({
                     model: "gpt-4o",
                     messages: messages,
@@ -144,13 +142,16 @@ export async function POST(req: Request) {
                     throw new Error("Invalid plan structure generated");
                 }
 
+                // ✅ Save via Admin SDK (bypasses Firestore rules)
+                if (userId) {
+                    await savePlanToFirestore(userId, plan);
+                }
+
                 return NextResponse.json(plan);
             }
         }
 
         // Direct Response (No Tool Used)
-        // If it didn't call a tool, we need to enforce JSON format by running it through again
-        // since the first pass didn't have response_format: json_object
         const finalResponse = await openai.chat.completions.create({
             model: "gpt-4o",
             messages: messages,
@@ -159,11 +160,16 @@ export async function POST(req: Request) {
 
         const finalContent = finalResponse.choices[0].message.content || "{}";
         const plan = JSON.parse(finalContent);
-        
+
         if (!plan.weeks || !Array.isArray(plan.weeks)) {
             throw new Error("Invalid plan structure generated");
         }
-        
+
+        // ✅ Save via Admin SDK (bypasses Firestore rules)
+        if (userId) {
+            await savePlanToFirestore(userId, plan);
+        }
+
         return NextResponse.json(plan);
 
     } catch (error: any) {
@@ -171,3 +177,30 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "Failed to generate plan." }, { status: 500 });
     }
 }
+
+/**
+ * Saves the training plan to Firestore using the Admin SDK.
+ * Writes to the top-level 'trainingPlans' collection (matches Firestore schema).
+ * Non-fatal: we still return the plan to the user even if save fails.
+ */
+async function savePlanToFirestore(userId: string, plan: any) {
+    try {
+        console.log(`[Training] Saving plan for user: ${userId}`);
+
+        // Ensure parent user doc exists
+        await adminDb.collection("users").doc(userId).set({ uid: userId }, { merge: true });
+
+        // Write to top-level 'trainingPlans' collection
+        await adminDb.collection("trainingPlans").doc(userId).set({
+            ...plan,
+            userId,
+            createdAt: Timestamp.now(),
+            startDate: new Date().toISOString(),
+        });
+
+        console.log(`[Training] Plan saved successfully for user: ${userId}`);
+    } catch (err) {
+        console.error("[Training] Failed to save plan to Firestore:", err);
+    }
+}
+

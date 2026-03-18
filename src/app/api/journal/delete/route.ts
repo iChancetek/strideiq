@@ -13,7 +13,6 @@ export async function DELETE(req: Request) {
             if (!idToken) {
                 return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
             }
-
             const decodedToken = await getAuth().verifyIdToken(idToken);
             userId = decodedToken.uid;
         }
@@ -22,7 +21,8 @@ export async function DELETE(req: Request) {
             return NextResponse.json({ error: "Missing ID" }, { status: 400 });
         }
 
-        await adminDb.collection("users").doc(userId).collection("journal_entries").doc(id).delete();
+        // Delete from top-level 'entries' collection
+        await adminDb.collection("entries").doc(id).delete();
 
         return NextResponse.json({ success: true });
 
