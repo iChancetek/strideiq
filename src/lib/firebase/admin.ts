@@ -35,20 +35,21 @@ if (!admin.apps.length) {
                     try {
                         parsed = JSON.parse(normalized);
                     } catch (secondErr) {
-                        console.warn("[Firebase Admin] Native JSON parse failed, using fallback extraction.");
-                        // Method 4: Liberal Regex extraction
+                        console.warn("[Firebase Admin] Native JSON parse failed, using fallback extraction from normalized string.");
+                        // Method 4: Liberal Regex extraction on the normalized string
                         const extract = (field: string) => {
-                            // Match "field":"value" or \"field\":\"value\" or field:"value"
-                            const regex = new RegExp(`[\\\\"]*${field}[\\\\"]*\\s*:\\s*[\\\\"]*([^\\\\",}]+)[\\\\"]*`);
-                            const match = cleanedKey.match(regex);
+                            // Since normalized has standard quotes, we can use a simpler regex
+                            const regex = new RegExp(`"${field}"\\s*:\\s*"([^"]+)"`);
+                            const match = normalized.match(regex);
                             if (match) {
+                                // In normalized, escaped newlines are still \\n
                                 return match[1].replace(/\\\\n/g, '\n').replace(/\\n/g, '\n');
                             }
                             return undefined;
                         };
                         
-                        // Note: For private_key, we need a greedy match because it contains many characters
-                        const pkMatch = cleanedKey.match(/[\\\\"]*private_key[\\\\"]*\s*:\s*[\\\\"]*([^\\"]+)[\\\\"]*/);
+                        // For private_key, we want to match everything until the closing quote
+                        const pkMatch = normalized.match(/"private_key"\s*:\s*"([^"]+)"/);
                         const privateKey = pkMatch ? pkMatch[1].replace(/\\\\n/g, '\n').replace(/\\n/g, '\n') : undefined;
 
                         parsed = {
