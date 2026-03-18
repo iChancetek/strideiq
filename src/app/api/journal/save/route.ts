@@ -56,7 +56,14 @@ export async function POST(req: Request) {
 
     } catch (error: any) {
         console.error("=== Journal Save CRITICAL ERROR ===");
-        console.error(error);
-        return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+        console.error("Error Code:", error.code);
+        console.error("Error Details:", error.details);
+        console.error("Error Message:", error.message);
+        
+        return NextResponse.json({ 
+            error: error.message || "Internal Server Error",
+            code: error.code,
+            details: error.details
+        }, { status: 500 });
     }
 }

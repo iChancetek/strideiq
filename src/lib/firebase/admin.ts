@@ -91,20 +91,20 @@ if (!admin.apps.length) {
                 credential: admin.credential.cert(serviceAccount),
                 projectId,
                 storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-                databaseURL: `https://${projectId}-default-rtdb.firebaseio.com`,
             });
         } else {
+            console.log("[Firebase Admin] No service account key found, using Application Default Credentials");
             // Priority 2: Application Default Credentials (Cloud Run / App Hosting)
             admin.initializeApp({
                 credential: admin.credential.applicationDefault(),
                 projectId,
                 storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-                databaseURL: `https://${projectId}-default-rtdb.firebaseio.com`,
             });
         }
 
         adminInitialized = true;
-        console.log(`[Firebase Admin] Initialized successfully for project: ${projectId}`);
+        const app = admin.app();
+        console.log(`[Firebase Admin] Initialized successfully. Project: ${app.options.projectId}, Apps: ${admin.apps.length}`);
     } catch (error) {
         console.error("[Firebase Admin] CRITICAL: Initialization failed:", error);
     }
