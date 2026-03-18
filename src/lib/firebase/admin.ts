@@ -17,49 +17,64 @@ if (!admin.apps.length) {
             try {
                 let parsed: any = null;
                 try {
+                    // Method 1: Standard JSON parse
                     parsed = JSON.parse(key);
                 } catch (firstErr) {
                     let cleanedKey = key.trim();
-                    if (cleanedKey.includes('\\"')) {
-                        cleanedKey = cleanedKey.replace(/\\"/g, '"');
-                    }
-                    // Replace literal real newlines with \\n for JSON parser (Next.js env can unescape \\n to real \n)
-                    cleanedKey = cleanedKey.replace(/\n/g, '\\n');
                     
-                    if (!cleanedKey.startsWith('{')) {
-                        const braceIdx = cleanedKey.indexOf('{');
-                        cleanedKey = braceIdx > -1 ? cleanedKey.substring(braceIdx) : '{' + cleanedKey;
+                    // Method 2: Handle stringified-string (double-quoted JSON)
+                    if (cleanedKey.startsWith('"') && cleanedKey.endsWith('"')) {
+                        try {
+                            const unquoted = JSON.parse(cleanedKey);
+                            if (typeof unquoted === 'string') cleanedKey = unquoted;
+                        } catch (e) {}
                     }
-                    if (!cleanedKey.endsWith('}')) {
-                        const braceIdx = cleanedKey.lastIndexOf('}');
-                        cleanedKey = braceIdx > -1 ? cleanedKey.substring(0, braceIdx + 1) : cleanedKey + '}';
-                    }
-                    
+
+                    // Method 3: Clean literal backslash-escaped quotes and try again
+                    const normalized = cleanedKey.replace(/\\"/g, '"').replace(/\n/g, '\\n');
                     try {
-                        parsed = JSON.parse(cleanedKey);
+                        parsed = JSON.parse(normalized);
                     } catch (secondErr) {
-                        console.warn("[Firebase Admin] Falling back to Regex parsing due to malformed payload.");
+                        console.warn("[Firebase Admin] Native JSON parse failed, using fallback extraction.");
+                        // Method 4: Liberal Regex extraction
                         const extract = (field: string) => {
-                            const match = key.match(new RegExp(`"${field}"\\s*:\\s*"([^"]+)"`));
-                            return match ? match[1].replace(/\\\\n/g, '\\n') : undefined;
+                            // Match "field":"value" or \"field\":\"value\" or field:"value"
+                            const regex = new RegExp(`[\\\\"]*${field}[\\\\"]*\\s*:\\s*[\\\\"]*([^\\\\",}]+)[\\\\"]*`);
+                            const match = cleanedKey.match(regex);
+                            if (match) {
+                                return match[1].replace(/\\\\n/g, '\n').replace(/\\n/g, '\n');
+                            }
+                            return undefined;
                         };
+                        
+                        // Note: For private_key, we need a greedy match because it contains many characters
+                        const pkMatch = cleanedKey.match(/[\\\\"]*private_key[\\\\"]*\s*:\s*[\\\\"]*([^\\"]+)[\\\\"]*/);
+                        const privateKey = pkMatch ? pkMatch[1].replace(/\\\\n/g, '\n').replace(/\\n/g, '\n') : undefined;
+
                         parsed = {
                             type: extract("type") || "service_account",
-                            project_id: extract("project_id"),
-                            private_key: extract("private_key"),
+                            project_id: extract("project_id") || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+                            private_key: privateKey,
                             client_email: extract("client_email")
                         };
                     }
                 }
                 
                 if (typeof parsed === 'string') {
-                    parsed = JSON.parse(parsed);
+                    try {
+                        parsed = JSON.parse(parsed);
+                    } catch (e) {}
                 }
                 
                 serviceAccount = parsed as admin.ServiceAccount;
+                const rawAccount = serviceAccount as any;
+
+                // Final normalization: ensure project_id exists (Firebase Admin requirement)
+                if (!rawAccount.project_id && process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID) {
+                    rawAccount.project_id = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+                }
 
                 // Ensure private key handles literal '\\n' sequences
-                const rawAccount = serviceAccount as any;
                 if (rawAccount.private_key) {
                     rawAccount.private_key = rawAccount.private_key.replace(/\\n/g, '\n');
                 }
