@@ -55,7 +55,15 @@ export async function POST(req: Request) {
         return NextResponse.json({ success: true, activityId: docRef.id });
 
     } catch (error: any) {
-        console.error("Activity Creation Error:", error);
-        return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+        console.error("=== Activity Creation Error ===");
+        console.error("Error Code:", error.code);
+        console.error("Error Details:", error.details);
+        console.error("Error Message:", error.message);
+        
+        return NextResponse.json({ 
+            error: error.message || "Internal Server Error",
+            code: error.code,
+            details: error.details
+        }, { status: 500 });
     }
 }
