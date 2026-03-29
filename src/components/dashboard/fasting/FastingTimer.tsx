@@ -2,8 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { db } from "@/lib/firebase/config";
-import { doc, onSnapshot, setDoc, deleteDoc } from "firebase/firestore";
 
 const GOAL_OPTIONS = [
     { hours: 12, label: "12h", description: "Light" },
@@ -22,23 +20,58 @@ export default function FastingTimer() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
 
-    // Sync with Firestore — lightweight real-time listener
+    // Sync with PostgreSQL / Ably
     useEffect(() => {
         if (!user) { setLoading(false); return; }
-        const unsub = onSnapshot(doc(db, "users", user.uid, "fasting_status", "active"), (snap) => {
-            if (snap.exists()) {
-                const data = snap.data();
-                setStartTime(data.startTime);
-                setGoalHours(data.goalHours || 16);
-                setIsFasting(true);
-            } else {
-                setIsFasting(false);
-                setStartTime(null);
-                setElapsed(0);
+
+        const fetchStatus = async () => {
+             try {
+                 const res = await fetch(`/api/fasting/status?userId=${user.uid}`);
+                 if (res.ok) {
+                     const { activeSession } = await res.json();
+                     if (activeSession) {
+                         setStartTime(new Date(activeSession.startTime).getTime());
+                         setGoalHours(activeSession.goal || 16);
+                         setIsFasting(true);
+                     } else {
+                         setIsFasting(false);
+                         setStartTime(null);
+                         setElapsed(0);
+                     }
+                 }
+             } catch (err) {
+                 console.error("Error fetching fasting status:", err);
+             } finally {
+                 setLoading(false);
+             }
+        };
+
+        fetchStatus();
+
+        // Setup Ably
+        let channel: any;
+        const setupAbly = async () => {
+             try {
+                 const { ablyRealtime } = await import("@/lib/ably");
+                 if (!ablyRealtime) return;
+
+                 channel = ablyRealtime.channels.get(`user:${user.uid}`);
+                 
+                 await channel.subscribe('fasting-status-changed', () => {
+                     fetchStatus(); // Re-fetch status when changed
+                 });
+             } catch (err) {
+                 console.warn("Ably setup failed for fasting timer.", err);
+             }
+        };
+
+        setupAbly();
+
+        return () => {
+            if (channel) {
+                channel.unsubscribe();
             }
-            setLoading(false);
-        }, () => setLoading(false));
-        return () => unsub();
+        };
     }, [user]);
 
     // Timer tick — only when fasting is active
@@ -52,27 +85,19 @@ export default function FastingTimer() {
     const toggleFasting = async () => {
         if (!user || saving) return;
         setSaving(true);
-        const statusRef = doc(db, "users", user.uid, "fasting_status", "active");
         try {
-            if (isFasting) {
-                const endTime = Date.now();
-                const durationMinutes = (endTime - (startTime || 0)) / 1000 / 60;
-                await fetch("/api/fasting/log", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${await user.getIdToken()}`,
-                    },
-                    body: JSON.stringify({ startTime, endTime, durationMinutes, type: `${goalHours}:8`, goalHours }),
-                });
-                await deleteDoc(statusRef);
-            } else {
-                await setDoc(statusRef, {
-                    startTime: Date.now(),
-                    goalHours,
-                    startedAt: new Date().toISOString(),
-                });
-            }
+            const action = isFasting ? "stop" : "start";
+            const response = await fetch("/api/fasting/status", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    userId: user.uid,
+                    action,
+                    goalHours
+                }),
+            });
+
+            if (!response.ok) throw new Error("Status update failed");
         } catch (e) {
             console.error("Fasting toggle error", e);
         } finally {

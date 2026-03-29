@@ -1,17 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { db } from "@/lib/firebase/config";
 import { useAuth } from "@/context/AuthContext";
-import {
-    collection,
-    doc,
-    setDoc,
-    deleteDoc,
-    onSnapshot,
-    query,
-    serverTimestamp,
-} from "firebase/firestore";
 
 interface LikedBy {
     userId: string;
@@ -30,46 +20,81 @@ export function useLikes(activityOwnerId: string, activityId: string) {
     useEffect(() => {
         if (!activityOwnerId || !activityId) return;
 
-        const q = query(
-            collection(db, "users", activityOwnerId, "activities", activityId, "likes")
-        );
+        const fetchLikes = async () => {
+             try {
+                 const res = await fetch(`/api/activity/likes?activityId=${activityId}`);
+                 if (res.ok) {
+                     const data = await res.json();
+                     setLikes(data.likes || []);
+                 }
+             } catch (err) {
+                 console.error("Error fetching likes:", err);
+             } finally {
+                 setLoading(false);
+             }
+        };
 
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            const data = snapshot.docs.map(doc => ({
-                userId: doc.id,
-                ...doc.data(),
-            } as LikedBy));
-            setLikes(data);
-            setLoading(false);
-        });
+        fetchLikes();
 
-        return () => unsubscribe();
+        // Setup Ably
+        let channel: any;
+        const setupAbly = async () => {
+             try {
+                 const { ablyRealtime } = await import("@/lib/ably");
+                 if (!ablyRealtime) return;
+
+                 channel = ablyRealtime.channels.get(`activity:${activityId}`);
+                 
+                 await channel.subscribe('like-toggled', (message: any) => {
+                     const { userId, isLiked: userLiked } = message.data;
+                     
+                     if (userLiked) {
+                         // Add like (Simplified: we might want to fetch details if it's someone else)
+                         setLikes(prev => {
+                             if (prev.some(l => l.userId === userId)) return prev;
+                             return [...prev, { userId, userName: "User", userPhoto: undefined }];
+                         });
+                     } else {
+                         // Remove like
+                         setLikes(prev => prev.filter(l => l.userId !== userId));
+                     }
+                 });
+             } catch (err) {
+                 console.warn("Ably setup failed for likes hook.", err);
+             }
+        };
+
+        setupAbly();
+
+        return () => {
+            if (channel) {
+                channel.unsubscribe();
+            }
+        };
     }, [activityOwnerId, activityId]);
 
     const toggleLike = async () => {
         if (!user) return;
 
-        const likeRef = doc(
-            db,
-            "users",
-            activityOwnerId,
-            "activities",
-            activityId,
-            "likes",
-            user.uid
-        );
-
-        if (isLiked) {
-            await deleteDoc(likeRef);
-        } else {
-            await setDoc(likeRef, {
-                userId: user.uid,
-                userName: user.displayName || "Anonymous",
-                userPhoto: user.photoURL || null,
-                createdAt: serverTimestamp(),
+        try {
+            const response = await fetch("/api/activity/like", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    activityId,
+                    userId: user.uid,
+                    activityOwnerId
+                }),
             });
+
+            if (!response.ok) {
+                throw new Error("Failed to toggle like");
+            }
+        } catch (err) {
+            console.error("Error toggling like:", err);
         }
     };
 
     return { likes, likeCount, isLiked, loading, toggleLike };
 }
+

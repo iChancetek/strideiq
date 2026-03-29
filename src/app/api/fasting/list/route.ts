@@ -1,7 +1,9 @@
-import { adminDb } from "@/lib/firebase/admin";
 import { getAuth } from "firebase-admin/auth";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
+import { db } from "@/db";
+import { fastingSessions } from "@/db/schema";
+import { eq, desc } from "drizzle-orm";
 
 export async function GET(req: Request) {
     try {
@@ -13,17 +15,20 @@ export async function GET(req: Request) {
         const decodedToken = await getAuth().verifyIdToken(idToken);
         const userId = decodedToken.uid;
 
-        const snapshot = await adminDb.collection("users").doc(userId).collection("fasting_logs")
-            .orderBy("endTime", "desc")
-            .limit(20)
-            .get();
+        const userLogs = await db.query.fastingSessions.findMany({
+            where: eq(fastingSessions.userId, userId),
+            orderBy: [desc(fastingSessions.endTime)],
+            limit: 20
+        });
 
-        const logs = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data(),
-            // Ensure dates are strings
-            startTime: typeof doc.data().startTime === 'number' ? new Date(doc.data().startTime).toISOString() : doc.data().startTime,
-            endTime: typeof doc.data().endTime === 'number' ? new Date(doc.data().endTime).toISOString() : doc.data().endTime,
+        const logs = userLogs.map((log: any) => ({
+            id: log.id,
+            startTime: log.startTime?.toISOString(),
+            endTime: log.endTime?.toISOString(),
+            durationMinutes: (log.duration || 0) / 60,
+            goalHours: log.goal,
+            type: "Water Fast", // Fallback, not stored in PG schema yet
+            completedAt: log.createdAt?.toISOString(),
         }));
 
         return NextResponse.json({ logs });

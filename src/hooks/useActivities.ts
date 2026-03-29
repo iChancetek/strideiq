@@ -1,17 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import {
-    collection,
-    query,
-    orderBy,
-    onSnapshot,
-    Timestamp,
-    addDoc,
-    doc,
-    setDoc,
-} from "firebase/firestore";
-import { db, auth } from "@/lib/firebase/config";
+import { auth } from "@/lib/firebase/config";
 import { useAuthState } from "react-firebase-hooks/auth";
 
 export interface Activity {
@@ -61,30 +51,80 @@ export function useActivities() {
             return;
         }
 
-        const q = query(
-            collection(db, "users", user.uid, "activities"),
-            orderBy("date", "desc")
-        );
+        // 1. Initial Fetch
+        const fetchActivities = async () => {
+            try {
+                const res = await fetch(`/api/activity/list?userId=${user.uid}`);
+                if (!res.ok) throw new Error("Failed to fetch");
+                const data = await res.json();
+                
+                // Parse dates back to JS Date objects
+                const parsed = data.activities.map((a: any) => ({
+                    ...a,
+                    date: new Date(a.date),
+                    createdAt: new Date(a.createdAt)
+                }));
+                
+                setActivities(parsed);
+                setLoading(false);
+            } catch (err) {
+                console.error("Error fetching activities:", err);
+                setError("Failed to load activities.");
+                setLoading(false);
+            }
+        };
 
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            const data = snapshot.docs.map((doc) => {
-                const d = doc.data();
-                return {
-                    id: doc.id,
-                    ...d,
-                    date: d.date?.toDate() || new Date(),
-                } as Activity;
-            });
-            setActivities(data);
-            setLoading(false);
-        }, (err) => {
-            console.error("Error fetching activities:", err);
-            setError("Failed to load activities.");
-            setLoading(false);
-        });
+        fetchActivities();
 
-        return () => unsubscribe();
-    }, [user]);
+        // 2. Setup Ably for real-time updates
+        let channel: any;
+        const setupAbly = async () => {
+            try {
+                const { ablyRealtime } = await import('@/lib/ably');
+                if (!ablyRealtime) return;
+
+                channel = ablyRealtime.channels.get(`user:${user.uid}`);
+                
+                await channel.subscribe('activity-created', (message: any) => {
+                    const newActivity = message.data;
+                    const parsedActivity = {
+                        ...newActivity,
+                        date: new Date(newActivity.date)
+                    };
+                    setActivities(prev => {
+                        if (prev.some(a => a.id === parsedActivity.id)) return prev;
+                        return [parsedActivity, ...prev].sort((a, b) => b.date.getTime() - a.date.getTime());
+                    });
+                });
+
+                await channel.subscribe('activity-updated', (message: any) => {
+                    const updatedActivity = message.data;
+                    setActivities(prev => prev.map(a => 
+                        a.id === updatedActivity.id 
+                            ? { ...a, ...updatedActivity, date: updatedActivity.date ? new Date(updatedActivity.date) : a.date }
+                            : a
+                    ));
+                });
+
+                await channel.subscribe('activity-deleted', (message: any) => {
+                    const data = message.data;
+                    setActivities(prev => prev.filter(a => a.id !== data.id));
+                });
+
+                console.log(`[ABLY_CONNECTED] Subscribed to user:${user.uid}`);
+            } catch (err) {
+                console.warn("Ably initialization failed. Falling back to polling/refresh logic.", err);
+            }
+        };
+
+        setupAbly();
+
+        return () => {
+            if (channel) {
+                channel.unsubscribe();
+            }
+        };
+    }, [user, authLoading]);
 
     const addActivity = async (activity: Omit<Activity, "id" | "date" | "pace"> & { date: Date }) => {
         if (!user) throw new Error("User not authenticated");

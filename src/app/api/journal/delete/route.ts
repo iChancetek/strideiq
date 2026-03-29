@@ -1,7 +1,9 @@
-import { adminDb } from "@/lib/firebase/admin";
 import { getAuth } from "firebase-admin/auth";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
+import { db } from "@/db";
+import { journals } from "@/db/schema";
+import { eq, and } from "drizzle-orm";
 
 export async function DELETE(req: Request) {
     try {
@@ -21,8 +23,10 @@ export async function DELETE(req: Request) {
             return NextResponse.json({ error: "Missing ID" }, { status: 400 });
         }
 
-        // Delete from top-level 'entries' collection
-        await adminDb.collection("entries").doc(id).delete();
+        // Delete from Postgres journals table where user matches
+        await db.delete(journals).where(
+            and(eq(journals.id, id), eq(journals.userId, userId))
+        );
 
         return NextResponse.json({ success: true });
 

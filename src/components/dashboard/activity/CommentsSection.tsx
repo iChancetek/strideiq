@@ -2,8 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { db } from "@/lib/firebase/config";
-import { collection, addDoc, onSnapshot, query, orderBy, deleteDoc, doc, serverTimestamp } from "firebase/firestore";
 import { useUserRole } from "@/hooks/useUserRole";
 
 interface Comment {
@@ -31,35 +29,71 @@ export default function CommentsSection({ activityId, ownerId }: CommentsSection
     const [submitting, setSubmitting] = useState(false);
 
     useEffect(() => {
-        const q = query(
-            collection(db, "users", ownerId, "activities", activityId, "comments"),
-            orderBy("createdAt", "asc")
-        );
+        if (!activityId) return;
 
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            const msgs = snapshot.docs.map(d => ({
-                id: d.id,
-                ...d.data()
-            } as Comment));
-            setComments(msgs);
-            setLoading(false);
-        });
+        const fetchComments = async () => {
+             try {
+                 const res = await fetch(`/api/activity/comment?activityId=${activityId}`);
+                 if (res.ok) {
+                     const data = await res.json();
+                     setComments(data.comments || []);
+                 }
+             } catch (err) {
+                 console.error("Error fetching comments:", err);
+             } finally {
+                 setLoading(false);
+             }
+        };
 
-        return () => unsubscribe();
+        fetchComments();
+
+        // Setup Ably
+        let channel: any;
+        const setupAbly = async () => {
+             try {
+                 const { ablyRealtime } = await import("@/lib/ably");
+                 if (!ablyRealtime) return;
+
+                 channel = ablyRealtime.channels.get(`activity:${activityId}`);
+                 
+                 await channel.subscribe('new-comment', (message: any) => {
+                     const newComment = message.data;
+                     setComments(prev => {
+                         if (prev.some(c => c.id === newComment.id)) return prev;
+                         return [...prev, newComment];
+                     });
+                 });
+             } catch (err) {
+                 console.warn("Ably setup failed for comments.", err);
+             }
+        };
+
+        setupAbly();
+
+        return () => {
+            if (channel) {
+                channel.unsubscribe();
+            }
+        };
     }, [activityId, ownerId]);
 
     const handlePost = async () => {
         if (!newComment.trim() || !user) return;
         setSubmitting(true);
         try {
-            await addDoc(collection(db, "users", ownerId, "activities", activityId, "comments"), {
-                text: newComment,
-                userId: user.uid,
-                userName: user.displayName || "Anonymous",
-                userPhoto: user.photoURL,
-                parentId: replyTo?.id || null,
-                createdAt: serverTimestamp()
+            const response = await fetch("/api/activity/comment", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    activityId,
+                    userId: user.uid,
+                    text: newComment,
+                    parentId: replyTo?.id || null
+                }),
             });
+
+            if (!response.ok) throw new Error("Post failed");
+            
             setNewComment("");
             setReplyTo(null);
         } catch (e) {
@@ -72,7 +106,12 @@ export default function CommentsSection({ activityId, ownerId }: CommentsSection
     const handleDelete = async (commentId: string) => {
         if (!confirm("Delete this comment?")) return;
         try {
-            await deleteDoc(doc(db, "users", ownerId, "activities", activityId, "comments", commentId));
+            const response = await fetch(`/api/activity/comment?id=${commentId}&userId=${user?.uid}`, {
+                method: "DELETE"
+            });
+            if (response.ok) {
+                setComments(prev => prev.filter(c => c.id !== commentId));
+            }
         } catch (e) {
             console.error(e);
         }

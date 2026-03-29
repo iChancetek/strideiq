@@ -1,13 +1,13 @@
-import { adminDb } from "@/lib/firebase/admin";
+import { db } from "@/db";
+import { journals, users } from "@/db/schema";
+import { eq, and } from "drizzle-orm";
 import { NextResponse } from "next/server";
-import { Timestamp } from "firebase-admin/firestore";
 
 export async function POST(req: Request) {
     try {
         console.log("=== API /journal/save CALLED ===");
         const body = await req.json();
         const { id, title, content, type = "journal", imageUrls, media, userId } = body;
-        console.log("Parsed body. ID:", id, "UserId:", userId, "Media count:", media?.length);
 
         if (!userId) {
             console.log("Validation Failed: Unauthorized");
@@ -21,49 +21,43 @@ export async function POST(req: Request) {
 
         const finalMedia = media || (imageUrls ? imageUrls.map((url: string) => ({ url, type: "image" })) : null);
 
-        // Ensure parent user doc exists (prevents NOT_FOUND on new users)
-        await adminDb.collection("users").doc(userId).set({ uid: userId }, { merge: true });
-
-        // Write to the top-level 'entries' collection (matches Firestore schema)
-        const entriesRef = adminDb.collection("entries");
+        // Ensure user exists (foreign key constraint)
+        await db.insert(users).values({
+            id: userId,
+            email: "user@example.com", 
+        }).onConflictDoNothing();
 
         if (id) {
             console.log(`[JOURNAL_SAVE_ATTEMPT] Updating entry ${id}...`);
-            await entriesRef.doc(id).set({
-                userId,
+            await db.update(journals).set({
                 title: title ?? null,
                 content: content ?? null,
                 type,
                 media: finalMedia ?? null,
-                updatedAt: Timestamp.now(),
-            }, { merge: true });
+                updatedAt: new Date()
+            }).where(and(eq(journals.id, id), eq(journals.userId, userId)));
+            
             console.log(`[JOURNAL_SAVE_SUCCESS] Updated entry ${id}`);
             return NextResponse.json({ success: true, id });
         } else {
             console.log(`[JOURNAL_SAVE_ATTEMPT] Creating new entry for user ${userId}...`);
-            const docRef = await entriesRef.add({
+            const newId = crypto.randomUUID();
+            await db.insert(journals).values({
+                id: newId,
                 userId,
                 title: title ?? "",
                 content: content ?? "",
                 type,
                 media: finalMedia ?? null,
-                createdAt: Timestamp.now(),
-                updatedAt: Timestamp.now(),
+                date: new Date(),
             });
-            console.log(`[JOURNAL_SAVE_SUCCESS] Created entry ${docRef.id}`);
-            return NextResponse.json({ success: true, id: docRef.id });
+            console.log(`[JOURNAL_SAVE_SUCCESS] Created entry ${newId}`);
+            return NextResponse.json({ success: true, id: newId });
         }
 
     } catch (error: any) {
         console.error("=== Journal Save CRITICAL ERROR ===");
-        console.error("Error Code:", error.code);
-        console.error("Error Details:", error.details);
         console.error("Error Message:", error.message);
-        
-        return NextResponse.json({ 
-            error: error.message || "Internal Server Error",
-            code: error.code,
-            details: error.details
-        }, { status: 500 });
+        return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
     }
 }

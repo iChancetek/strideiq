@@ -1,7 +1,9 @@
-import { adminDb } from "@/lib/firebase/admin";
 import { getAuth } from "firebase-admin/auth";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
+import { db } from "@/db";
+import { journals } from "@/db/schema";
+import { eq, and } from "drizzle-orm";
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
     try {
@@ -14,25 +16,19 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
         const userId = decodedToken.uid;
         const { id } = await params;
 
-        // Fetch from top-level 'entries' collection
-        const docSnapshot = await adminDb.collection("entries").doc(id).get();
+        // Fetch from Postgres journals where ID and UserID match
+        const [journal] = await db.select().from(journals).where(
+            and(eq(journals.id, id), eq(journals.userId, userId))
+        );
 
-        if (!docSnapshot.exists) {
-            return NextResponse.json({ error: "Not found" }, { status: 404 });
-        }
-
-        const data = docSnapshot.data();
-
-        // Security: ensure this entry belongs to the requesting user
-        if (data?.userId !== userId) {
-            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        if (!journal) {
+            return NextResponse.json({ error: "Not found or Forbidden" }, { status: 404 });
         }
 
         return NextResponse.json({
-            id: docSnapshot.id,
-            ...data,
-            createdAt: data?.createdAt?.toDate?.()?.toISOString(),
-            updatedAt: data?.updatedAt?.toDate?.()?.toISOString()
+            ...journal,
+            createdAt: journal.createdAt?.toISOString(),
+            updatedAt: journal.updatedAt?.toISOString()
         });
 
     } catch (error: any) {

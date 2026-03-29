@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
-import { adminDb } from "@/lib/firebase/admin";
+import { db } from "@/db";
+import { activities } from "@/db/schema";
+import { eq, and } from "drizzle-orm";
+import { ablyRest } from "@/lib/ably";
 import { z } from "zod";
 
 const updateActivitySchema = z.object({
@@ -29,35 +32,36 @@ export async function PUT(req: Request) {
 
         const { userId, activityId, ...updates } = validation.data;
 
-        // Build the update object — only include provided fields
-        const updateData: Record<string, any> = {};
-        if (updates.distance !== undefined) updateData.distance = updates.distance;
-        if (updates.duration !== undefined) updateData.duration = updates.duration;
-        if (updates.calories !== undefined) updateData.calories = updates.calories;
-        if (updates.notes !== undefined) updateData.notes = updates.notes;
-        if (updates.type !== undefined) updateData.type = updates.type;
-        if (updates.media !== undefined) updateData.media = updates.media;
+        // Fetch existing activity
+        const [activity] = await db.select().from(activities).where(
+            and(eq(activities.id, activityId), eq(activities.userId, userId))
+        );
 
-        // Recalculate pace if distance or duration changed
-        const docRef = adminDb.collection("users").doc(userId).collection("activities").doc(activityId);
-        const docSnap = await docRef.get();
-
-        if (!docSnap.exists) {
+        if (!activity) {
             return NextResponse.json({ error: "Activity not found" }, { status: 404 });
         }
 
-        const existing = docSnap.data()!;
-        const finalDistance = updateData.distance ?? existing.distance;
-        const finalDuration = updateData.duration ?? existing.duration;
+        // Apply updates
+        await db.update(activities)
+            .set({
+                ...updates,
+                updatedAt: new Date(),
+            })
+            .where(
+                and(eq(activities.id, activityId), eq(activities.userId, userId))
+            );
 
-        if (finalDistance > 0) {
-            const pace = finalDuration / finalDistance; // seconds per mile
-            const paceMin = Math.floor(pace / 60);
-            const paceSec = Math.floor(pace % 60);
-            updateData.pace = `${paceMin}:${paceSec < 10 ? "0" : ""}${paceSec}`;
+        // Notify real-time listeners
+        if (ablyRest) {
+            try {
+                await ablyRest.channels.get(`user:${userId}`).publish('activity-updated', {
+                    id: activityId,
+                    ...updates
+                });
+            } catch (err) {
+                console.error("Ably update silent failure:", err);
+            }
         }
-
-        await docRef.update(updateData);
 
         return NextResponse.json({ success: true });
     } catch (error: any) {

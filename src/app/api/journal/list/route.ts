@@ -1,7 +1,9 @@
-import { adminDb } from "@/lib/firebase/admin";
 import { getAuth } from "firebase-admin/auth";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
+import { db } from "@/db";
+import { journals } from "@/db/schema";
+import { eq, desc } from "drizzle-orm";
 
 export async function GET(req: Request) {
     try {
@@ -13,18 +15,17 @@ export async function GET(req: Request) {
         const decodedToken = await getAuth().verifyIdToken(idToken);
         const userId = decodedToken.uid;
 
-        // Query top-level 'entries' collection by userId field
-        const snapshot = await adminDb.collection("entries")
-            .where("userId", "==", userId)
-            .orderBy("createdAt", "desc")
-            .limit(50)
-            .get();
+        // Query Postgres journals
+        const userJournals = await db.query.journals.findMany({
+            where: eq(journals.userId, userId),
+            orderBy: [desc(journals.date)],
+            limit: 50
+        });
 
-        const entries = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data(),
-            createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
-            updatedAt: doc.data().updatedAt?.toDate?.()?.toISOString() || new Date().toISOString(),
+        const entries = userJournals.map(journal => ({
+            ...journal,
+            createdAt: journal.createdAt?.toISOString() || new Date().toISOString(),
+            updatedAt: journal.updatedAt?.toISOString() || new Date().toISOString(),
         }));
 
         return NextResponse.json({ entries });

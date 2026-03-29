@@ -2,8 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { db } from "@/lib/firebase/config";
-import { doc, getDoc, onSnapshot } from "firebase/firestore";
 import { TrainingPlan } from "@/lib/types/training";
 
 export function useTrainingPlan() {
@@ -17,21 +15,46 @@ export function useTrainingPlan() {
             return;
         }
 
-        const docRef = doc(db, "users", user.uid, "training", "current");
+        const fetchPlan = async () => {
+             try {
+                 const res = await fetch(`/api/training/plan?userId=${user.uid}`);
+                 if (res.ok) {
+                     const data = await res.json();
+                     setPlan(data.plan);
+                 }
+             } catch (err) {
+                 console.error("Error fetching training plan:", err);
+             } finally {
+                 setLoading(false);
+             }
+        };
 
-        const unsubscribe = onSnapshot(docRef, (docSnap) => {
-            if (docSnap.exists()) {
-                setPlan(docSnap.data() as TrainingPlan);
-            } else {
-                setPlan(null);
+        fetchPlan();
+
+        // Setup Ably
+        let channel: any;
+        const setupAbly = async () => {
+             try {
+                 const { ablyRealtime } = await import("@/lib/ably");
+                 if (!ablyRealtime) return;
+
+                 channel = ablyRealtime.channels.get(`user:${user.uid}`);
+                 
+                 await channel.subscribe('plan-updated', () => {
+                     fetchPlan(); // Re-fetch when plan changes
+                 });
+             } catch (err) {
+                 console.warn("Ably setup failed for training hook.", err);
+             }
+        };
+
+        setupAbly();
+
+        return () => {
+            if (channel) {
+                channel.unsubscribe();
             }
-            setLoading(false);
-        }, (error) => {
-            console.error("Error fetching training plan:", error);
-            setLoading(false);
-        });
-
-        return () => unsubscribe();
+        };
     }, [user]);
 
     return { plan, loading };

@@ -1,9 +1,8 @@
 "use client";
 
 import { useAuthState } from "react-firebase-hooks/auth";
-import { auth, db } from "@/lib/firebase/config";
+import { auth } from "@/lib/firebase/config";
 import { useState, useEffect } from "react";
-import { doc, getDoc } from "firebase/firestore";
 
 export function useUserRole() {
     const [user, loading, error] = useAuthState(auth);
@@ -20,12 +19,16 @@ export function useUserRole() {
 
         async function checkRole() {
             try {
-                const ref = doc(db, "users", user!.uid);
-                const snap = await getDoc(ref);
-                if (snap.exists() && snap.data().role === "admin") {
-                    setIsAdmin(true);
-                } else {
+                const response = await fetch(`/api/users/profile?userId=${user!.uid}`);
+                if (!response.ok) {
                     setIsAdmin(false);
+                } else {
+                    const data = await response.json();
+                    if (data.user && data.user.role === "admin") {
+                        setIsAdmin(true);
+                    } else {
+                        setIsAdmin(false);
+                    }
                 }
             } catch (e) {
                 console.error("Failed to check role", e);
