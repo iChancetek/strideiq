@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { activities, leaderboards } from "@/db/schema";
 import { eq, and, sql } from "drizzle-orm";
-import { ablyRest } from "@/lib/ably";
+import { supabase } from "@/lib/supabase";
 import { z } from "zod";
 
 const deleteActivitySchema = z.object({
@@ -56,13 +56,15 @@ export async function DELETE(req: Request) {
         }
 
         // Broadcast deleted event
-        if (ablyRest) {
+        if (supabase) {
             try {
-                await ablyRest.channels.get(`user:${userId}`).publish('activity-deleted', {
-                    id: activityId
+                await supabase.channel(`user:${userId}`).send({
+                    type: 'broadcast',
+                    event: 'activity-deleted',
+                    payload: { id: activityId }
                 });
             } catch (pErr) {
-                console.error("Ably failed:", pErr);
+                console.error("Supabase broadcast failed:", pErr);
             }
         }
 

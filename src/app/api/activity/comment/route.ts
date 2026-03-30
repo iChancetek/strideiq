@@ -1,7 +1,7 @@
 import { db } from "@/db";
 import { comments, users } from "@/db/schema";
 import { eq, asc, and } from "drizzle-orm";
-import { ablyRest } from "@/lib/ably";
+import { supabase } from "@/lib/supabase";
 import { NextResponse } from "next/server";
 
 export async function GET(req: Request) {
@@ -61,22 +61,25 @@ export async function POST(req: Request) {
             parentId: parentId || null,
         }).returning();
 
-        // Broadcast to Ably
-        if (ablyRest) {
+        // Broadcast to Supabase
+        if (supabase) {
             try {
                 const [user] = await db.select().from(users).where(eq(users.id, userId));
-                const channel = ablyRest.channels.get(`activity:${activityId}`);
-                await channel.publish('new-comment', {
-                    id: newId,
-                    text,
-                    userId,
-                    userName: user?.displayName || "Anonymous",
-                    userPhoto: user?.photoURL || null,
-                    parentId: parentId || null,
-                    createdAt: newComment.createdAt
+                await supabase.channel(`activity:${activityId}`).send({
+                    type: 'broadcast',
+                    event: 'new-comment',
+                    payload: {
+                        id: newId,
+                        text,
+                        userId,
+                        userName: user?.displayName || "Anonymous",
+                        userPhoto: user?.photoURL || null,
+                        parentId: parentId || null,
+                        createdAt: newComment.createdAt
+                    }
                 });
             } catch (err) {
-                console.error("[Ably] Publish Failed:", err);
+                console.error("[Supabase] Broadcast Failed:", err);
             }
         }
 

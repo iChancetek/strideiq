@@ -3,7 +3,7 @@ import { createActivitySchema } from "@/lib/validators/activity";
 import { updateUserStats } from "@/lib/server/activity-service";
 import { db } from "@/db";
 import { activities, users } from "@/db/schema";
-import { ablyRest } from "@/lib/ably";
+import { supabase } from "@/lib/supabase";
 
 export async function POST(req: Request) {
     try {
@@ -58,7 +58,10 @@ export async function POST(req: Request) {
             weatherSnapshot: (activityData as any).weatherSnapshot || null,
             path: (activityData as any).path || null,
             steps: activityData.steps || 0,
+            media: (activityData as any).media || null,
+            aiAnalysis: (activityData as any).aiAnalysis || null,
             title: (activityData as any).title || null,
+            fastingSessionId: (activityData as any).fastingSessionId || null,
         });
 
         // Update aggregate stats (Leaderboards, etc)
@@ -67,14 +70,18 @@ export async function POST(req: Request) {
             date: activityDate,
         });
 
-        // Broadcast to Ably for Realtime Feeds
-        if (ablyRest) {
-            await ablyRest.channels.get(`user:${userId}`).publish('activity-created', {
-                id: newId,
-                type: activityData.type,
-                distance: activityData.distance,
-                duration: activityData.duration,
-                date: activityDate
+        // Broadcast to Supabase for Realtime Feeds
+        if (supabase) {
+            await supabase.channel(`user:${userId}`).send({
+                type: 'broadcast',
+                event: 'activity-created',
+                payload: {
+                    id: newId,
+                    type: activityData.type,
+                    distance: activityData.distance,
+                    duration: activityData.duration,
+                    date: activityDate
+                }
             });
         }
 

@@ -36,6 +36,22 @@ const MODE_CONFIGS: Record<ActivityMode, ModeConfig> = {
         coachingStyle: "wellness",
         caloriesPerMile: 80,
     },
+    meditation: {
+        mode: "meditation",
+        speedThresholdMph: 0,
+        autoPauseSensitivity: "low",
+        displayMetric: "min/mile",
+        coachingStyle: "wellness",
+        caloriesPerMile: 0,
+    },
+    fasting: {
+        mode: "fasting",
+        speedThresholdMph: 0,
+        autoPauseSensitivity: "low",
+        displayMetric: "min/mile",
+        coachingStyle: "wellness",
+        caloriesPerMile: 0,
+    },
 };
 
 // Sensitivity overrides — how many consecutive "slow" readings before auto-pause triggers
@@ -59,14 +75,18 @@ export function getActivityLabel(mode: ActivityMode): string {
         case "walk": return "Walk";
         case "bike": return "Ride";
         case "hike": return "Hike";
+        case "meditation": return "Meditation";
+        case "fasting": return "Fasting";
     }
 }
 
-export function getActivityType(mode: ActivityMode): "Run" | "Walk" | "Bike" | "Hike" {
+export function getActivityType(mode: ActivityMode): "Run" | "Walk" | "Bike" | "Hike" | "Meditation" | "Fasting" {
     switch (mode) {
         case "run": return "Run";
         case "walk": return "Walk";
         case "bike": return "Bike";
         case "hike": return "Hike";
+        case "meditation": return "Meditation";
+        case "fasting": return "Fasting";
     }
 }

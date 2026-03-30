@@ -9,6 +9,7 @@ import { AgentCore } from "@/lib/agents/agent-core";
 import { GeoPosition, AgentEvent, MileSplit } from "@/lib/agents/types";
 import { getActivityLabel, getActivityType, getModeConfig } from "@/lib/agents/mode-agent";
 import PostSessionModal from "./PostSessionModal";
+import { supabase } from "@/lib/supabase";
 import { t } from "@/lib/translations";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
@@ -389,7 +390,7 @@ export default function SessionTracker() {
         core.on(handleAgentEvent);
         agentCoreRef.current = core;
 
-        if (environment === "outdoor" && navigator.geolocation) {
+        if (environment === "outdoor" && navigator.geolocation && mode !== "meditation") {
             watchId.current = navigator.geolocation.watchPosition(
                 handlePosition,
                 (err) => console.error("GPS Error:", err),
@@ -438,7 +439,8 @@ export default function SessionTracker() {
         const durationSeconds = finalActiveSeconds;
         console.log("[SESSION_END] miles=" + miles.toFixed(2) + " duration=" + durationSeconds + "s");
 
-        if (miles < 0.05) {
+        const isTimeBased = mode === "meditation" || mode === "fasting";
+        if (miles < 0.05 && !isTimeBased) {
             alert("Session too short to save.");
             sessionStorage.removeItem(SESSION_KEY);
             lastAcceptedPos.current = null;
@@ -489,23 +491,38 @@ export default function SessionTracker() {
         setSaving(true);
         console.log("[SESSION_SAVE_ATTEMPT] Starting save...");
         try {
-            // Upload media files to Firebase Storage
+            // Upload media files to Supabase Storage
             const mediaItems: { type: "image" | "video"; url: string; path: string; createdAt: string }[] = [];
             if (data.mediaFiles.length > 0 && user) {
-                const { storage } = await import("@/lib/firebase/config");
-                const { ref, uploadBytes, getDownloadURL } = await import("firebase/storage");
-
                 for (const file of data.mediaFiles) {
                     const mediaType = (file.type.startsWith("video") ? "video" : "image") as "image" | "video";
-                    const filePath = `users/${user.uid}/activities/media/${Date.now()}_${file.name}`;
-                    const storageRef = ref(storage, filePath);
-                    await uploadBytes(storageRef, file);
-                    const url = await getDownloadURL(storageRef);
-                    mediaItems.push({ type: mediaType, url, path: filePath, createdAt: new Date().toISOString() });
+                    const fileExt = file.name.split('.').pop();
+                    const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+                    const filePath = `users/${user.uid}/activities/${fileName}`;
+
+                    const { data: uploadData, error: uploadError } = await supabase.storage
+                        .from('activities')
+                        .upload(filePath, file);
+
+                    if (uploadError) {
+                        console.error("[STORAGE_UPLOAD_ERROR]", uploadError);
+                        continue;
+                    }
+
+                    const { data: { publicUrl } } = supabase.storage
+                        .from('activities')
+                        .getPublicUrl(filePath);
+
+                    mediaItems.push({ 
+                        type: mediaType, 
+                        url: publicUrl, 
+                        path: filePath, 
+                        createdAt: new Date().toISOString() 
+                    });
                 }
             }
 
-            await retryAsync(() => addActivity({
+            const { activityId } = await retryAsync(() => addActivity({
                 type: getActivityType(mode),
                 distance: pendingSessionData.distanceMiles,
                 duration: pendingSessionData.durationSeconds,
@@ -523,8 +540,18 @@ export default function SessionTracker() {
                 ...(mediaItems.length > 0 ? { media: mediaItems } : {}),
             }), 3);
 
-            console.log("[SESSION_SAVE_SUCCESS] Activity saved successfully.");
-            sessionStorage.removeItem(SESSION_KEY); // Clear orphan checkpoint
+            console.log("[SESSION_SAVE_SUCCESS] Activity saved successfully. ID:", activityId);
+
+            // Trigger AI Coaching Analysis (Background)
+            fetch("/api/ai/coach", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ activityId }),
+            }).then(res => res.json())
+              .then(aiRes => console.log("[AI_COACH_SUCCESS]", aiRes))
+              .catch(err => console.error("[AI_COACH_FAILURE]", err));
+
+            sessionStorage.removeItem(SESSION_KEY);
             setShowPostModal(false);
             setPendingSessionData(null);
         } catch (e: any) {

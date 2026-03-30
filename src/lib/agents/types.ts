@@ -1,6 +1,6 @@
 // StrideIQ Agentic AI — Shared Types
 
-export type ActivityMode = "run" | "walk" | "bike" | "hike";
+export type ActivityMode = "run" | "walk" | "bike" | "hike" | "meditation" | "fasting";
 export type Environment = "outdoor" | "indoor";
 export type AutoPauseSensitivity = "low" | "medium" | "high";
 

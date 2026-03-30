@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { TrainingPlan } from "@/lib/types/training";
+import { supabase } from "@/lib/supabase";
 
 export function useTrainingPlan() {
     const { user } = useAuth();
@@ -31,31 +32,18 @@ export function useTrainingPlan() {
 
         fetchPlan();
 
-        // Setup Ably
-        let channel: any;
-        const setupAbly = async () => {
-             try {
-                 const { ablyRealtime } = await import("@/lib/ably");
-                 if (!ablyRealtime) return;
-
-                 channel = ablyRealtime.channels.get(`user:${user.uid}`);
-                 
-                 await channel.subscribe('plan-updated', () => {
-                     fetchPlan(); // Re-fetch when plan changes
-                 });
-             } catch (err) {
-                 console.warn("Ably setup failed for training hook.", err);
-             }
-        };
-
-        setupAbly();
+        // Setup Supabase Realtime Broadcast
+        const channel = supabase.channel(`user:${user.uid}`)
+            .on('broadcast', { event: 'plan-updated' }, () => {
+                fetchPlan(); // Re-fetch when plan changes
+            })
+            .subscribe();
 
         return () => {
-            if (channel) {
-                channel.unsubscribe();
-            }
+            supabase.removeChannel(channel);
         };
     }, [user]);
 
     return { plan, loading };
 }
+

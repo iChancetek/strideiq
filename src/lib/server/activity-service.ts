@@ -1,7 +1,7 @@
 import { db } from "@/db";
 import { leaderboards, achievements, users } from "@/db/schema";
 import { eq, sql } from "drizzle-orm";
-import { ablyRest } from "@/lib/ably";
+import { supabase } from "@/lib/supabase";
 
 const MILESTONE_BADGES = [
     { id: "25_miles", limit: 25 },
@@ -72,22 +72,28 @@ export async function updateUserStats(userId: string, activity: any) {
             await db.insert(achievements).values(newBadges);
         }
 
-        // 3. Trigger Realtime Events via Ably
-        if (ablyRest) {
+        // 3. Trigger Realtime Events via Supabase
+        if (supabase) {
             try {
-                // Determine channel string (namespaced for security)
-                const userChannel = ablyRest.channels.get(`user:${userId}`);
-                await userChannel.publish('stats-updated', {
-                    month: monthKey,
-                    addedDistance: activity.distance,
-                    newBadges: newBadges.map(b => b.badgeId)
+                // Broadcast to user-specific channel
+                await supabase.channel(`user:${userId}`).send({
+                    type: 'broadcast',
+                    event: 'stats-updated',
+                    payload: {
+                        month: monthKey,
+                        addedDistance: activity.distance,
+                        newBadges: newBadges.map(b => b.badgeId)
+                    }
                 });
                 
-                // Trigger global leaderboard update for everyone paying attention
-                const globalChannel = ablyRest.channels.get('leaderboard');
-                await globalChannel.publish('updated', { month: monthKey });
+                // Broadcast to global leaderboard channel
+                await supabase.channel('leaderboard').send({
+                    type: 'broadcast',
+                    event: 'updated',
+                    payload: { month: monthKey }
+                });
             } catch (err) {
-                console.error("[Ably] Failed to publish event:", err);
+                console.error("[Supabase] Failed to broadcast event:", err);
             }
         }
 

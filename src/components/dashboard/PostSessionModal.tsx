@@ -98,7 +98,7 @@ export default function PostSessionModal({ session, onSave, onDiscard }: Props) 
         }
     };
 
-    const modeIcon = session.mode === "run" ? "🏃" : session.mode === "walk" ? "🚶" : session.mode === "hike" ? "🥾" : "🚴";
+    const modeIcon = session.mode === "run" ? "🏃" : session.mode === "walk" ? "🚶" : session.mode === "hike" ? "🥾" : session.mode === "bike" ? "🚴" : session.mode === "meditation" ? "🧘" : "⏱️";
 
     return (
         <div style={{

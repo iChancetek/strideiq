@@ -9,7 +9,7 @@ import { Language } from "@/lib/translations";
 interface Settings {
     theme: "light" | "dark";
     units: "imperial" | "metric";
-    activityMode: "run" | "walk" | "bike" | "hike";
+    activityMode: "run" | "walk" | "bike" | "hike" | "meditation" | "fasting";
     environment: "outdoor" | "indoor";
     voiceCoaching: boolean;
     weatherAnnouncements: boolean;

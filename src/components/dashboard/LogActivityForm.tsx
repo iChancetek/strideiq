@@ -1,13 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useActivities } from "@/hooks/useActivities";
+import { uploadMediaFiles } from "@/lib/storage";
+import { auth } from "@/lib/firebase/config";
+import { useAuthState } from "react-firebase-hooks/auth";
 
 const CALORIE_RATES: Record<string, number> = {
     Run: 110,   // per mile
     Walk: 80,
     Bike: 50,
     HIIT: 150,
+    Meditation: 20, // Low but existent metabolic activity
 };
 
 const STEPS_PER_MILE: Record<string, number> = {
@@ -15,11 +19,12 @@ const STEPS_PER_MILE: Record<string, number> = {
     Walk: 2100,
     Bike: 0,
     HIIT: 800,
+    Meditation: 0,
 };
 
 export default function LogActivityForm({ onSuccess }: { onSuccess?: () => void }) {
     const { addActivity } = useActivities();
-    const [type, setType] = useState<"Run" | "Walk" | "Bike" | "HIIT">("Run");
+    const [type, setType] = useState<"Run" | "Walk" | "Bike" | "HIIT" | "Meditation">("Run");
     const [distance, setDistance] = useState("");
     const [durationMin, setDurationMin] = useState("");
     const [durationSec, setDurationSec] = useState("");
@@ -29,6 +34,9 @@ export default function LogActivityForm({ onSuccess }: { onSuccess?: () => void 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState(false);
+    const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [user] = useAuthState(auth);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -55,6 +63,12 @@ export default function LogActivityForm({ onSuccess }: { onSuccess?: () => void 
                 ? parseInt(stepsInput)
                 : Math.round(dist * (STEPS_PER_MILE[type] || 1400));
 
+            // 1. Handle Media Uploads
+            let mediaItems: any[] = [];
+            if (selectedFiles.length > 0 && user) {
+                mediaItems = await uploadMediaFiles(selectedFiles, user.uid);
+            }
+
             await addActivity({
                 type,
                 distance: dist,
@@ -63,6 +77,7 @@ export default function LogActivityForm({ onSuccess }: { onSuccess?: () => void 
                 calories: Math.round(dist * (CALORIE_RATES[type] || 100)),
                 steps: estimatedSteps,
                 notes,
+                media: mediaItems,
             });
             setDistance("");
             setDurationMin("");
@@ -116,6 +131,7 @@ export default function LogActivityForm({ onSuccess }: { onSuccess?: () => void 
                             <option value="Walk">🚶 Walk</option>
                             <option value="Bike">🚴 Bike</option>
                             <option value="HIIT">💥 HIIT</option>
+                            <option value="Meditation">🧘 Meditation</option>
                         </select>
                     </div>
                     <div>
@@ -130,6 +146,7 @@ export default function LogActivityForm({ onSuccess }: { onSuccess?: () => void 
                     </div>
                 </div>
 
+                {type !== "Meditation" && (
                 <div>
                     <label style={{ display: "block", marginBottom: "8px", fontSize: "14px", color: "var(--foreground-muted)" }}>Distance (mi)</label>
                     <input
@@ -142,6 +159,7 @@ export default function LogActivityForm({ onSuccess }: { onSuccess?: () => void 
                         style={inputStyle}
                     />
                 </div>
+                )}
 
                 <div>
                     <label style={{ display: "block", marginBottom: "8px", fontSize: "14px", color: "var(--foreground-muted)" }}>Duration</label>
@@ -176,6 +194,77 @@ export default function LogActivityForm({ onSuccess }: { onSuccess?: () => void 
                         rows={3}
                         style={{ ...inputStyle, resize: "none" }}
                     />
+                </div>
+
+                {/* Media Upload */}
+                <div>
+                    <label style={{ display: "block", marginBottom: "8px", fontSize: "14px", color: "var(--foreground-muted)" }}>Photos / Videos</label>
+                    <input 
+                        type="file" 
+                        multiple 
+                        accept="image/*,video/*"
+                        onChange={(e) => {
+                            if (e.target.files) setSelectedFiles(Array.from(e.target.files));
+                        }}
+                        ref={fileInputRef}
+                        style={{ display: "none" }}
+                    />
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
+                        <button 
+                            type="button"
+                            onClick={() => fileInputRef.current?.click()}
+                            style={{
+                                width: "50px",
+                                height: "50px",
+                                borderRadius: "var(--radius-sm)",
+                                border: "1px dashed rgba(255,255,255,0.2)",
+                                background: "rgba(255,255,255,0.02)",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                color: "var(--foreground-muted)",
+                                cursor: "pointer"
+                            }}
+                        >
+                            +
+                        </button>
+                        {selectedFiles.map((f, i) => (
+                            <div key={i} style={{
+                                width: "50px",
+                                height: "50px",
+                                borderRadius: "var(--radius-sm)",
+                                background: "rgba(255,255,255,0.1)",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                fontSize: "10px",
+                                position: "relative",
+                                overflow: "hidden"
+                            }}>
+                                <span style={{ zIndex: 1, padding: "2px", textAlign: "center", fontSize: "8px" }}>{f.name.substring(0, 8)}...</span>
+                                <button 
+                                    type="button"
+                                    onClick={() => setSelectedFiles(prev => prev.filter((_, idx) => idx !== i))}
+                                    style={{
+                                        position: "absolute",
+                                        top: "1px",
+                                        right: "1px",
+                                        background: "rgba(0,0,0,0.5)",
+                                        border: "none",
+                                        color: "#fff",
+                                        borderRadius: "50%",
+                                        width: "14px",
+                                        height: "14px",
+                                        fontSize: "8px",
+                                        cursor: "pointer",
+                                        zIndex: 2
+                                    }}
+                                >
+                                    &times;
+                                </button>
+                            </div>
+                        ))}
+                    </div>
                 </div>
 
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>

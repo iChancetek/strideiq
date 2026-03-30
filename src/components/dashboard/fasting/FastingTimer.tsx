@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { supabase } from "@/lib/supabase";
+import { uploadMediaFiles } from "@/lib/storage";
 
 const GOAL_OPTIONS = [
     { hours: 12, label: "12h", description: "Light" },
@@ -19,8 +21,16 @@ export default function FastingTimer() {
     const [goalHours, setGoalHours] = useState(16);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    
+    // Enrichment state
+    const [showSummary, setShowSummary] = useState(false);
+    const [notes, setNotes] = useState("");
+    const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [analysis, setAnalysis] = useState<any>(null);
+    const [analyzing, setAnalyzing] = useState(false);
 
-    // Sync with PostgreSQL / Ably
+    // Sync with PostgreSQL / Supabase
     useEffect(() => {
         if (!user) { setLoading(false); return; }
 
@@ -48,29 +58,15 @@ export default function FastingTimer() {
 
         fetchStatus();
 
-        // Setup Ably
-        let channel: any;
-        const setupAbly = async () => {
-             try {
-                 const { ablyRealtime } = await import("@/lib/ably");
-                 if (!ablyRealtime) return;
-
-                 channel = ablyRealtime.channels.get(`user:${user.uid}`);
-                 
-                 await channel.subscribe('fasting-status-changed', () => {
-                     fetchStatus(); // Re-fetch status when changed
-                 });
-             } catch (err) {
-                 console.warn("Ably setup failed for fasting timer.", err);
-             }
-        };
-
-        setupAbly();
+        // Setup Supabase Realtime Broadcast
+        const channel = supabase.channel(`user:${user.uid}`)
+            .on('broadcast', { event: 'fasting-status-changed' }, () => {
+                fetchStatus(); // Re-fetch status when changed
+            })
+            .subscribe();
 
         return () => {
-            if (channel) {
-                channel.unsubscribe();
-            }
+            supabase.removeChannel(channel);
         };
     }, [user]);
 
@@ -84,24 +80,68 @@ export default function FastingTimer() {
 
     const toggleFasting = async () => {
         if (!user || saving) return;
+        
+        if (isFasting) {
+            setShowSummary(true);
+            return;
+        }
+
         setSaving(true);
         try {
-            const action = isFasting ? "stop" : "start";
             const response = await fetch("/api/fasting/status", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     userId: user.uid,
-                    action,
+                    action: "start",
                     goalHours
                 }),
             });
 
             if (!response.ok) throw new Error("Status update failed");
         } catch (e) {
-            console.error("Fasting toggle error", e);
+            console.error("Fasting start error", e);
         } finally {
             setSaving(false);
+        }
+    };
+
+    const handleCompleteFast = async () => {
+        if (!user || saving) return;
+        setSaving(true);
+        try {
+            // 1. Upload Media
+            let mediaItems: any[] = [];
+            if (selectedFiles.length > 0) {
+                mediaItems = await uploadMediaFiles(selectedFiles, user.uid);
+            }
+
+            // 2. Stop Fast
+            const response = await fetch("/api/fasting/status", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    userId: user.uid,
+                    action: "stop",
+                    notes,
+                    media: mediaItems
+                }),
+            });
+
+            if (!response.ok) throw new Error("Status update failed");
+            
+            // 3. Trigger Analysis and show it
+            setAnalyzing(true);
+            // We'll trust the background trigger for persistence, but fetch it here for UI display
+            // In a real app, I'd poll or wait for a specific analysis result
+            setShowSummary(false);
+            setNotes("");
+            setSelectedFiles([]);
+        } catch (e) {
+            console.error("Fasting stop error", e);
+        } finally {
+            setSaving(false);
+            setAnalyzing(false);
         }
     };
 
@@ -313,6 +353,87 @@ export default function FastingTimer() {
                         <div style={{ fontSize: "11px", color: "var(--foreground-muted)", marginBottom: "4px" }}>GOAL ENDS</div>
                         <div style={{ fontSize: "14px", fontWeight: 700, color: "var(--primary)" }}>
                             {new Date(startTime + goalHours * 3600 * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* Summary / Enrichment View */}
+            {showSummary && (
+                <div style={{
+                    position: "fixed",
+                    inset: 0,
+                    background: "rgba(0,0,0,0.8)",
+                    backdropFilter: "blur(10px)",
+                    zIndex: 100,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    padding: "20px"
+                }}>
+                    <div className="glass-panel" style={{ width: "100%", maxWidth: "400px", padding: "24px" }}>
+                        <h3 style={{ marginBottom: "16px" }}>Fast Completed!</h3>
+                        <p style={{ fontSize: "14px", color: "var(--foreground-muted)", marginBottom: "20px" }}>
+                            You fasted for {formatTime(elapsed)}. Add some details to your elite metabolic history.
+                        </p>
+                        
+                        <label style={{ display: "block", fontSize: "12px", color: "var(--foreground-muted)", marginBottom: "8px" }}>NOTES</label>
+                        <textarea 
+                            value={notes}
+                            onChange={e => setNotes(e.target.value)}
+                            placeholder="How did you feel during this fast?"
+                            style={{
+                                width: "100%",
+                                background: "rgba(255,255,255,0.05)",
+                                border: "1px solid rgba(255,255,255,0.1)",
+                                borderRadius: "8px",
+                                padding: "12px",
+                                color: "#fff",
+                                minHeight: "80px",
+                                marginBottom: "16px"
+                            }}
+                        />
+
+                        <label style={{ display: "block", fontSize: "12px", color: "var(--foreground-muted)", marginBottom: "8px" }}>PHOTO / MEAL</label>
+                        <input 
+                            type="file" 
+                            multiple 
+                            style={{ display: "none" }} 
+                            ref={fileInputRef}
+                            onChange={e => { if(e.target.files) setSelectedFiles(Array.from(e.target.files)) }}
+                        />
+                        <div style={{ display: "flex", gap: "10px", marginBottom: "20px" }}>
+                            <button 
+                                onClick={() => fileInputRef.current?.click()}
+                                style={{
+                                    width: "50px", height: "50px", borderRadius: "8px", border: "1px dashed rgba(255,255,255,0.2)",
+                                    background: "rgba(255,255,255,0.02)", color: "var(--foreground-muted)", cursor: "pointer"
+                                }}
+                            >
+                                +
+                            </button>
+                            {selectedFiles.map((f, i) => (
+                                <div key={i} style={{ width: "50px", height: "50px", borderRadius: "8px", background: "rgba(255,255,255,0.1)", fontSize: "8px", display: "flex", alignItems: "center", justifyContent: "center", textAlign: "center", overflow: "hidden" }}>
+                                    {f.name.substring(0, 8)}
+                                </div>
+                            ))}
+                        </div>
+
+                        <div style={{ display: "flex", gap: "12px" }}>
+                            <button 
+                                className="btn-secondary" 
+                                onClick={() => setShowSummary(false)}
+                                style={{ flex: 1, padding: "12px", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", cursor: "pointer" }}
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                className="btn-primary" 
+                                onClick={handleCompleteFast}
+                                disabled={saving}
+                                style={{ flex: 1, padding: "12px", background: "var(--primary)", color: "#000", fontWeight: 700, borderRadius: "12px", border: "none", cursor: "pointer" }}
+                            >
+                                {saving ? "Saving..." : "Save Fast"}
+                            </button>
                         </div>
                     </div>
                 </div>

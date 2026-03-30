@@ -32,7 +32,12 @@ export default function ActivityFeedCard({ activity, ownerName, ownerPhoto, owne
         return `${m}m ${s}s`;
     };
 
-    const modeIcon = activity.mode === "run" ? "🏃" : activity.mode === "walk" ? "🚶" : activity.mode === "hike" ? "🥾" : "🚴";
+    const modeIcon = activity.mode === "run" ? "🏃" : 
+                     activity.mode === "walk" ? "🚶" : 
+                     activity.mode === "hike" ? "🥾" : 
+                     activity.mode === "bike" ? "🚴" : 
+                     activity.mode === "meditation" ? "🧘" : 
+                     activity.mode === "fasting" ? "⏱️" : "⏱️";
     const activityTitle = activity.title || `${t(lang, activity.type.toLowerCase() as any) || activity.type} • ${activity.date.toLocaleDateString()}`;
     const timeAgo = getTimeAgo(activity.date, lang); // Pass lang
 
@@ -94,14 +99,18 @@ export default function ActivityFeedCard({ activity, ownerName, ownerPhoto, owne
                         <div style={{ fontSize: "11px", color: "var(--foreground-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>{t(lang, "time")}</div>
                         <div style={{ fontSize: "18px", fontWeight: 700 }}>{formatDuration(activity.duration)}</div>
                     </div>
-                    <div>
-                        <div style={{ fontSize: "11px", color: "var(--foreground-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>{t(lang, "distance")}</div>
-                        <div style={{ fontSize: "18px", fontWeight: 700 }}>{activity.distance} {settings.units === "imperial" ? "mi" : "km"}</div>
-                    </div>
-                    <div>
-                        <div style={{ fontSize: "11px", color: "var(--foreground-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>{t(lang, "pace")}</div>
-                        <div style={{ fontSize: "18px", fontWeight: 700 }}>{activity.pace}</div>
-                    </div>
+                    {activity.distance > 0 && (
+                        <div>
+                            <div style={{ fontSize: "11px", color: "var(--foreground-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>{t(lang, "distance")}</div>
+                            <div style={{ fontSize: "18px", fontWeight: 700 }}>{activity.distance} {settings.units === "imperial" ? "mi" : "km"}</div>
+                        </div>
+                    )}
+                    {activity.pace && activity.pace !== "0'00\"/mi" && activity.pace !== "--" && (
+                        <div>
+                            <div style={{ fontSize: "11px", color: "var(--foreground-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>{t(lang, "pace")}</div>
+                            <div style={{ fontSize: "18px", fontWeight: 700 }}>{activity.pace}</div>
+                        </div>
+                    )}
                     {activity.calories > 0 && (
                         <div>
                             <div style={{ fontSize: "11px", color: "var(--foreground-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>{t(lang, "calories")}</div>
@@ -110,6 +119,62 @@ export default function ActivityFeedCard({ activity, ownerName, ownerPhoto, owne
                     )}
                 </div>
             </div>
+
+            {/* AI Coaching Analysis */}
+            {activity.aiAnalysis && (
+                <div style={{ 
+                    margin: "0 20px 20px", 
+                    padding: "16px", 
+                    borderRadius: "var(--radius-md)", 
+                    background: "linear-gradient(135deg, rgba(0, 229, 255, 0.05), rgba(0, 229, 255, 0.1))", 
+                    border: "1px solid rgba(0, 229, 255, 0.2)",
+                    position: "relative",
+                    overflow: "hidden"
+                }}>
+                    <div style={{ 
+                        position: "absolute", 
+                        top: 0, 
+                        right: 0, 
+                        padding: "4px 12px", 
+                        background: "var(--primary)", 
+                        color: "#000", 
+                        fontSize: "10px", 
+                        fontWeight: 800, 
+                        borderBottomLeftRadius: "12px",
+                        textTransform: "uppercase"
+                    }}>
+                        Elite Tier Analysis
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "12px" }}>
+                        <div style={{ 
+                            width: "48px", 
+                            height: "48px", 
+                            borderRadius: "50%", 
+                            border: "2px solid var(--primary)", 
+                            display: "flex", 
+                            alignItems: "center", 
+                            justifyContent: "center",
+                            fontSize: "18px",
+                            fontWeight: 800,
+                            color: "var(--primary)"
+                        }}>
+                            {activity.aiAnalysis.score}
+                        </div>
+                        <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: "12px", color: "var(--secondary)", fontWeight: 700, marginBottom: "2px" }}>COACH FEEDBACK</div>
+                            <div style={{ fontSize: "14px", color: "var(--foreground)", lineHeight: 1.4 }}>{activity.aiAnalysis.feedback}</div>
+                        </div>
+                    </div>
+                    <div style={{ display: "grid", gap: "8px" }}>
+                        {activity.aiAnalysis.insights.map((insight: string, idx: number) => (
+                            <div key={idx} style={{ display: "flex", gap: "8px", fontSize: "13px", color: "var(--foreground-muted)" }}>
+                                <span style={{ color: "var(--primary)" }}>✦</span>
+                                {insight}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {/* Notes */}
             {activity.notes && (

@@ -1,7 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useActivities } from "@/hooks/useActivities";
+import { uploadMediaFiles } from "@/lib/storage";
+import { auth } from "@/lib/firebase/config";
+import { useAuthState } from "react-firebase-hooks/auth";
 
 interface Props {
     isOpen: boolean;
@@ -13,7 +16,7 @@ export default function ManualActivityModal({ isOpen, onClose }: Props) {
     const [loading, setLoading] = useState(false);
 
     const [title, setTitle] = useState("");
-    const [type, setType] = useState<"Run" | "Walk" | "Bike" | "Hike">("Run");
+    const [type, setType] = useState<"Run" | "Walk" | "Bike" | "Hike" | "Meditation">("Run");
     const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
     const [time, setTime] = useState("12:00");
     const [distance, setDistance] = useState("0");
@@ -21,6 +24,9 @@ export default function ManualActivityModal({ isOpen, onClose }: Props) {
     const [minutes, setMinutes] = useState("0");
     const [seconds, setSeconds] = useState("0");
     const [notes, setNotes] = useState("");
+    const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [user] = useAuthState(auth);
 
     if (!isOpen) return null;
 
@@ -38,7 +44,7 @@ export default function ManualActivityModal({ isOpen, onClose }: Props) {
             if (durationSeconds <= 0) {
                 throw new Error("Duration must be greater than 0");
             }
-            if (distanceMiles <= 0) {
+            if (type !== "Meditation" && distanceMiles <= 0) {
                 throw new Error("Distance must be greater than 0");
             }
 
@@ -47,10 +53,17 @@ export default function ManualActivityModal({ isOpen, onClose }: Props) {
             if (type === "Walk") calPerMile = 80;
             if (type === "Bike") calPerMile = 45;
             if (type === "Hike") calPerMile = 120;
+            if (type === "Meditation") calPerMile = 15;
             const calories = Math.round(distanceMiles * calPerMile);
 
             // Construct Date object
             const activityDate = new Date(`${date}T${time}:00`);
+
+            // 1. Handle Media Uploads if any
+            let mediaItems: any[] = [];
+            if (selectedFiles.length > 0 && user) {
+                mediaItems = await uploadMediaFiles(selectedFiles, user.uid);
+            }
 
             await addActivity({
                 title: title || `Manual ${type}`,
@@ -61,6 +74,7 @@ export default function ManualActivityModal({ isOpen, onClose }: Props) {
                 date: activityDate,
                 calories,
                 notes: notes,
+                media: mediaItems,
                 isPublic: true,
                 environment: "outdoor"
             });
@@ -125,6 +139,7 @@ export default function ManualActivityModal({ isOpen, onClose }: Props) {
                                 <option value="Walk">Walk</option>
                                 <option value="Bike">Bike</option>
                                 <option value="Hike">Hike</option>
+                                <option value="Meditation">Meditation</option>
                             </select>
                         </div>
                         <div style={{ flex: 1 }}>
@@ -138,10 +153,12 @@ export default function ManualActivityModal({ isOpen, onClose }: Props) {
                     </div>
 
                     {/* Distance */}
+                    {type !== "Meditation" && (
                     <div>
                         <label style={labelStyle}>Distance (Miles)</label>
                         <input type="number" step="0.01" min="0.01" value={distance} onChange={e => setDistance(e.target.value)} required style={inputStyle} disabled={loading} placeholder="e.g. 6.0" />
                     </div>
+                    )}
 
                     {/* Duration */}
                     <div>
@@ -170,6 +187,77 @@ export default function ManualActivityModal({ isOpen, onClose }: Props) {
                     <div>
                         <label style={labelStyle}>Notes (Optional)</label>
                         <textarea value={notes} onChange={e => setNotes(e.target.value)} style={{ ...inputStyle, minHeight: "80px", resize: "vertical" }} disabled={loading} placeholder="How did it feel?" />
+                    </div>
+
+                    {/* Media Upload */}
+                    <div>
+                        <label style={labelStyle}>Photos / Videos</label>
+                        <input 
+                            type="file" 
+                            multiple 
+                            accept="image/*,video/*"
+                            onChange={(e) => {
+                                if (e.target.files) setSelectedFiles(Array.from(e.target.files));
+                            }}
+                            ref={fileInputRef}
+                            style={{ display: "none" }}
+                        />
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
+                            <button 
+                                type="button"
+                                onClick={() => fileInputRef.current?.click()}
+                                style={{
+                                    width: "60px",
+                                    height: "60px",
+                                    borderRadius: "var(--radius-sm)",
+                                    border: "1px dashed rgba(255,255,255,0.2)",
+                                    background: "rgba(255,255,255,0.02)",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    color: "var(--foreground-muted)",
+                                    cursor: "pointer"
+                                }}
+                            >
+                                +
+                            </button>
+                            {selectedFiles.map((f, i) => (
+                                <div key={i} style={{
+                                    width: "60px",
+                                    height: "60px",
+                                    borderRadius: "var(--radius-sm)",
+                                    background: "rgba(255,255,255,0.1)",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    fontSize: "10px",
+                                    position: "relative",
+                                    overflow: "hidden"
+                                }}>
+                                    <span style={{ zIndex: 1, padding: "2px", textAlign: "center" }}>{f.name.substring(0, 10)}...</span>
+                                    <button 
+                                        type="button"
+                                        onClick={() => setSelectedFiles(prev => prev.filter((_, idx) => idx !== i))}
+                                        style={{
+                                            position: "absolute",
+                                            top: "2px",
+                                            right: "2px",
+                                            background: "rgba(0,0,0,0.5)",
+                                            border: "none",
+                                            color: "#fff",
+                                            borderRadius: "50%",
+                                            width: "16px",
+                                            height: "16px",
+                                            fontSize: "10px",
+                                            cursor: "pointer",
+                                            zIndex: 2
+                                        }}
+                                    >
+                                        &times;
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
                     </div>
 
                     <button type="submit" className="btn-primary" disabled={loading} style={{ marginTop: "10px", padding: "12px", justifyContent: "center", opacity: loading ? 0.7 : 1 }}>

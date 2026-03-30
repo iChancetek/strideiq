@@ -6,6 +6,7 @@ import { useSettings } from "@/context/SettingsContext";
 import {
   Sun, Moon, Zap, Mic2, CloudSun, Music2, Activity, Home as HomeIcon, ArrowRight, ChevronDown
 } from "lucide-react";
+import ChancellorAssistant from "@/components/ChancellorAssistant";
 
 type Agent = {
   icon: React.ReactNode;
@@ -57,9 +58,9 @@ const agents: Agent[] = [
     icon: <Zap size={28} />,
     color: "var(--secondary)",
     glowColor: "var(--secondary-glow)",
-    title: "Mode Intelligence",
+    title: "Multimodal Intelligence",
     description:
-      "Automatically adjusts speed thresholds, coaching style, and display metrics for Running, Walking, and Biking modes.",
+      "Integrated GPT-5.3 perception for photos and videos. Get elite-level form analysis and metabolic insights from your visual logs.",
     delay: "anim-fade-up-delay-5",
   },
   {
@@ -142,7 +143,7 @@ export default function Home() {
         {/* Logo */}
         <div style={{ display: "flex", alignItems: "baseline", gap: "10px" }}>
           <h1 style={{ fontSize: "22px", letterSpacing: "-0.5px", fontFamily: "var(--font-heading)", fontWeight: 800 }}>
-            Stride<span className="text-gradient">IQ</span>
+            Stride<span className="text-gradient">IQ</span> <span style={{ fontSize: "14px", verticalAlign: "top", color: "var(--primary)" }}>ELITE</span>
           </h1>
           <span style={{ fontSize: "11px", color: "var(--foreground-muted)", fontWeight: 400, letterSpacing: "0.4px" }}>
             by ChanceTEK Fitness
@@ -287,7 +288,7 @@ export default function Home() {
           {/* Pill label */}
           <div className="section-label anim-fade-up" style={{ animationDelay: "0s" }}>
             <Zap size={12} />
-            Powered by Agentic AI
+            Powered by GPT-5.3 Architecture
           </div>
 
           {/* Headline */}
@@ -315,7 +316,7 @@ export default function Home() {
               marginBottom: "48px",
             }}
           >
-            The first AI-powered fitness platform with autonomous coaching agents that perceive your movement, adapt in real-time, and evolve with you.
+            The world's first native multimodal fitness platform. StrideIQ Elite leverages GPT-5.3 to perceive, adapt, and coach with human-level intelligence across all activity modes.
           </p>
 
           {/* CTAs */}
@@ -347,6 +348,10 @@ export default function Home() {
                 {stat.label}
               </div>
             ))}
+            <div className="stat-badge" style={{ fontSize: "13px", color: "var(--primary)" }}>
+              <span style={{ fontWeight: 700, fontSize: "15px" }}>✦</span>
+              Multimodal GPT-5.3
+            </div>
           </div>
         </div>{/* end hero content wrapper */}
 
@@ -525,6 +530,7 @@ export default function Home() {
           Intelligent Movement. Agentic Performance.
         </p>
       </footer>
-    </main >
+      <ChancellorAssistant />
+    </main>
   );
 }

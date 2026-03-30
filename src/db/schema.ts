@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, doublePrecision, integer, boolean, jsonb, uuid, primaryKey } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, doublePrecision, integer, boolean, jsonb, uuid, primaryKey, index } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
 // --- USERS ---
@@ -10,7 +10,9 @@ export const users = pgTable("users", {
     role: text("role").default("user"),
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => ({
+    emailIdx: index("users_email_idx").on(table.email),
+}));
 
 // --- ACTIVITIES ---
 export const activities = pgTable("activities", {
@@ -43,9 +45,21 @@ export const activities = pgTable("activities", {
     title: text("title"),
     isPublic: boolean("is_public").default(true),
     likesCount: integer("likes_count").default(0),
+    aiAnalysis: jsonb("ai_analysis").$type<{
+        feedback: string;
+        score: number;
+        insights: string[];
+        model: string;
+        analyzedAt: string;
+    }>(),
+    fastingSessionId: text("fasting_session_id"), // Refers to fasting_sessions.id if this is a fasting activity
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => ({
+    userIdIdx: index("activities_user_id_idx").on(table.userId),
+    dateIdx: index("activities_date_idx").on(table.date),
+    userDateIdx: index("activities_user_date_idx").on(table.userId, table.date),
+}));
 
 // --- JOURNALS ---
 export const journals = pgTable("journals", {
@@ -64,7 +78,10 @@ export const journals = pgTable("journals", {
     }[]>(),
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => ({
+    userIdIdx: index("journals_user_id_idx").on(table.userId),
+    dateIdx: index("journals_date_idx").on(table.date),
+}));
 
 // --- FASTING ---
 export const fastingSessions = pgTable("fasting_sessions", {
@@ -75,8 +92,25 @@ export const fastingSessions = pgTable("fasting_sessions", {
     duration: integer("duration"), // in seconds
     goal: integer("goal"), // in hours
     status: text("status"), // 'active', 'completed'
+    notes: text("notes"),
+    media: jsonb("media").$type<{
+        type: "image" | "video";
+        url: string;
+        path: string;
+        createdAt: string;
+    }[]>(),
+    aiAnalysis: jsonb("ai_analysis").$type<{
+        feedback: string;
+        score: number;
+        insights: string[];
+        model: string;
+        analyzedAt: string;
+    }>(),
     createdAt: timestamp("created_at").defaultNow(),
-});
+}, (table) => ({
+    userIdIdx: index("fasting_user_id_idx").on(table.userId),
+    statusIdx: index("fasting_status_idx").on(table.status),
+}));
 
 // --- FRIENDSHIPS ---
 export const friendships = pgTable("friendships", {

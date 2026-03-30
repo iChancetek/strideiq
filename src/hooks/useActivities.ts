@@ -3,36 +3,45 @@
 import { useState, useEffect } from "react";
 import { auth } from "@/lib/firebase/config";
 import { useAuthState } from "react-firebase-hooks/auth";
+import { supabase } from "@/lib/supabase";
 
 export interface Activity {
     id: string;
-    type: "Run" | "Walk" | "Bike" | "Hike" | "HIIT";
+    type: "Run" | "Walk" | "Bike" | "Hike" | "HIIT" | "Meditation" | "Fasting";
     distance: number; // in miles
-    duration: number; // in seconds (stored) — displayed as minutes
-    pace: string; // calculated: min:sec /mi
+    duration: number; // in seconds
+    pace: string;
     date: Date;
     calories: number;
     notes?: string;
-    mode?: "run" | "walk" | "bike" | "hike";
+    mode?: "run" | "walk" | "bike" | "hike" | "meditation" | "fasting";
     environment?: "outdoor" | "indoor";
-    mileSplits?: number[];            // split time in seconds for each completed mile
-    pausedDuration?: number;          // total paused time in seconds
+    mileSplits?: number[];
+    pausedDuration?: number;
     weatherSnapshot?: {
-        temp: number;                  // degrees F
-        condition: string;             // e.g. "Partly Cloudy"
-        humidity: number;              // percentage
-        wind: number;                  // mph
+        temp: number;
+        condition: string;
+        humidity: number;
+        wind: number;
     };
-    path?: [number, number][];         // GPS path for map display
-    steps?: number;                    // estimated step count
+    aiAnalysis?: {
+        feedback: string;
+        score: number;
+        insights: string[];
+        model: string;
+        analyzedAt: string;
+    };
+    fastingSessionId?: string;
+    title?: string;
+    isPublic?: boolean;
+    path?: [number, number][];
+    steps?: number;
     media?: {
         type: "image" | "video";
         url: string;
         path: string;
         createdAt: string;
     }[];
-    title?: string;
-    isPublic?: boolean;
     likesCount?: number;
 }
 
@@ -43,7 +52,7 @@ export function useActivities() {
     const [error, setError] = useState("");
 
     useEffect(() => {
-        if (authLoading) return; // Wait for auth to resolve
+        if (authLoading) return;
 
         if (!user) {
             setActivities([]);
@@ -51,21 +60,31 @@ export function useActivities() {
             return;
         }
 
-        // 1. Initial Fetch
         const fetchActivities = async () => {
             try {
-                const res = await fetch(`/api/activity/list?userId=${user.uid}`);
+                // Initial immediate load: check local storage cache first
+                const cached = typeof window !== 'undefined' ? localStorage.getItem(`activities_${user.uid}`) : null;
+                if (cached) {
+                    setActivities(JSON.parse(cached).map((a: any) => ({ 
+                        ...a, 
+                        date: new Date(a.date) 
+                    })));
+                    setLoading(false);
+                }
+
+                const res = await fetch(`/api/activity/list?userId=${user.uid}&limit=30`);
                 if (!res.ok) throw new Error("Failed to fetch");
                 const data = await res.json();
                 
-                // Parse dates back to JS Date objects
                 const parsed = data.activities.map((a: any) => ({
                     ...a,
-                    date: new Date(a.date),
-                    createdAt: new Date(a.createdAt)
+                    date: new Date(a.date)
                 }));
                 
                 setActivities(parsed);
+                if (typeof window !== 'undefined') {
+                    localStorage.setItem(`activities_${user.uid}`, JSON.stringify(data.activities));
+                }
                 setLoading(false);
             } catch (err) {
                 console.error("Error fetching activities:", err);
@@ -76,68 +95,47 @@ export function useActivities() {
 
         fetchActivities();
 
-        // 2. Setup Ably for real-time updates
-        let channel: any;
-        const setupAbly = async () => {
-            try {
-                const { ablyRealtime } = await import('@/lib/ably');
-                if (!ablyRealtime) return;
-
-                channel = ablyRealtime.channels.get(`user:${user.uid}`);
-                
-                await channel.subscribe('activity-created', (message: any) => {
-                    const newActivity = message.data;
-                    const parsedActivity = {
-                        ...newActivity,
-                        date: new Date(newActivity.date)
-                    };
-                    setActivities(prev => {
-                        if (prev.some(a => a.id === parsedActivity.id)) return prev;
-                        return [parsedActivity, ...prev].sort((a, b) => b.date.getTime() - a.date.getTime());
-                    });
+        // Setup Supabase Realtime Broadcast
+        const channel = supabase.channel(`user:${user.uid}`)
+            .on('broadcast', { event: 'activity-created' }, (message) => {
+                const newActivity = message.payload;
+                const parsedActivity = {
+                    ...newActivity,
+                    date: new Date(newActivity.date)
+                };
+                setActivities(prev => {
+                    if (prev.some(a => a.id === parsedActivity.id)) return prev;
+                    return [parsedActivity, ...prev].sort((a, b) => b.date.getTime() - a.date.getTime());
                 });
-
-                await channel.subscribe('activity-updated', (message: any) => {
-                    const updatedActivity = message.data;
-                    setActivities(prev => prev.map(a => 
-                        a.id === updatedActivity.id 
-                            ? { ...a, ...updatedActivity, date: updatedActivity.date ? new Date(updatedActivity.date) : a.date }
-                            : a
-                    ));
-                });
-
-                await channel.subscribe('activity-deleted', (message: any) => {
-                    const data = message.data;
-                    setActivities(prev => prev.filter(a => a.id !== data.id));
-                });
-
-                console.log(`[ABLY_CONNECTED] Subscribed to user:${user.uid}`);
-            } catch (err) {
-                console.warn("Ably initialization failed. Falling back to polling/refresh logic.", err);
-            }
-        };
-
-        setupAbly();
+            })
+            .on('broadcast', { event: 'activity-updated' }, (message) => {
+                const updatedActivity = message.payload;
+                setActivities(prev => prev.map(a => 
+                    a.id === updatedActivity.id 
+                        ? { ...a, ...updatedActivity, date: updatedActivity.date ? new Date(updatedActivity.date) : a.date }
+                        : a
+                ));
+            })
+            .on('broadcast', { event: 'activity-deleted' }, (message) => {
+                const { id } = message.payload;
+                setActivities(prev => prev.filter(a => a.id !== id));
+            })
+            .subscribe();
 
         return () => {
-            if (channel) {
-                channel.unsubscribe();
-            }
+            supabase.removeChannel(channel);
         };
     }, [user, authLoading]);
 
     const addActivity = async (activity: Omit<Activity, "id" | "date" | "pace"> & { date: Date }) => {
         if (!user) throw new Error("User not authenticated");
 
-        // Use the API route instead of client SDK to prevent "Network timeout" on mobile PWAs
-        // The API route handles the admin-level upsert of users/{uid} safely
         const payload = {
             ...activity,
             userId: user.uid,
             date: activity.date.toISOString(),
         };
 
-        // Standard HTTP fetch is much more resilient to mobile backgrounding than Firestore long-polling
         const response = await fetch("/api/activity/create", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -146,11 +144,10 @@ export function useActivities() {
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.error || "Failed to save activity over network.");
+            throw new Error(errorData.error || "Failed to save activity.");
         }
 
         const data = await response.json();
-        console.log("[SESSION_SAVE_SUCCESS] Activity written via API:", data.activityId);
         return { activityId: data.activityId };
     };
 

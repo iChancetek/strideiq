@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
+import { supabase } from "@/lib/supabase";
 
 interface Comment {
     id: string;
@@ -47,33 +48,19 @@ export default function CommentsSection({ activityId, ownerId }: CommentsSection
 
         fetchComments();
 
-        // Setup Ably
-        let channel: any;
-        const setupAbly = async () => {
-             try {
-                 const { ablyRealtime } = await import("@/lib/ably");
-                 if (!ablyRealtime) return;
-
-                 channel = ablyRealtime.channels.get(`activity:${activityId}`);
-                 
-                 await channel.subscribe('new-comment', (message: any) => {
-                     const newComment = message.data;
-                     setComments(prev => {
-                         if (prev.some(c => c.id === newComment.id)) return prev;
-                         return [...prev, newComment];
-                     });
-                 });
-             } catch (err) {
-                 console.warn("Ably setup failed for comments.", err);
-             }
-        };
-
-        setupAbly();
+        // Setup Supabase Realtime Broadcast
+        const channel = supabase.channel(`activity:${activityId}`)
+            .on('broadcast', { event: 'new-comment' }, (message) => {
+                const newComment = message.payload;
+                setComments(prev => {
+                    if (prev.some(c => c.id === newComment.id)) return prev;
+                    return [...prev, newComment];
+                });
+            })
+            .subscribe();
 
         return () => {
-            if (channel) {
-                channel.unsubscribe();
-            }
+            supabase.removeChannel(channel);
         };
     }, [activityId, ownerId]);
 

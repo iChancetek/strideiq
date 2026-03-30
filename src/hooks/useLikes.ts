@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { supabase } from "@/lib/supabase";
 
 interface LikedBy {
     userId: string;
@@ -36,40 +37,24 @@ export function useLikes(activityOwnerId: string, activityId: string) {
 
         fetchLikes();
 
-        // Setup Ably
-        let channel: any;
-        const setupAbly = async () => {
-             try {
-                 const { ablyRealtime } = await import("@/lib/ably");
-                 if (!ablyRealtime) return;
-
-                 channel = ablyRealtime.channels.get(`activity:${activityId}`);
-                 
-                 await channel.subscribe('like-toggled', (message: any) => {
-                     const { userId, isLiked: userLiked } = message.data;
+        // Setup Supabase Realtime Broadcast
+        const channel = supabase.channel(`activity:${activityId}`)
+            .on('broadcast', { event: 'like-toggled' }, (message) => {
+                const { userId, isLiked: userLiked } = message.payload;
                      
-                     if (userLiked) {
-                         // Add like (Simplified: we might want to fetch details if it's someone else)
-                         setLikes(prev => {
-                             if (prev.some(l => l.userId === userId)) return prev;
-                             return [...prev, { userId, userName: "User", userPhoto: undefined }];
-                         });
-                     } else {
-                         // Remove like
-                         setLikes(prev => prev.filter(l => l.userId !== userId));
-                     }
-                 });
-             } catch (err) {
-                 console.warn("Ably setup failed for likes hook.", err);
-             }
-        };
-
-        setupAbly();
+                if (userLiked) {
+                    setLikes(prev => {
+                        if (prev.some(l => l.userId === userId)) return prev;
+                        return [...prev, { userId, userName: "User", userPhoto: undefined }];
+                    });
+                } else {
+                    setLikes(prev => prev.filter(l => l.userId !== userId));
+                }
+            })
+            .subscribe();
 
         return () => {
-            if (channel) {
-                channel.unsubscribe();
-            }
+            supabase.removeChannel(channel);
         };
     }, [activityOwnerId, activityId]);
 

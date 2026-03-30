@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { activities } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
-import { ablyRest } from "@/lib/ably";
+import { supabase } from "@/lib/supabase";
 import { z } from "zod";
 
 const updateActivitySchema = z.object({
@@ -52,14 +52,18 @@ export async function PUT(req: Request) {
             );
 
         // Notify real-time listeners
-        if (ablyRest) {
+        if (supabase) {
             try {
-                await ablyRest.channels.get(`user:${userId}`).publish('activity-updated', {
-                    id: activityId,
-                    ...updates
+                await supabase.channel(`user:${userId}`).send({
+                    type: 'broadcast',
+                    event: 'activity-updated',
+                    payload: {
+                        id: activityId,
+                        ...updates
+                    }
                 });
             } catch (err) {
-                console.error("Ably update silent failure:", err);
+                console.error("Supabase broadcast silent failure:", err);
             }
         }
 

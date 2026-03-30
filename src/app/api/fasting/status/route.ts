@@ -1,7 +1,7 @@
 import { db } from "@/db";
-import { fastingSessions, users } from "@/db/schema";
+import { fastingSessions, users, activities } from "@/db/schema";
 import { eq, and, desc } from "drizzle-orm";
-import { ablyRest } from "@/lib/ably";
+import { supabase } from "@/lib/supabase";
 import { NextResponse } from "next/server";
 
 export async function GET(req: Request) {
@@ -29,7 +29,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
     try {
         const body = await req.json();
-        const { userId, action, goalHours } = body; // action: 'start' | 'stop'
+        const { userId, action, goalHours, notes, media } = body; // action: 'start' | 'stop'
 
         if (!userId || !action) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -61,19 +61,47 @@ export async function POST(req: Request) {
                     .set({
                         endTime,
                         duration: durationSeconds,
+                        notes: notes || null,
+                        media: media || null,
                         status: "completed"
                     })
                     .where(eq(fastingSessions.id, activeSession.id));
+
+                const sessionId = activeSession.id;
+
+                // Create a unified activity history record
+                await db.insert(activities).values({
+                    id: crypto.randomUUID(),
+                    userId,
+                    type: "Fasting",
+                    distance: 0,
+                    duration: durationSeconds,
+                    date: new Date(),
+                    mode: "fasting",
+                    notes: notes || `Fasting Session: ${Math.round(durationSeconds / 3600)} hours completed. Target was ${activeSession.goal}h.`,
+                    media: media || null,
+                    fastingSessionId: activeSession.id
+                });
+
+                // Trigger AI Analysis in background (don't await for faster response)
+                fetch(`${req.url.split('/status')[0]}/analyze`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sessionId })
+                }).catch(err => console.error("Fasting Analysis trigger failed:", err));
             }
         }
 
-        // Broadcast to Ably
-        if (ablyRest) {
+        // Broadcast to Supabase
+        if (supabase) {
             try {
-                const channel = ablyRest.channels.get(`user:${userId}`);
-                await channel.publish('fasting-status-changed', { action });
+                await supabase.channel(`user:${userId}`).send({
+                    type: 'broadcast',
+                    event: 'fasting-status-changed',
+                    payload: { action }
+                });
             } catch (err) {
-                console.error("[Ably] Publish Failed:", err);
+                console.error("[Supabase] Broadcast Failed:", err);
             }
         }
 

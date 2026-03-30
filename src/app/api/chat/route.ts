@@ -105,7 +105,7 @@ export async function POST(req: Request) {
         // 1. Initial Call (Tool Check)
         console.log(`[Chat] Sending request for persona: ${validPersonaId}`);
         const response1 = await openai.chat.completions.create({
-            model: "gpt-4o",
+            model: "gpt-5.3",
             messages: fullMessages as any,
             tools: TOOLS as any,
             tool_choice: "auto",
@@ -152,7 +152,7 @@ export async function POST(req: Request) {
 
             // 3. Final Generation with Search Context
             const response2 = await openai.chat.completions.create({
-                model: "gpt-4o",
+                model: "gpt-5.3",
                 messages: fullMessages as any,
                 temperature: 0.7,
             });

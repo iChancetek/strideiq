@@ -45,9 +45,9 @@ export async function POST(req: NextRequest) {
         const text = transcription.text;
         console.log("Transcribed:", text);
 
-        // 2. Determine Intent with GPT-4o
+        // 2. Determine Intent with GPT-5.3
         const completion = await openai.chat.completions.create({
-            model: "gpt-4o",
+            model: "gpt-5.3",
             messages: [
                 {
                     role: "system",

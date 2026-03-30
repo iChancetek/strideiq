@@ -100,7 +100,7 @@ export async function POST(req: Request) {
 
         // 1. Initial Call (Tool Check)
         const response1 = await openai.chat.completions.create({
-            model: "gpt-4o",
+            model: "gpt-5.3",
             messages: messages,
             tools: tools as any,
             tool_choice: "auto",
@@ -130,7 +130,7 @@ export async function POST(req: Request) {
                 });
 
                 const response2 = await openai.chat.completions.create({
-                    model: "gpt-4o",
+                    model: "gpt-5.3",
                     messages: messages,
                     response_format: { type: "json_object" },
                 });
@@ -153,7 +153,7 @@ export async function POST(req: Request) {
 
         // Direct Response (No Tool Used)
         const finalResponse = await openai.chat.completions.create({
-            model: "gpt-4o",
+            model: "gpt-5.3",
             messages: messages,
             response_format: { type: "json_object" },
         });

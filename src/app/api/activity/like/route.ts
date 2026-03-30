@@ -1,7 +1,7 @@
 import { db } from "@/db";
 import { likes, activities, users } from "@/db/schema";
 import { eq, and, sql } from "drizzle-orm";
-import { ablyRest } from "@/lib/ably";
+import { supabase } from "@/lib/supabase";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
@@ -47,23 +47,26 @@ export async function POST(req: Request) {
             isLiked = true;
         }
 
-        // 3. Broadcast to Ably
-        if (ablyRest) {
+        // 3. Broadcast to Supabase
+        if (supabase) {
             try {
                 // Fetch updated like count and list of likers (simplified for now)
                 const [activity] = await db.select({ likesCount: activities.likesCount })
                     .from(activities)
                     .where(eq(activities.id, activityId));
 
-                const channel = ablyRest.channels.get(`activity:${activityId}`);
-                await channel.publish('like-toggled', {
-                    activityId,
-                    userId,
-                    isLiked,
-                    newCount: activity?.likesCount || 0
+                await supabase.channel(`activity:${activityId}`).send({
+                    type: 'broadcast',
+                    event: 'like-toggled',
+                    payload: {
+                        activityId,
+                        userId,
+                        isLiked,
+                        newCount: activity?.likesCount || 0
+                    }
                 });
             } catch (err) {
-                console.error("[Ably] Publish Failed:", err);
+                console.error("[Supabase] Broadcast Failed:", err);
             }
         }
 
