@@ -529,6 +529,7 @@ export default function SessionTracker() {
 
     const handlePostSessionSave = async (data: { notes: string; title: string; mediaFiles: File[]; isPublic: boolean }) => {
         if (!pendingSessionData) return;
+        if (!user) return;
         setSaving(true);
         console.log("[SESSION_SAVE_ATTEMPT] Starting save...");
         try {
