@@ -1,13 +1,18 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase/admin";
+import { verifyFirebaseToken } from "@/lib/auth-utils";
+
 export async function GET(req: Request) {
     try {
-        const { searchParams } = new URL(req.url);
-        const userId = searchParams.get("userId");
-        if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        const doc = await adminDb.collection("users").doc(userId).get();
+        const auth = await verifyFirebaseToken();
+        if ("error" in auth) {
+            return NextResponse.json({ error: auth.error }, { status: auth.status });
+        }
+
+        const doc = await adminDb.collection("users").doc(auth.userId).get();
         return NextResponse.json(doc.data() || {});
-    } catch (e) {
-        return NextResponse.json({ error: "Internal Error" }, { status: 500 });
+    } catch (e: any) {
+        console.error("[PROFILE_ERROR]:", e);
+        return NextResponse.json({ error: e.message || "Internal Error" }, { status: 500 });
     }
 }

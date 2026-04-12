@@ -18,3 +18,16 @@ export async function verifyFirebaseToken() {
         return { error: "Unauthorized", status: 401 };
     }
 }
+export const ADMIN_EMAILS = ["chancellor@ichancetek.com", "chanceminus@gmail.com"];
+
+export async function verifyAdmin() {
+    const auth = await verifyFirebaseToken();
+    if ("error" in auth) return auth;
+
+    if (!auth.decodedToken.email || !ADMIN_EMAILS.includes(auth.decodedToken.email.toLowerCase())) {
+        console.warn(`[Admin Auth] Access denied for user: ${auth.decodedToken.email}`);
+        return { error: "Forbidden: Admin access required", status: 403 };
+    }
+
+    return auth;
+}

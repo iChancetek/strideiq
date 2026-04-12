@@ -12,10 +12,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const [isAdmin, setIsAdmin] = useState(false);
     const [checkingRole, setCheckingRole] = useState(true);
 
+    const ADMIN_EMAILS = ["chancellor@ichancetek.com", "chanceminus@gmail.com"];
+
     useEffect(() => {
         if (!loading) {
             if (!user) {
                 router.push("/login");
+            } else if (!user.email || !ADMIN_EMAILS.includes(user.email.toLowerCase())) {
+                console.warn("[Admin Access] Denied for email:", user.email);
+                router.push("/dashboard");
             } else {
                 checkAdminRole(user.uid);
             }

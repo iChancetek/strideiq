@@ -74,14 +74,34 @@ export default function LearnMorePage() {
                     <FeatureCard icon="💬" title="Social Feed" desc="Share photos/videos and comment on activities in real-time." />
                 </Section>
 
-                {/* 5. Platform Experience */}
+                {/* 5. Multimodal Intelligence */}
+                <Section
+                    title="Multimodal Intelligence"
+                    desc="GPT-5.2 powered perception for elite form and health analysis."
+                >
+                    <FeatureCard icon="👁️" title="Visual Form Analysis" desc="Upload workout videos for frame-by-frame posture and biomechanical feedback." />
+                    <FeatureCard icon="📸" title="Metabolic Logs" desc="AI recognizes food and supplements from photos to estimate caloric and macro load." />
+                    <FeatureCard icon="🧠" title="Context Awareness" desc="Agents perceive if you are training indoors or outdoors and adjust tracking modes." />
+                </Section>
+
+                {/* 6. Environmental Awareness */}
+                <Section
+                    title="Environmental Awareness"
+                    desc="Your AI team watches the conditions so you can stay safe."
+                >
+                    <FeatureCard icon="🌡️" title="Weather Adaptation" desc="Get real-time alerts for extreme heat, low humidity, or incoming storms." />
+                    <FeatureCard icon="🗺️" title="Route Intelligence" desc="Agents analyze terrain and elevation to adjust your pace targets dynamically." />
+                    <FeatureCard icon="☀️" title="Safety Alerts" desc="Smart reminders for hydration and UV protection based on your local exposure." />
+                </Section>
+
+                {/* 7. Platform Experience */}
                 <Section
                     title="Platform Experience"
-                    desc="A premium, app-like experience on any device."
+                    desc="A premium, app-like experience with dynamic media coordination."
                 >
-                    <FeatureCard icon="📱" title="Installable PWA" desc="Install directly to your home screen on iOS, Android, and Desktop." />
-                    <FeatureCard icon="🌓" title="Dark & Light Mode" desc="Beautifully designed themes that adapt to your environment." />
-                    <FeatureCard icon="🔒" title="Secure Cloud" desc="Your data is encrypted and instantly synced across all your devices." />
+                    <FeatureCard icon="🎵" title="Media Coordination" desc="BPM-matched music suggestions and smart audio ducking during coaching prompts." />
+                    <FeatureCard icon="🌓" title="Dark & Light Mode" desc="Beautifully designed themes that adapt to your environment and preference." />
+                    <FeatureCard icon="📱" title="Installable PWA" desc="Install StrideIQ directly to your home screen on iOS, Android, and Desktop." />
                 </Section>
 
             </div>

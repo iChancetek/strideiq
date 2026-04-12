@@ -1,18 +1,17 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase/admin";
+import { verifyAdmin } from "@/lib/auth-utils";
 
 export async function GET(req: Request) {
     try {
-        // In a real app, verify Admin role here via session/token
-        // For MVP, we trust the client to only show this page to admins,
-        // and we can filter by IP or header if needed, but best is auth check.
-        // Since we don't have a robust server-side session middleware yet, 
-        // we'll rely on client-side protection + obscurity for this MVP step,
-        // but ideally we'd pass the ID token and verify claims.
+        const auth = await verifyAdmin();
+        if ("error" in auth) {
+            return NextResponse.json({ error: auth.error }, { status: auth.status });
+        }
 
         const [usersSnap, activitiesSnap] = await Promise.all([
             adminDb.collection("users").get(),
-            adminDb.collection("activities").get() // careful with large datasets
+            adminDb.collection("activities").get()
         ]);
 
         const users = usersSnap.docs.map(doc => doc.data());

@@ -103,7 +103,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       // Clear greeting flag so next login triggers a fresh greeting
       sessionStorage.removeItem("strideiq_greeted");
       await logOut();
-      router.push("/login");
+      router.push("/");
     } catch (e) {
       console.error("Logout failed", e);
     }

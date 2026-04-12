@@ -523,8 +523,14 @@ export default function Home() {
           </span>
           <span style={{ fontSize: "11px", color: "var(--foreground-subtle)" }}>by ChanceTEK Fitness</span>
         </div>
+        <div style={{ display: "flex", gap: "24px", flexWrap: "wrap", fontSize: "13px" }}>
+          <Link href="/terms" style={{ color: "var(--foreground-subtle)", textDecoration: "none" }} onMouseEnter={e => e.currentTarget.style.color = "#fff"} onMouseLeave={e => e.currentTarget.style.color = "var(--foreground-subtle)"}>Terms</Link>
+          <Link href="/privacy" style={{ color: "var(--foreground-subtle)", textDecoration: "none" }} onMouseEnter={e => e.currentTarget.style.color = "#fff"} onMouseLeave={e => e.currentTarget.style.color = "var(--foreground-subtle)"}>Privacy</Link>
+          <Link href="/support" style={{ color: "var(--foreground-subtle)", textDecoration: "none" }} onMouseEnter={e => e.currentTarget.style.color = "#fff"} onMouseLeave={e => e.currentTarget.style.color = "var(--foreground-subtle)"}>Support</Link>
+          <Link href="/learn-more" style={{ color: "var(--foreground-subtle)", textDecoration: "none" }} onMouseEnter={e => e.currentTarget.style.color = "#fff"} onMouseLeave={e => e.currentTarget.style.color = "var(--foreground-subtle)"}>Features</Link>
+        </div>
         <p style={{ fontSize: "13px", color: "var(--foreground-subtle)" }}>
-          © 2026 StrideIQ by ChanceTEK Fitness. All rights reserved.
+          © 2026 StrideIQ Elite. All rights reserved.
         </p>
         <p style={{ fontSize: "12px", color: "var(--foreground-subtle)", fontStyle: "italic" }}>
           Intelligent Movement. Agentic Performance.
