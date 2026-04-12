@@ -39,7 +39,7 @@ export default function FastingTimer() {
              try {
                  // 1. First check IndexedDB (Fastest recovery)
                  const local = await getActiveSession('fasting');
-                 if (local && local.status === 'active') {
+                 if (local && local.type === 'fasting' && local.status === 'active') {
                      console.log("[FASTING_RESTORE] Found local session:", local);
                      setStartTime(new Date(local.startTime).getTime());
                      setGoalHours(local.goal || 16);

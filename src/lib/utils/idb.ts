@@ -13,12 +13,19 @@ export interface JournalDraft {
   synced: boolean;
 }
 
-export interface ActiveSession {
-  type: 'run' | 'fasting';
-  startTime: string;
-  data: any; // All session-specific data (distance, steps, etc.)
-  lastHeartbeat: string;
-}
+export type ActiveSession = 
+  | {
+      type: 'run';
+      startTime: string;
+      data: any; // All session-specific data (distance, steps, etc.)
+      lastHeartbeat: string;
+    }
+  | {
+      type: 'fasting';
+      startTime: string;
+      status: 'active' | 'paused' | 'completed';
+      goal: number;
+    };
 
 export interface SyncAction {
   id: string;
@@ -84,10 +91,10 @@ export async function saveActiveSession(session: ActiveSession) {
   return db.put('sessions', session);
 }
 
-export async function getActiveSession(type: 'run' | 'fasting') {
+export async function getActiveSession<T extends 'run' | 'fasting'>(type: T): Promise<Extract<ActiveSession, { type: T }> | null> {
   const db = await getDB();
   if (!db) return null;
-  return db.get('sessions', type);
+  return db.get('sessions', type) as any;
 }
 
 export async function clearActiveSession(type: 'run' | 'fasting') {
