@@ -177,6 +177,40 @@ function LoginContent() {
                     </button>
                 )}
 
+                <button
+                    onClick={handleGoogleSignIn}
+                    disabled={loading}
+                    style={{
+                        width: "100%",
+                        padding: "12px",
+                        borderRadius: "var(--radius-full)",
+                        background: "#fff",
+                        color: "#000",
+                        fontWeight: 600,
+                        border: "none",
+                        cursor: loading ? "not-allowed" : "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "10px",
+                        opacity: loading ? 0.6 : 1,
+                        marginBottom: "10px"
+                    }}
+                >
+                    <span style={{ fontSize: "18px" }}>G</span> Sign in with Google
+                </button>
+
+                <div style={{
+                    margin: "20px 0",
+                    textAlign: "center",
+                    color: "var(--foreground-muted)",
+                    fontSize: "14px",
+                    position: "relative"
+                }}>
+                    <span style={{ background: "#000", padding: "0 10px", position: "relative", zIndex: 1 }}>OR</span>
+                    <div style={{ position: "absolute", top: "50%", left: 0, right: 0, height: "1px", background: "rgba(255,255,255,0.1)" }}></div>
+                </div>
+
                 <form onSubmit={handleEmailSignIn} style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
                     <div>
                         <label style={{ display: "block", marginBottom: "8px", fontSize: "14px", color: "var(--foreground-muted)" }}>Email</label>
@@ -228,39 +262,6 @@ function LoginContent() {
                         {loading ? "Signing In..." : "Log In"}
                     </button>
                 </form>
-
-                <div style={{
-                    margin: "20px 0",
-                    textAlign: "center",
-                    color: "var(--foreground-muted)",
-                    fontSize: "14px",
-                    position: "relative"
-                }}>
-                    <span style={{ background: "#000", padding: "0 10px", position: "relative", zIndex: 1 }}>OR</span>
-                    <div style={{ position: "absolute", top: "50%", left: 0, right: 0, height: "1px", background: "rgba(255,255,255,0.1)" }}></div>
-                </div>
-
-                <button
-                    onClick={handleGoogleSignIn}
-                    disabled={loading}
-                    style={{
-                        width: "100%",
-                        padding: "12px",
-                        borderRadius: "var(--radius-full)",
-                        background: "#fff",
-                        color: "#000",
-                        fontWeight: 600,
-                        border: "none",
-                        cursor: loading ? "not-allowed" : "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: "10px",
-                        opacity: loading ? 0.6 : 1
-                    }}
-                >
-                    <span style={{ fontSize: "18px" }}>G</span> Sign in with Google
-                </button>
 
                 <p style={{ marginTop: "30px", textAlign: "center", fontSize: "14px", color: "var(--foreground-muted)" }}>
                     Don't have an account? <Link href="/signup" className="text-gradient" style={{ fontWeight: 600 }}>Sign Up</Link>
