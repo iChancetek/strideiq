@@ -168,9 +168,9 @@ export async function POST(req: Request) {
                 if (plan && plan.weeks && Array.isArray(plan.weeks)) {
                     break; // Success!
                 }
-            } catch (e) {
+            } catch (e: any) {
                 lastErr = e;
-                console.warn(`[Training Plan] Attempt ${attempt + 1} failed:`, e.message);
+                console.warn(`[Training Plan] Attempt ${attempt + 1} failed:`, e?.message || e);
                 if (attempt < 2) await new Promise(r => setTimeout(r, 1000 * Math.pow(2, attempt)));
             }
         }
