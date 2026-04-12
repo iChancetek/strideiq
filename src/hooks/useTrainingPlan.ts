@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { TrainingPlan } from "@/lib/types/training";
-import { supabase } from "@/lib/supabase";
 
 export function useTrainingPlan() {
     const { user } = useAuth();
@@ -18,7 +17,10 @@ export function useTrainingPlan() {
 
         const fetchPlan = async () => {
              try {
-                 const res = await fetch(`/api/training/plan?userId=${user.uid}`);
+                 const token = await user.getIdToken();
+                 const res = await fetch("/api/training/plan", {
+                     headers: { 'Authorization': `Bearer ${token}` }
+                 });
                  if (res.ok) {
                      const data = await res.json();
                      setPlan(data.plan);
@@ -31,20 +33,6 @@ export function useTrainingPlan() {
         };
 
         fetchPlan();
-
-        // Setup Supabase Realtime Broadcast
-        let channel: any = null;
-        if (supabase) {
-            channel = supabase.channel(`user:${user.uid}`)
-                .on('broadcast', { event: 'plan-updated' }, () => {
-                    fetchPlan(); // Re-fetch when plan changes
-                })
-                .subscribe();
-        }
-
-        return () => {
-            if (channel) supabase?.removeChannel(channel);
-        };
     }, [user]);
 
     return { plan, loading };

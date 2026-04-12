@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { supabase } from "@/lib/supabase";
 
 interface LikedBy {
     userId: string;
@@ -19,15 +18,21 @@ export function useLikes(activityOwnerId: string, activityId: string) {
     const likeCount = likes.length;
 
     useEffect(() => {
-        if (!activityOwnerId || !activityId) return;
+        if (!activityOwnerId || !activityId || !user) {
+            setLoading(false);
+            return;
+        }
 
         const fetchLikes = async () => {
              try {
-                 const res = await fetch(`/api/activity/likes?activityId=${activityId}`);
-                 if (res.ok) {
-                     const data = await res.json();
-                     setLikes(data.likes || []);
-                 }
+                const token = await user.getIdToken();
+                const res = await fetch(`/api/activity/likes?activityId=${activityId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    setLikes(data.likes || []);
+                }
              } catch (err) {
                  console.error("Error fetching likes:", err);
              } finally {
@@ -36,38 +41,19 @@ export function useLikes(activityOwnerId: string, activityId: string) {
         };
 
         fetchLikes();
-
-        // Setup Supabase Realtime Broadcast
-        let channel: any = null;
-        if (supabase) {
-            channel = supabase.channel(`activity:${activityId}`)
-                .on('broadcast', { event: 'like-toggled' }, (message) => {
-                    const { userId, isLiked: userLiked } = message.payload;
-                        
-                    if (userLiked) {
-                        setLikes(prev => {
-                            if (prev.some(l => l.userId === userId)) return prev;
-                            return [...prev, { userId, userName: "User", userPhoto: undefined }];
-                        });
-                    } else {
-                        setLikes(prev => prev.filter(l => l.userId !== userId));
-                    }
-                })
-                .subscribe();
-        }
-
-        return () => {
-            if (channel) supabase?.removeChannel(channel);
-        };
-    }, [activityOwnerId, activityId]);
+    }, [activityOwnerId, activityId, user]);
 
     const toggleLike = async () => {
         if (!user) return;
 
         try {
+            const token = await user.getIdToken();
             const response = await fetch("/api/activity/like", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: { 
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
                 body: JSON.stringify({
                     activityId,
                     userId: user.uid,

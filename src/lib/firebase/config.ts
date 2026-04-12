@@ -32,7 +32,7 @@ if (process.env.NODE_ENV === "production") {
 const db = initializeFirestore(app, {
   localCache: memoryLocalCache(),
   experimentalForceLongPolling: true
-});
+}, "default");
 
 if (typeof window !== "undefined") {
     console.log("[Firebase Config] Firestore instance created.");

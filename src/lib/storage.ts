@@ -1,33 +1,22 @@
-import { supabase } from "./supabase";
+import { storage } from "./firebase/config";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 /**
- * Uploads a file to a specific path in a Supabase bucket.
+ * Uploads a file to a specific path in Firebase Storage.
  * Returns the public URL of the uploaded file.
  */
 export async function uploadFile(
-    bucket: string,
+    bucket: string, // Kept for compatibility, serves as root dir
     path: string,
     file: File
 ): Promise<{ url: string; error?: any }> {
-    if (!supabase) {
-        return { url: "", error: new Error("Supabase is not initialized. Please check your environment variables.") };
-    }
     try {
-        const { data, error } = await supabase.storage
-            .from(bucket)
-            .upload(path, file, {
-                cacheControl: '3600',
-                upsert: true
-            });
-
-        if (error) return { url: "", error };
-
-        const { data: { publicUrl } } = supabase.storage
-            .from(bucket)
-            .getPublicUrl(path);
-
-        return { url: publicUrl };
+        const storageRef = ref(storage, `${bucket}/${path}`);
+        const snapshot = await uploadBytes(storageRef, file);
+        const url = await getDownloadURL(snapshot.ref);
+        return { url };
     } catch (error) {
+        console.error("[Storage] Upload failed:", error);
         return { url: "", error };
     }
 }
@@ -42,19 +31,17 @@ export async function uploadMediaFiles(files: File[], userId: string) {
         const mediaType = (file.type.startsWith("video") ? "video" : "image") as "image" | "video";
         const fileExt = file.name.split('.').pop();
         const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-        const filePath = `users/${userId}/activities/${fileName}`;
+        const filePath = `users/${userId}/media/${fileName}`; // Clean path
 
-        const { url, error } = await uploadFile('activities', filePath, file);
+        const { url, error } = await uploadFile('uploads', filePath, file);
         
         if (!error && url) {
             mediaItems.push({
                 type: mediaType,
                 url,
-                path: filePath,
+                path: `uploads/${filePath}`,
                 createdAt: new Date().toISOString()
             });
-        } else {
-            console.error("Upload error for file:", file.name, error);
         }
     }
     

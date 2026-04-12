@@ -9,11 +9,11 @@ import { AgentCore } from "@/lib/agents/agent-core";
 import { GeoPosition, AgentEvent, MileSplit } from "@/lib/agents/types";
 import { getActivityLabel, getActivityType, getModeConfig } from "@/lib/agents/mode-agent";
 import PostSessionModal from "./PostSessionModal";
-import { supabase } from "@/lib/supabase";
 import { t } from "@/lib/translations";
 import { getActiveSession, saveActiveSession, clearActiveSession } from "@/lib/utils/idb";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
+import { uploadMediaFiles } from "@/lib/storage";
 
 // Fix Leaflet icon issue in Next.js
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -200,30 +200,7 @@ export default function SessionTracker() {
         }
     }, [isTracking, isPaused, environment]);
 
-    // ── Supabase Heartbeat (15s) ──────────────────────────────────────────────
-    useEffect(() => {
-        if (isTracking && !isPaused && user) {
-            const interval = setInterval(async () => {
-                if (!supabase) return;
-                try {
-                    await supabase.from('active_sessions').upsert({
-                        user_id: user.uid,
-                        type: 'run',
-                        status: 'active',
-                        data: {
-                            distance: distanceRef.current,
-                            duration: activeTimeRef.current,
-                            steps: stepsRef.current,
-                            mode,
-                            environment,
-                        },
-                        updated_at: new Date().toISOString()
-                    });
-                } catch (e) { console.warn("Heartbeat sync failed"); }
-            }, 15000);
-            return () => clearInterval(interval);
-        }
-    }, [isTracking, isPaused, user, mode, environment]);
+    // Persist to IDB only
 
     useEffect(() => {
         if (isTracking && !isPaused) {
@@ -555,40 +532,8 @@ export default function SessionTracker() {
         setSaving(true);
         console.log("[SESSION_SAVE_ATTEMPT] Starting save...");
         try {
-            // Upload media files to Supabase Storage
-            const mediaItems: { type: "image" | "video"; url: string; path: string; createdAt: string }[] = [];
-            if (data.mediaFiles.length > 0 && user) {
-                for (const file of data.mediaFiles) {
-                    const mediaType = (file.type.startsWith("video") ? "video" : "image") as "image" | "video";
-                    const fileExt = file.name.split('.').pop();
-                    const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-                    const filePath = `users/${user.uid}/activities/${fileName}`;
-
-                    if (supabase) {
-                        const { data: uploadData, error: uploadError } = await supabase.storage
-                            .from('activities')
-                            .upload(filePath, file);
-
-                        if (uploadError) {
-                            console.error("[STORAGE_UPLOAD_ERROR]", uploadError);
-                            continue;
-                        }
-
-                        const { data: { publicUrl } } = supabase.storage
-                            .from('activities')
-                            .getPublicUrl(filePath);
-
-                        mediaItems.push({ 
-                            type: mediaType, 
-                            url: publicUrl, 
-                            path: filePath, 
-                            createdAt: new Date().toISOString() 
-                        });
-                    } else {
-                        console.warn("[STORAGE_UPLOAD_SKIPPED] Supabase not available.");
-                    }
-                }
-            }
+            // Upload media files to Firebase Storage
+            const mediaItems = await uploadMediaFiles(data.mediaFiles, user.uid);
 
             const { activityId } = await retryAsync(() => addActivity({
                 type: getActivityType(mode),
@@ -610,10 +555,14 @@ export default function SessionTracker() {
 
             console.log("[SESSION_SAVE_SUCCESS] Activity saved successfully. ID:", activityId);
 
+            const token = await user.getIdToken();
             // Trigger AI Coaching Analysis (Background)
             fetch("/api/ai/coach", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: { 
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
                 body: JSON.stringify({ activityId }),
             }).then(res => res.json())
               .then(aiRes => console.log("[AI_COACH_SUCCESS]", aiRes))

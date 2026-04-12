@@ -20,21 +20,21 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Missing fields" }, { status: 400 });
         }
 
-        // Ensure the parent users/{uid} doc exists before writing to subcollections
-        const userDocRef = adminDb.collection("users").doc(userId);
-        await userDocRef.set({ uid: userId }, { merge: true });
-
-        const logRef = userDocRef.collection("fasting_logs").doc();
-        await logRef.set({
+        // Save to top-level 'entries' collection (standardized timeline structure)
+        const entriesRef = adminDb.collection("entries");
+        const docRef = await entriesRef.add({
+            userId,
+            type: "Fasting",
             startTime,
             endTime,
-            durationMinutes,
-            type,
-            goalHours,
-            completedAt: new Date().toISOString()
+            duration: durationMinutes, // standardized to duration
+            goal: goalHours || 16,
+            date: new Date(endTime), // standardized timestamp
+            notes: body.notes || "Fasting Session",
+            createdAt: new Date().toISOString()
         });
 
-        return NextResponse.json({ success: true, id: logRef.id });
+        return NextResponse.json({ success: true, id: docRef.id });
 
     } catch (error) {
         console.error("Fasting Log Error:", error);

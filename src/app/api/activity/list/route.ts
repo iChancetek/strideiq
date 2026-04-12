@@ -1,15 +1,23 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase/admin";
+import { getAuth } from "firebase-admin/auth";
+import { headers } from "next/headers";
+
 export async function GET(req: Request) {
     try {
-        const { searchParams } = new URL(req.url);
-        const userId = searchParams.get("userId");
-        const limitParam = searchParams.get("limit");
-        if (!userId) return NextResponse.json({ error: "User ID required" }, { status: 400 });
+        const idToken = (await headers()).get("Authorization")?.split("Bearer ")[1];
+        if (!idToken) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         
+        const decodedToken = await getAuth().verifyIdToken(idToken);
+        const userId = decodedToken.uid;
+        
+        const { searchParams } = new URL(req.url);
+        const limitParam = searchParams.get("limit");
         const limitVal = limitParam ? parseInt(limitParam) : 50;
+
         const snapshot = await adminDb.collection("entries")
             .where("userId", "==", userId)
+            .where("type", "!=", "journal") // Exclude journals from activity feed
             .limit(limitVal)
             .get();
             

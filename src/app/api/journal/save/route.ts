@@ -1,18 +1,21 @@
 import { adminDb } from "@/lib/firebase/admin";
+import { getAuth } from "firebase-admin/auth";
+import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { Timestamp } from "firebase-admin/firestore";
 
 export async function POST(req: Request) {
     try {
-        console.log("=== API /journal/save CALLED ===");
-        const body = await req.json();
-        const { id, title, content, type = "journal", imageUrls, media, userId } = body;
-        console.log("Parsed body. ID:", id, "UserId:", userId, "Media count:", media?.length);
-
-        if (!userId) {
-            console.log("Validation Failed: Unauthorized");
+        const idToken = (await headers()).get("Authorization")?.split("Bearer ")[1];
+        if (!idToken) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
+
+        const decodedToken = await getAuth().verifyIdToken(idToken);
+        const userId = decodedToken.uid;
+
+        const body = await req.json();
+        const { id, title, content, type = "journal", imageUrls, media } = body;
 
         if (!content && !title && (!imageUrls || imageUrls.length === 0) && (!media || media.length === 0)) {
             console.log("Validation Failed: Empty entry");

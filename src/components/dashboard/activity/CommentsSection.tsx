@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
-import { supabase } from "@/lib/supabase";
 
 interface Comment {
     id: string;
@@ -30,15 +29,21 @@ export default function CommentsSection({ activityId, ownerId }: CommentsSection
     const [submitting, setSubmitting] = useState(false);
 
     useEffect(() => {
-        if (!activityId) return;
+        if (!activityId || !user) {
+            setLoading(false);
+            return;
+        }
 
         const fetchComments = async () => {
              try {
-                 const res = await fetch(`/api/activity/comment?activityId=${activityId}`);
-                 if (res.ok) {
-                     const data = await res.json();
-                     setComments(data.comments || []);
-                 }
+                const token = await user.getIdToken();
+                const res = await fetch(`/api/activity/comment?activityId=${activityId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    setComments(data.comments || []);
+                }
              } catch (err) {
                  console.error("Error fetching comments:", err);
              } finally {
@@ -47,33 +52,19 @@ export default function CommentsSection({ activityId, ownerId }: CommentsSection
         };
 
         fetchComments();
-
-        // Setup Supabase Realtime Broadcast
-        let channel: any = null;
-        if (supabase) {
-            channel = supabase.channel(`activity:${activityId}`)
-                .on('broadcast', { event: 'new-comment' }, (message) => {
-                    const newComment = message.payload;
-                    setComments(prev => {
-                        if (prev.some(c => c.id === newComment.id)) return prev;
-                        return [...prev, newComment];
-                    });
-                })
-                .subscribe();
-        }
-
-        return () => {
-            if (channel) supabase?.removeChannel(channel);
-        };
-    }, [activityId, ownerId]);
+    }, [activityId, ownerId, user]);
 
     const handlePost = async () => {
         if (!newComment.trim() || !user) return;
         setSubmitting(true);
         try {
+            const token = await user.getIdToken();
             const response = await fetch("/api/activity/comment", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: { 
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
                 body: JSON.stringify({
                     activityId,
                     userId: user.uid,
@@ -84,6 +75,19 @@ export default function CommentsSection({ activityId, ownerId }: CommentsSection
 
             if (!response.ok) throw new Error("Post failed");
             
+            const data = await response.json();
+            // Optimistic update or just clear and re-fetch since realtime is removed
+            // I'll add the comment optimistically for better UX
+            const myComment: Comment = {
+                id: data.commentId || Math.random().toString(),
+                text: newComment,
+                userId: user.uid,
+                userName: user.displayName || "Me",
+                userPhoto: user.photoURL || undefined,
+                parentId: replyTo?.id || undefined,
+                createdAt: { toDate: () => new Date() }
+            };
+            setComments(prev => [...prev, myComment]);
             setNewComment("");
             setReplyTo(null);
         } catch (e) {
@@ -94,10 +98,12 @@ export default function CommentsSection({ activityId, ownerId }: CommentsSection
     };
 
     const handleDelete = async (commentId: string) => {
-        if (!confirm("Delete this comment?")) return;
+        if (!confirm("Delete this comment?") || !user) return;
         try {
-            const response = await fetch(`/api/activity/comment?id=${commentId}&userId=${user?.uid}`, {
-                method: "DELETE"
+            const token = await user.getIdToken();
+            const response = await fetch(`/api/activity/comment?id=${commentId}`, {
+                method: "DELETE",
+                headers: { 'Authorization': `Bearer ${token}` }
             });
             if (response.ok) {
                 setComments(prev => prev.filter(c => c.id !== commentId));
@@ -143,7 +149,7 @@ export default function CommentsSection({ activityId, ownerId }: CommentsSection
                         {comment.userPhoto ? (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img src={comment.userPhoto} alt={comment.userName} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                        ) : comment.userName[0]}
+                        ) : comment.userName?.[0] || 'U'}
                     </div>
 
                     {/* Bubble */}
@@ -170,6 +176,7 @@ export default function CommentsSection({ activityId, ownerId }: CommentsSection
                             marginTop: "4px",
                             marginLeft: "4px",
                             alignItems: "center",
+                            height: "18px"
                         }}>
                             <span style={{ fontSize: "11px", color: "var(--foreground-muted)" }}>
                                 {comment.createdAt?.toDate

@@ -3,13 +3,21 @@ import { adminDb } from "@/lib/firebase/admin";
 import { FieldValue } from "firebase-admin/firestore";
 import { z } from "zod";
 
+import { getAuth } from "firebase-admin/auth";
+import { headers } from "next/headers";
+
 const deleteActivitySchema = z.object({
-    userId: z.string().min(1),
     activityId: z.string().min(1),
 });
 
 export async function DELETE(req: Request) {
     try {
+        const idToken = (await headers()).get("Authorization")?.split("Bearer ")[1];
+        if (!idToken) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+        const decodedToken = await getAuth().verifyIdToken(idToken);
+        const userId = decodedToken.uid;
+
         const body = await req.json();
         const validation = deleteActivitySchema.safeParse(body);
 
@@ -17,46 +25,47 @@ export async function DELETE(req: Request) {
             return NextResponse.json({ error: "Invalid data" }, { status: 400 });
         }
 
-        const { userId, activityId } = validation.data;
-
-        const docRef = adminDb.collection("users").doc(userId).collection("activities").doc(activityId);
-        const docSnap = await docRef.get();
+        const { activityId } = validation.data;
+        const entryRef = adminDb.collection("entries").doc(activityId);
+        const docSnap = await entryRef.get();
 
         if (!docSnap.exists) {
             return NextResponse.json({ error: "Activity not found" }, { status: 404 });
         }
 
         const activity = docSnap.data()!;
+        if (activity.userId !== userId) {
+            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
 
-        // Delete the document
-        await docRef.delete();
+        // Delete the standardized entry document
+        await entryRef.delete();
 
-        // Decrement aggregated stats
+        // ────────────────────────────────────────────────────────────
+        // Decrement aggregated stats (Maintenance)
+        // ────────────────────────────────────────────────────────────
         try {
-            const dateObj = activity.date?.toDate ? activity.date.toDate() : new Date(activity.date);
+            const dateObj = new Date(activity.date.toDate ? activity.date.toDate() : activity.date);
             const monthKey = `${dateObj.getFullYear()}-${(dateObj.getMonth() + 1).toString().padStart(2, "0")}`;
 
-            // Ensure the parent users/{uid} doc exists before writing to subcollections
             const userDocRef = adminDb.collection("users").doc(userId);
-            await userDocRef.set({ uid: userId }, { merge: true });
-
-            // Decrement all-time stats
             const allTimeRef = userDocRef.collection("stats").doc("allTime");
-            await allTimeRef.set({
-                totalMiles: FieldValue.increment(-(activity.distance || 0)),
-                totalRuns: FieldValue.increment(-1),
-                totalTime: FieldValue.increment(-(activity.duration || 0)),
-                lastUpdated: FieldValue.serverTimestamp(),
-            }, { merge: true });
-
-            // Decrement monthly stats
             const monthlyRef = userDocRef.collection("stats").doc(monthKey);
-            await monthlyRef.set({
-                totalMiles: FieldValue.increment(-(activity.distance || 0)),
-                totalRuns: FieldValue.increment(-1),
-                totalTime: FieldValue.increment(-(activity.duration || 0)),
-                lastUpdated: FieldValue.serverTimestamp(),
-            }, { merge: true });
+
+            await Promise.all([
+                allTimeRef.set({
+                    totalMiles: FieldValue.increment(-(activity.distance || 0)),
+                    totalRuns: FieldValue.increment(-1),
+                    totalTime: FieldValue.increment(-(activity.duration || 0)),
+                    lastUpdated: FieldValue.serverTimestamp(),
+                }, { merge: true }),
+                monthlyRef.set({
+                    totalMiles: FieldValue.increment(-(activity.distance || 0)),
+                    totalRuns: FieldValue.increment(-1),
+                    totalTime: FieldValue.increment(-(activity.duration || 0)),
+                    lastUpdated: FieldValue.serverTimestamp(),
+                }, { merge: true })
+            ]);
         } catch (statsErr) {
             console.error("Stats decrement failed (non-fatal):", statsErr);
         }

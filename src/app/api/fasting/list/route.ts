@@ -1,4 +1,4 @@
-import { adminDb } from "@/lib/firebase/admin";
+import { getAdminDb } from "@/lib/firebase/admin";
 import { getAuth } from "firebase-admin/auth";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
@@ -13,18 +13,24 @@ export async function GET(req: Request) {
         const decodedToken = await getAuth().verifyIdToken(idToken);
         const userId = decodedToken.uid;
 
-        const snapshot = await adminDb.collection("users").doc(userId).collection("fasting_logs")
-            .orderBy("endTime", "desc")
-            .limit(20)
+        const snapshot = await getAdminDb().collection("entries")
+            .where("userId", "==", userId)
+            .where("type", "==", "Fasting")
+            .orderBy("date", "desc")
+            .limit(50)
             .get();
 
-        const logs = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data(),
-            // Ensure dates are strings
-            startTime: typeof doc.data().startTime === 'number' ? new Date(doc.data().startTime).toISOString() : doc.data().startTime,
-            endTime: typeof doc.data().endTime === 'number' ? new Date(doc.data().endTime).toISOString() : doc.data().endTime,
-        }));
+        const logs = snapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+                id: doc.id,
+                ...data,
+                // Ensure date string for frontend
+                endTime: data.endTime || (data.date?.toDate ? data.date.toDate().toISOString() : data.date),
+                startTime: data.startTime || "",
+                durationMinutes: data.duration || 0, // frontend expects durationMinutes
+            };
+        });
 
         return NextResponse.json({ logs });
 

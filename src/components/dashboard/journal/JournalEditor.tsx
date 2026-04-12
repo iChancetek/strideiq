@@ -138,7 +138,7 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
 
                 if (response.ok) {
                     await saveLocalJournal({ ...payload, synced: true });
-                    console.log("[JOURNAL_SYNC_SUCCESS] Synced with Supabase", entryId);
+                    console.log("[JOURNAL_SYNC_SUCCESS] Synced with Cloud Firestore", entryId);
                 } else {
                     console.warn("[JOURNAL_SYNC_PENDING] Network issue, will retry later.");
                 }

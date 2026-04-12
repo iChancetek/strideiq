@@ -1,38 +1,50 @@
 import { NextResponse } from "next/server";
-import { adminDb } from "@/lib/firebase/admin";
+import { getAdminDb } from "@/lib/firebase/admin";
+import { getAuth } from "firebase-admin/auth";
+import { headers } from "next/headers";
 
 export async function GET(req: Request) {
     try {
-        const { searchParams } = new URL(req.url);
-        const userId = searchParams.get("userId");
-        if (!userId) return NextResponse.json({ error: "Missing userId" }, { status: 400 });
+        const idToken = (await headers()).get("Authorization")?.split("Bearer ")[1];
+        if (!idToken) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         
-        const snapshot = await adminDb.collection("users").doc(userId)
+        const decodedToken = await getAuth().verifyIdToken(idToken);
+        const userId = decodedToken.uid;
+        
+        const snapshot = await getAdminDb().collection("users").doc(userId)
             .collection("fasting_sessions").where("status", "==", "active").limit(1).get();
             
         return NextResponse.json({ activeSession: snapshot.empty ? null : { id: snapshot.docs[0].id, ...snapshot.docs[0].data() } });
-    } catch (e) {
-        return NextResponse.json({ error: "Failed" }, { status: 500 });
+    } catch (e: any) {
+        return NextResponse.json({ error: "Status GET Error: " + (e.message || String(e)) }, { status: 500 });
     }
 }
 
 export async function POST(req: Request) {
     try {
+        const idToken = (await headers()).get("Authorization")?.split("Bearer ")[1];
+        if (!idToken) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        
+        const decodedToken = await getAuth().verifyIdToken(idToken);
+        const userId = decodedToken.uid;
+
         const body = await req.json();
-        const { userId, action, goalHours, notes, media } = body;
+        const { action, goalHours, notes, media } = body;
         
-        if (!userId || !action) return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+        if (!action) return NextResponse.json({ error: "Missing action" }, { status: 400 });
         
-        await adminDb.collection("users").doc(userId).set({ uid: userId }, { merge: true });
-        const sessionsRef = adminDb.collection("users").doc(userId).collection("fasting_sessions");
+        await getAdminDb().collection("users").doc(userId).set({ uid: userId }, { merge: true });
+        const sessionsRef = getAdminDb().collection("users").doc(userId).collection("fasting_sessions");
         
         if (action === "start") {
+            console.log("[FASTING_STATUS] Starting new session for user:", userId);
             await sessionsRef.add({
                 userId,
                 startTime: new Date().toISOString(),
                 goal: goalHours || 16,
                 status: "active"
             });
+            console.log("[FASTING_STATUS] Session started successfully.");
         } else if (action === "stop") {
             const activeSnapshot = await sessionsRef.where("status", "==", "active").limit(1).get();
             if (!activeSnapshot.empty) {
@@ -48,19 +60,23 @@ export async function POST(req: Request) {
                     status: "completed"
                 });
                 
-                // Add to history
-                await adminDb.collection("entries").add({
+                // Add to history (standardized entries collection)
+                await getAdminDb().collection("entries").add({
                     userId,
                     type: "Fasting",
-                    duration: durationSeconds,
-                    date: new Date(),
-                    mode: "fasting",
-                    notes: notes || "Fasting Session"
+                    startTime: doc.data().startTime,
+                    endTime: new Date().toISOString(),
+                    duration: Math.floor(durationSeconds / 60), // standardizing to minutes
+                    date: new Date(), // standardized timestamp for timeline
+                    goal: doc.data().goal || 16,
+                    notes: notes || "Fasting Session",
+                    media: media || null,
+                    createdAt: new Date().toISOString()
                 });
             }
         }
         return NextResponse.json({ success: true });
-    } catch (e) {
-        return NextResponse.json({ error: "Failed to update" }, { status: 500 });
+    } catch (e: any) {
+        return NextResponse.json({ error: "Status POST Error: " + (e.message || String(e)) }, { status: 500 });
     }
 }

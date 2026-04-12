@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { supabase } from "@/lib/supabase";
 import { uploadMediaFiles } from "@/lib/storage";
 import { getActiveSession, saveActiveSession, clearActiveSession } from "@/lib/utils/idb";
 
@@ -15,7 +14,7 @@ const GOAL_OPTIONS = [
 ];
 
 export default function FastingTimer() {
-    const { user } = useAuth();
+    const { user, loading: authLoading } = useAuth();
     const [isFasting, setIsFasting] = useState(false);
     const [startTime, setStartTime] = useState<number | null>(null);
     const [elapsed, setElapsed] = useState(0);
@@ -31,7 +30,7 @@ export default function FastingTimer() {
     const [analysis, setAnalysis] = useState<any>(null);
     const [analyzing, setAnalyzing] = useState(false);
 
-    // Sync with PostgreSQL / Supabase / IndexedDB
+    // Sync with Firestore / IndexedDB
     useEffect(() => {
         if (!user) { setLoading(false); return; }
 
@@ -48,8 +47,11 @@ export default function FastingTimer() {
                      return;
                  }
 
-                 // 2. Fallback to Supabase
-                 const res = await fetch(`/api/fasting/status?userId=${user.uid}`);
+                 // 2. Fallback to API
+                 const token = await user.getIdToken();
+                 const res = await fetch(`/api/fasting/status`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                 });
                  if (res.ok) {
                      const { activeSession } = await res.json();
                      if (activeSession) {
@@ -79,20 +81,6 @@ export default function FastingTimer() {
         };
 
         fetchStatus();
-
-        // Setup Supabase Realtime Broadcast
-        let channel: any = null;
-        if (supabase) {
-            channel = supabase.channel(`user:${user.uid}`)
-                .on('broadcast', { event: 'fasting-status-changed' }, () => {
-                    fetchStatus(); // Re-fetch status when changed
-                })
-                .subscribe();
-        }
-
-        return () => {
-            if (channel) supabase?.removeChannel(channel);
-        };
     }, [user]);
 
     // Timer tick — only when fasting is active
@@ -104,7 +92,13 @@ export default function FastingTimer() {
     }, [isFasting, startTime]);
 
     const toggleFasting = async () => {
-        if (!user || saving) return;
+        if (authLoading || saving) return;
+        
+        if (!user) {
+            console.warn("[FASTING_TIMER] Cannot start/stop: No authenticated user found.");
+            alert("Please log in to start a fasting session.");
+            return;
+        }
         
         if (isFasting) {
             setShowSummary(true);
@@ -113,11 +107,14 @@ export default function FastingTimer() {
 
         setSaving(true);
         try {
+            const token = await user.getIdToken();
             const response = await fetch("/api/fasting/status", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: { 
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
                 body: JSON.stringify({
-                    userId: user.uid,
                     action: "start",
                     goalHours
                 }),
@@ -132,9 +129,12 @@ export default function FastingTimer() {
                 status: 'active',
                 goal: goalHours
             });
+            setStartTime(Date.now());
+            setIsFasting(true);
 
-        } catch (e) {
+        } catch (e: any) {
             console.error("Fasting start error", e);
+            alert("Error starting fast: " + (e.message || String(e)));
         } finally {
             setSaving(false);
         }
@@ -151,11 +151,14 @@ export default function FastingTimer() {
             }
 
             // 2. Stop Fast
+            const token = await user.getIdToken();
             const response = await fetch("/api/fasting/status", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: { 
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
                 body: JSON.stringify({
-                    userId: user.uid,
                     action: "stop",
                     notes,
                     media: mediaItems
@@ -166,6 +169,11 @@ export default function FastingTimer() {
             
             // Clear from IDB
             await clearActiveSession('fasting');
+            
+            // Reset Fasting State immediately
+            setIsFasting(false);
+            setStartTime(null);
+            setElapsed(0);
             
             // 3. Trigger Analysis and show it
             setAnalyzing(true);

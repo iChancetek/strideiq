@@ -2,17 +2,21 @@ import { NextResponse } from "next/server";
 import { createActivitySchema } from "@/lib/validators/activity";
 import { updateUserStats } from "@/lib/server/activity-service";
 import { adminDb } from "@/lib/firebase/admin";
+import { getAuth } from "firebase-admin/auth";
+import { headers } from "next/headers";
 import { Timestamp } from "firebase-admin/firestore";
 
 export async function POST(req: Request) {
     try {
-        const body = await req.json();
-
-        // Extract userId from body
-        const { userId } = body;
-        if (!userId) {
-            return NextResponse.json({ error: "User ID required" }, { status: 401 });
+        const idToken = (await headers()).get("Authorization")?.split("Bearer ")[1];
+        if (!idToken) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
+
+        const decodedToken = await getAuth().verifyIdToken(idToken);
+        const userId = decodedToken.uid;
+
+        const body = await req.json();
 
         // Validate
         const validation = createActivitySchema.safeParse(body);
@@ -31,19 +35,18 @@ export async function POST(req: Request) {
         const paceSec = Math.floor(pace % 60);
         const paceStr = `${paceMin}:${paceSec < 10 ? "0" : ""}${paceSec}`;
 
-        // Ensure the parent users/{uid} doc exists before writing to subcollections
-        // This prevents NOT_FOUND errors for new users whose profile hasn't synced yet
-        const userDocRef = adminDb.collection("users").doc(userId);
-        await userDocRef.set({ uid: userId }, { merge: true });
+        // Ensure the parent user doc exists (prevents NOT_FOUND)
+        await adminDb.collection("users").doc(userId).set({ uid: userId }, { merge: true });
 
-        // Save using Admin SDK — bypasses client auth rules
-        const docRef = await userDocRef
-            .collection("activities")
+        // Save to top-level 'entries' collection (standardized timeline structure)
+        const docRef = await adminDb.collection("entries")
             .add({
                 ...activityData,
+                userId,
                 date: Timestamp.fromDate(activityDate),
                 createdAt: Timestamp.now(),
                 pace: paceStr,
+                type: activityData.type || "Run", // Default to Run if missing
             });
 
         // Update aggregate stats

@@ -19,10 +19,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const greetingTriggered = useRef(false);
 
   useEffect(() => {
-    if (!loading && user && !user.emailVerified) {
-      router.push("/verify-email");
+    if (!loading) {
+        if (!user) {
+            router.push("/login");
+        } else if (!user.emailVerified) {
+            router.push("/verify-email");
+        }
     }
   }, [user, loading, router]);
+
+  // Forcefully unregister service workers in development to stop Workbox from breaking Fast Refresh & caching old bundles
+  useEffect(() => {
+      if (process.env.NODE_ENV === "development" && "serviceWorker" in navigator) {
+          navigator.serviceWorker.getRegistrations().then(registrations => {
+              for (let registration of registrations) {
+                  registration.unregister();
+              }
+          }).catch(console.error);
+      }
+  }, []);
 
   // Voice Greeting — plays ONCE per login session (sessionStorage clears on tab close)
   useEffect(() => {

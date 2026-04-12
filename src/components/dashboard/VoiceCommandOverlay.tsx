@@ -91,7 +91,11 @@ export default function VoiceCommandOverlay() {
                 if (action.params.mode) {
                     await updateSettings({ activityMode: action.params.mode });
                 }
-                router.push("/dashboard/run");
+                if (action.params.mode === "fasting") {
+                    router.push("/dashboard/fasting");
+                } else {
+                    router.push("/dashboard/run");
+                }
                 break;
             case "logout":
                 await logOut();

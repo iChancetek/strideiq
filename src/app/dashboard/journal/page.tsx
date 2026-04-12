@@ -3,7 +3,6 @@
 import { useAuth } from "@/context/AuthContext";
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { supabase } from "@/lib/supabase";
 import { getLocalJournals, saveLocalJournal } from "@/lib/utils/idb";
 import { authenticatedFetch } from "@/lib/api-client";
 
@@ -27,14 +26,17 @@ export default function JournalDashboard() {
         setLoading(true);
 
         try {
-            // 1. Fetch from our authenticated API (backed by Supabase)
-            const res = await authenticatedFetch("/api/journal/list");
+            const token = await user.getIdToken();
+            const res = await authenticatedFetch("/api/journal/list", {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
             
             if (res.ok) {
-                const fetchedEntries = await res.json();
+                const data = await res.json();
+                const fetchedEntries = data.entries || [];
                 const normalizedEntries = fetchedEntries.map((entry: any) => ({
                     ...entry,
-                    createdAt: entry.date || entry.created_at || new Date().toISOString(),
+                    createdAt: entry.createdAt || entry.date || new Date().toISOString(),
                 }));
 
                 setEntries(normalizedEntries);
@@ -65,26 +67,6 @@ export default function JournalDashboard() {
 
     useEffect(() => {
         fetchEntries();
-
-        // 4. Enable Supabase Realtime
-        let channel: any = null;
-        if (user && supabase) {
-            channel = supabase.channel(`journal_changes_${user.uid}`)
-                .on('postgres_changes', {
-                    event: '*',
-                    schema: 'public',
-                    table: 'journals',
-                    filter: `user_id=eq.${user.uid}`
-                }, (payload) => {
-                    console.log("[JOURNAL_REALTIME] Change detected:", payload);
-                    fetchEntries(); // Refresh list on change
-                })
-                .subscribe();
-        }
-
-        return () => { 
-            if (channel) supabase?.removeChannel(channel); 
-        };
     }, [user, fetchEntries]);
 
     const filteredEntries = entries.filter(entry =>

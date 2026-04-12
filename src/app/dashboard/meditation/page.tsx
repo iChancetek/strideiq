@@ -4,7 +4,6 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useActivities } from "@/hooks/useActivities";
-import { supabase } from "@/lib/supabase";
 import { Loader2, History, MessageSquare, Info } from "lucide-react";
 
 const TRACKS = [
@@ -70,7 +69,7 @@ export default function MeditationPage() {
                 mode: 'meditation',
                 environment: 'indoor',
             });
-            console.log("[MEDITATION] Session saved to activities table.");
+            console.log("[MEDITATION] Session saved.");
             setNotes("");
             setShowNotes(false);
         } catch (e) {
