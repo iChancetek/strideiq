@@ -5,9 +5,10 @@ import { supabase } from "@/lib/supabase";
 import { NextResponse } from "next/server";
 
 export async function GET(req: Request) {
+    let userId: string | null = null;
     try {
         const { searchParams } = new URL(req.url);
-        const userId = searchParams.get("userId");
+        userId = searchParams.get("userId");
 
         if (!userId) {
             return NextResponse.json({ error: "Missing userId" }, { status: 400 });
@@ -34,9 +35,14 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+    let userId: string | undefined;
+    let action: string | undefined;
+
     try {
         const body = await req.json();
-        const { userId, action, goalHours, notes, media } = body; // action: 'start' | 'stop'
+        userId = body.userId;
+        action = body.action;
+        const { goalHours, notes, media } = body;
 
         if (!userId || !action) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
