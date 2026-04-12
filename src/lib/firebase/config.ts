@@ -25,10 +25,18 @@ if (typeof window !== "undefined") {
 
 // Initialize Firestore with default memory cache (prevents silent IndexedDB hangs on iOS PWA)
 // CRITICAL: We MUST force long polling to bypass iOS Safari's aggressive WebSocket killing in background PWAs.
+if (process.env.NODE_ENV === "production") {
+    console.log(`[Firebase Config] Initializing Firestore for project: ${firebaseConfig.projectId}`);
+}
+
 const db = initializeFirestore(app, {
   localCache: memoryLocalCache(),
   experimentalForceLongPolling: true
 });
+
+if (typeof window !== "undefined") {
+    console.log("[Firebase Config] Firestore instance created.");
+}
 const storage = getStorage(app);
 const googleProvider = new GoogleAuthProvider();
 
