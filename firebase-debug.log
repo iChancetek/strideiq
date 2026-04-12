@@ -1,0 +1,34 @@
+[debug] [2026-04-12T06:06:47.024Z] ----------------------------------------------------------------------
+[debug] [2026-04-12T06:06:47.029Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\chanc\AppData\Local\npm-cache\_npx\7750544ccf494d8b\node_modules\firebase-tools\lib\bin\firebase.js apphosting:secrets:set DATABASE_URL --project strideiq-221
+[debug] [2026-04-12T06:06:47.030Z] CLI Version:   15.14.0
+[debug] [2026-04-12T06:06:47.030Z] Platform:      win32
+[debug] [2026-04-12T06:06:47.030Z] Node Version:  v24.13.1
+[debug] [2026-04-12T06:06:47.030Z] Time:          Sun Apr 12 2026 02:06:47 GMT-0400 (Eastern Daylight Time)
+[debug] [2026-04-12T06:06:47.031Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-04-12T06:06:47.145Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-04-12T06:06:47.145Z] > authorizing via signed-in user (isydneyai@gmail.com)
+[debug] [2026-04-12T06:06:47.146Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-04-12T06:06:47.147Z] > authorizing via signed-in user (isydneyai@gmail.com)
+[debug] [2026-04-12T06:06:47.147Z] [iam] checking project strideiq-221 for permissions ["firebase.projects.get","secretmanager.secrets.create","secretmanager.secrets.get","secretmanager.secrets.getIamPolicy","secretmanager.secrets.setIamPolicy","secretmanager.secrets.update","secretmanager.versions.add"]
+[debug] [2026-04-12T06:06:47.148Z] Checked if tokens are valid: false, expires at: 1775972344031
+[debug] [2026-04-12T06:06:47.149Z] Checked if tokens are valid: false, expires at: 1775972344031
+[debug] [2026-04-12T06:06:47.149Z] > refreshing access token with scopes: []
+[debug] [2026-04-12T06:06:47.151Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2026-04-12T06:06:47.151Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-04-12T06:06:47.339Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2026-04-12T06:06:47.339Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-04-12T06:06:47.349Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/strideiq-221:testIamPermissions [none]
+[debug] [2026-04-12T06:06:47.350Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/strideiq-221:testIamPermissions  x-goog-user-project=strideiq-221
+[debug] [2026-04-12T06:06:47.350Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/strideiq-221:testIamPermissions {"permissions":["firebase.projects.get","secretmanager.secrets.create","secretmanager.secrets.get","secretmanager.secrets.getIamPolicy","secretmanager.secrets.setIamPolicy","secretmanager.secrets.update","secretmanager.versions.add"]}
+[debug] [2026-04-12T06:06:47.507Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/strideiq-221:testIamPermissions 200
+[debug] [2026-04-12T06:06:47.507Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/strideiq-221:testIamPermissions {"permissions":["firebase.projects.get","secretmanager.secrets.create","secretmanager.secrets.get","secretmanager.secrets.getIamPolicy","secretmanager.secrets.setIamPolicy","secretmanager.secrets.update","secretmanager.versions.add"]}
+[debug] [2026-04-12T06:06:47.508Z] Checked if tokens are valid: true, expires at: 1775977606340
+[debug] [2026-04-12T06:06:47.508Z] Checked if tokens are valid: true, expires at: 1775977606340
+[debug] [2026-04-12T06:06:47.508Z] >>> [apiv2][query] GET https://cloudresourcemanager.googleapis.com/v1/projects/strideiq-221 [none]
+[debug] [2026-04-12T06:06:47.617Z] <<< [apiv2][status] GET https://cloudresourcemanager.googleapis.com/v1/projects/strideiq-221 200
+[debug] [2026-04-12T06:06:47.618Z] <<< [apiv2][body] GET https://cloudresourcemanager.googleapis.com/v1/projects/strideiq-221 {"projectNumber":"392745854306","projectId":"strideiq-221","lifecycleState":"ACTIVE","name":"StrideIQ","labels":{"firebase":"enabled","firebase-core":"disabled"},"createTime":"2026-02-17T20:23:01.022753Z","parent":{"type":"organization","id":"562901183862"}}
+[debug] [2026-04-12T06:06:47.619Z] Checked if tokens are valid: true, expires at: 1775977606340
+[debug] [2026-04-12T06:06:47.619Z] Checked if tokens are valid: true, expires at: 1775977606340
+[debug] [2026-04-12T06:06:47.619Z] >>> [apiv2][query] GET https://secretmanager.googleapis.com/v1/projects/strideiq-221/secrets/DATABASE_URL [none]
+[debug] [2026-04-12T06:06:47.778Z] <<< [apiv2][status] GET https://secretmanager.googleapis.com/v1/projects/strideiq-221/secrets/DATABASE_URL 200

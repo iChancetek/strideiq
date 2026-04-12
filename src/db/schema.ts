@@ -235,3 +235,18 @@ export const trainingPlansRelations = relations(trainingPlans, ({ one }) => ({
     user: one(users, { fields: [trainingPlans.userId], references: [users.id] }),
 }));
 
+export const journalsRelations = relations(journals, ({ one }) => ({
+    user: one(users, { fields: [journals.userId], references: [users.id] }),
+}));
+
+export const fastingSessionsRelations = relations(fastingSessions, ({ one }) => ({
+    user: one(users, { fields: [fastingSessions.userId], references: [users.id] }),
+}));
+
+export const userSettingsRelations = relations(userSettings, ({ one }) => ({
+    user: one(users, { fields: [userSettings.userId], references: [users.id] }),
+}));
+
+export const userStatsRelations = relations(userStats, ({ one }) => ({
+    user: one(users, { fields: [userStats.userId], references: [users.id] }),
+}));
