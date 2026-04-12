@@ -3,11 +3,10 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation"; // Correct import
-import { Loader2, Wand2, Check, ArrowLeft } from "lucide-react";
+import { Loader2, Wand2, Check, ArrowLeft, CloudOff, CloudCheck } from "lucide-react";
 import { useSettings } from "@/context/SettingsContext"; // Import settings
 import { t } from "@/lib/translations"; // Import translations
-import { db } from "@/lib/firebase/config";
-import { collection, doc, addDoc, updateDoc, deleteDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import { saveLocalJournal, deleteLocalJournal } from "@/lib/utils/idb";
 
 interface JournalEditorProps {
     initialData?: {
@@ -79,7 +78,21 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
             });
             const data = await res.json();
             if (data.result) {
-                setContent(data.result);
+                const newContent = data.result;
+                setContent(newContent);
+
+                // Ensure the draft is saved locally immediately after AI change
+                const entryId = initialData?.id || crypto.randomUUID();
+                await saveLocalJournal({
+                    id: entryId,
+                    title: title || "",
+                    content: newContent,
+                    type: "journal",
+                    media: mediaItems.length > 0 ? mediaItems : null,
+                    userId: user.uid || "",
+                    updatedAt: new Date().toISOString(),
+                    synced: false
+                });
             }
         } catch (e) {
             console.error(e);
@@ -102,40 +115,52 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
             }
 
             setIsSaving(true);
+            const entryId = initialData?.id || crypto.randomUUID();
 
-            // Use the API route instead of client SDK to prevent "Network timeout" on mobile PWAs due to weak connections blocking Firestore websocket setup
             const payload: any = {
+                id: entryId,
                 title: title || "",
                 content: content || "",
                 type: "journal",
                 media: mediaItems.length > 0 ? mediaItems : null,
                 userId: user.uid,
+                updatedAt: new Date().toISOString(),
             };
 
-            if (initialData?.id) {
-                payload.id = initialData.id;
-            }
-
-            const response = await fetch("/api/journal/save", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
+            // 1. Save Locally (Optimistic)
+            await saveLocalJournal({
+               ...payload,
+               synced: false
             });
+            console.log("[JOURNAL_OFFLINE_SAVE] Saved to IndexedDB", entryId);
 
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.error || "Failed to save journal over network.");
+            // 2. Background Sync
+            try {
+                const token = await user.getIdToken();
+                const response = await fetch("/api/journal/save", {
+                    method: "POST",
+                    headers: { 
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`
+                    },
+                    body: JSON.stringify(payload),
+                });
+
+                if (response.ok) {
+                    await saveLocalJournal({ ...payload, synced: true });
+                    console.log("[JOURNAL_SYNC_SUCCESS] Synced with Supabase", entryId);
+                } else {
+                    console.warn("[JOURNAL_SYNC_PENDING] Network issue, will retry later.");
+                }
+            } catch (syncErr) {
+                console.warn("[JOURNAL_SYNC_PENDING] Offline, draft saved locally.");
             }
-
-            const responseData = await response.json();
-            const savedId = responseData.id;
-            console.log("[JOURNAL_SAVE_SUCCESS] Saved entry via API", savedId);
 
             setIsDirty(false);
             router.push("/dashboard/journal");
         } catch (e: any) {
             console.error("[JOURNAL_SAVE_FAILURE]", e);
-            alert(`Save failed: ${e.message || "Unknown error"}. Please try again.`);
+            alert(`Save failed: ${e.message || "Unknown error"}. Your entry was saved locally but not synced.`);
         } finally {
             setIsSaving(false);
         }
@@ -193,14 +218,21 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
 
         setIsSaving(true);
         try {
-            const timeoutPromise = new Promise((_, reject) =>
-                setTimeout(() => reject(new Error("Delete request timed out.")), 10000)
-            );
+            const token = await user?.getIdToken();
+            if (!token) throw new Error("Unauthorized");
 
-            const docRef = doc(db, "users", user.uid, "journal_entries", initialData.id);
-            const deletePromise = deleteDoc(docRef);
+            const response = await fetch("/api/journal/delete", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify({ id: initialData.id })
+            });
 
-            await Promise.race([deletePromise, timeoutPromise]);
+            if (response.ok) {
+                await deleteLocalJournal(initialData.id);
+            }
 
             setIsDirty(false);
             router.push("/dashboard/journal");
@@ -481,7 +513,7 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
                         color: "white",
                     }}>
                         <Loader2 className="animate-spin" color="var(--primary)" />
-                        <span>{t(lang, "aiRefining")}</span>
+                        <span style={{ fontSize: "14px" }}>Journal enhancement options are not saving correctly. They were working perfectly before the recent changes.</span>
                     </div>
                 </div>
             )}

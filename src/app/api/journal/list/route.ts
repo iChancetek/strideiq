@@ -1,19 +1,17 @@
-import { getAuth } from "firebase-admin/auth";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { journals } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
+import { verifyFirebaseToken } from "@/lib/auth-utils";
 
 export async function GET(req: Request) {
     try {
-        const idToken = (await headers()).get("Authorization")?.split("Bearer ")[1];
-        if (!idToken) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        const auth = await verifyFirebaseToken();
+        if (auth.error) {
+            return NextResponse.json({ error: auth.error }, { status: auth.status });
         }
-
-        const decodedToken = await getAuth().verifyIdToken(idToken);
-        const userId = decodedToken.uid;
+        const userId = auth.userId;
 
         // Query Postgres journals
         const userJournals = await db.query.journals.findMany({

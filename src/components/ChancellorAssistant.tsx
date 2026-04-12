@@ -11,7 +11,7 @@ interface Message {
 export default function ChancellorAssistant() {
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState<Message[]>([
-        { role: "assistant", content: "Hello! I'm Chancellor. How can I help you with StrideIQ Elite today?", model: "GPT-5.3" }
+        { role: "assistant", content: "Hello! I'm Chancellor. How can I help you with StrideIQ Elite today?" }
     ]);
     const [inputValue, setInputValue] = useState("");
     const [isLoading, setIsLoading] = useState(false);

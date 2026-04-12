@@ -2,17 +2,20 @@ import { db } from "@/db";
 import { journals, users } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { verifyFirebaseToken } from "@/lib/auth-utils";
 
 export async function POST(req: Request) {
     try {
         console.log("=== API /journal/save CALLED ===");
-        const body = await req.json();
-        const { id, title, content, type = "journal", imageUrls, media, userId } = body;
-
-        if (!userId) {
-            console.log("Validation Failed: Unauthorized");
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        
+        const auth = await verifyFirebaseToken();
+        if (auth.error) {
+            return NextResponse.json({ error: auth.error }, { status: auth.status });
         }
+        const userId = auth.userId;
+
+        const body = await req.json();
+        const { id, title, content, type = "journal", imageUrls, media } = body;
 
         if (!content && !title && (!imageUrls || imageUrls.length === 0) && (!media || media.length === 0)) {
             console.log("Validation Failed: Empty entry");
@@ -21,11 +24,15 @@ export async function POST(req: Request) {
 
         const finalMedia = media || (imageUrls ? imageUrls.map((url: string) => ({ url, type: "image" })) : null);
 
-        // Ensure user exists (foreign key constraint)
-        await db.insert(users).values({
-            id: userId,
-            email: "user@example.com", 
-        }).onConflictDoNothing();
+        // Ensure user exists, but do not fail the journal save if it hits unique constraint issues
+        try {
+            await db.insert(users).values({
+                id: userId,
+                email: body.email || "user@example.com", 
+            }).onConflictDoNothing();
+        } catch (dbError: any) {
+            console.warn("[JOURNAL_SAVE] Non-fatal user insertion issue:", dbError.message);
+        }
 
         if (id) {
             console.log(`[JOURNAL_SAVE_ATTEMPT] Updating entry ${id}...`);

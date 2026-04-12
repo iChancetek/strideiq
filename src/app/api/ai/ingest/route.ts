@@ -39,7 +39,7 @@ const PLATFORM_DATA = [
     },
     {
         id: "model-info",
-        text: "StrideIQ Elite is powered by the GPT-5.3 architecture, providing state-of-the-art agentic performance across all features.",
+        text: "StrideIQ Elite is powered by the GPT-5.2 architecture, providing state-of-the-art agentic performance across all features.",
     }
 ];
 
@@ -58,14 +58,16 @@ export async function GET() {
 
             const embedding = embeddingResponse.data[0].embedding;
 
-            await index.upsert([{
-                id: item.id,
-                values: embedding,
-                metadata: {
-                    text: item.text,
-                    source: "platform-documentation"
-                }
-            }]);
+            await index.upsert({
+                records: [{
+                    id: item.id,
+                    values: embedding,
+                    metadata: {
+                        text: item.text,
+                        source: "platform-documentation"
+                    }
+                }]
+            });
         }
 
         console.log("[Ingest] Ingestion complete.");

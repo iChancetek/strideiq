@@ -1,7 +1,11 @@
 "use client";
 
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { useAuth } from "@/context/AuthContext";
+import { useActivities } from "@/hooks/useActivities";
+import { supabase } from "@/lib/supabase";
+import { Loader2, History, MessageSquare, Info } from "lucide-react";
 
 const TRACKS = [
     { id: "focus", label: "Deep Focus", src: "https://cdn.pixabay.com/audio/2022/05/27/audio_1808fbf07a.mp3", color: "#CCFF00" }, // Ambient Piano
@@ -12,9 +16,15 @@ const TRACKS = [
 const DURATIONS = [10, 15, 20, 30];
 
 export default function MeditationPage() {
+    const { user } = useAuth();
+    const { activities, addActivity } = useActivities();
+    
     // Configuration State
     const [selectedTrack, setSelectedTrack] = useState(TRACKS[0]);
     const [durationMinutes, setDurationMinutes] = useState(10);
+    const [notes, setNotes] = useState("");
+    const [showNotes, setShowNotes] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
 
     // Audio State
     const [volume, setVolume] = useState(0.5);
@@ -33,27 +43,55 @@ export default function MeditationPage() {
             audioRef.current.volume = isMuted ? 0 : volume;
         }
     }, [volume, isMuted]);
-
-    // Timer Logic
+    // Timer Countdown Logic
     useEffect(() => {
-        let interval: NodeJS.Timeout;
-
+        let interval: NodeJS.Timeout | any;
         if (isActive && !isPaused && secondsLeft > 0) {
             interval = setInterval(() => {
                 setSecondsLeft((prev) => prev - 1);
             }, 1000);
-        } else if (secondsLeft === 0) {
+        }
+        return () => clearInterval(interval);
+    }, [isActive, isPaused, secondsLeft]);
+
+    const saveSession = useCallback(async () => {
+        if (!user) return;
+        setIsSaving(true);
+        try {
+            const duration = durationMinutes * 60;
+            // Add to StrideIQ Activities Feed
+            await addActivity({
+                type: 'Meditation',
+                distance: 0,
+                duration,
+                date: new Date(),
+                notes: notes || `Meditated with ${selectedTrack.label} for ${durationMinutes} minutes.`,
+                mode: 'meditation',
+                environment: 'indoor',
+            });
+            console.log("[MEDITATION] Session saved to activities table.");
+            setNotes("");
+            setShowNotes(false);
+        } catch (e) {
+            console.error("Failed to save meditation session", e);
+        } finally {
+            setIsSaving(false);
+        }
+    }, [user, durationMinutes, notes, selectedTrack.label, addActivity]);
+
+    // Handle Session Complete
+    useEffect(() => {
+        if (secondsLeft === 0 && isActive) {
             setIsActive(false);
             setIsPaused(false);
             if (audioRef.current) {
                 audioRef.current.pause();
                 audioRef.current.currentTime = 0;
             }
+            saveSession(); // Auto-save on completion
             alert("Session Complete. Namaste. 🙏");
         }
-
-        return () => clearInterval(interval);
-    }, [isActive, isPaused, secondsLeft]);
+    }, [secondsLeft, isActive, saveSession]);
 
     // Handle Start
     const startSession = () => {
@@ -300,6 +338,50 @@ export default function MeditationPage() {
                 <p style={{ marginTop: "40px", opacity: 0.5, fontSize: "14px" }}>
                     Tip: Use headphones for the best immersive experience.
                 </p>
+
+                {/* Notes Toggle (Non-intrusive) */}
+                <div style={{ marginTop: "24px", display: "flex", justifyContent: "center" }}>
+                    <button 
+                        onClick={() => setShowNotes(!showNotes)}
+                        style={{ background: "transparent", border: "none", color: "var(--primary)", fontSize: "14px", fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: "6px" }}
+                    >
+                        <MessageSquare size={16} /> {showNotes ? "Hide Notes" : "Add Reflection Notes"}
+                    </button>
+                    {showNotes && (
+                        <div style={{ position: "absolute", top: "100%", width: "100%", maxWidth: "400px", padding: "12px", background: "rgba(30,30,30,0.9)", backdropFilter: "blur(4px)", borderRadius: "12px", zIndex: 10, marginTop: "10px" }}>
+                            <textarea 
+                                value={notes}
+                                onChange={e => setNotes(e.target.value)}
+                                placeholder="Reflect on your mindset..."
+                                style={{ width: "100%", padding: "10px", background: "transparent", border: "none", color: "#fff", resize: "none", outline: "none", minHeight: "80px" }}
+                            />
+                        </div>
+                    )}
+                </div>
+
+                {/* History Section (Non-intrusive bottom) */}
+                <section style={{ marginTop: "80px", textAlign: "left", maxWidth: "600px", margin: "80px auto 0" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "20px" }}>
+                        <History size={20} color="var(--primary)" />
+                        <h2 style={{ fontSize: "20px", fontWeight: 700 }}>Recovery History</h2>
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                        {activities.filter(a => a.type === "Meditation").slice(0, 5).map(m => (
+                            <div key={m.id} className="glass-panel" style={{ padding: "16px", borderRadius: "12px", display: "flex", justifyContent: "space-between", alignItems: "center", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)" }}>
+                                <div>
+                                    <div style={{ fontWeight: 600 }}>{new Date(m.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</div>
+                                    <div style={{ fontSize: "12px", color: "var(--foreground-muted)" }}>{m.notes?.substring(0, 40)}...</div>
+                                </div>
+                                <div style={{ color: "var(--primary)", fontWeight: 700 }}>
+                                    {Math.round(m.duration / 60)} min
+                                </div>
+                            </div>
+                        ))}
+                        {activities.filter(a => a.type === "Meditation").length === 0 && (
+                            <p style={{ color: "var(--foreground-muted)", fontSize: "14px", fontStyle: "italic" }}>No recovery sessions recorded yet.</p>
+                        )}
+                    </div>
+                </section>
             </div>
 
             <style jsx>{`

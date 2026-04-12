@@ -1,23 +1,18 @@
-import { getAuth } from "firebase-admin/auth";
-import { headers } from "next/headers";
-import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { journals } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
+import { NextResponse } from "next/server";
+import { verifyFirebaseToken } from "@/lib/auth-utils";
 
-export async function DELETE(req: Request) {
+export async function POST(req: Request) {
     try {
-        const { id, userId: bodyUserId } = await req.json();
-
-        let userId = bodyUserId;
-        if (!userId) {
-            const idToken = (await headers()).get("Authorization")?.split("Bearer ")[1];
-            if (!idToken) {
-                return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-            }
-            const decodedToken = await getAuth().verifyIdToken(idToken);
-            userId = decodedToken.uid;
+        const auth = await verifyFirebaseToken();
+        if (auth.error) {
+            return NextResponse.json({ error: auth.error }, { status: auth.status });
         }
+        const userId = auth.userId;
+
+        const { id } = await req.json();
 
         if (!id) {
             return NextResponse.json({ error: "Missing ID" }, { status: 400 });

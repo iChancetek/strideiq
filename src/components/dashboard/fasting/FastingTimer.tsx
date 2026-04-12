@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { uploadMediaFiles } from "@/lib/storage";
+import { getActiveSession, saveActiveSession, clearActiveSession } from "@/lib/utils/idb";
 
 const GOAL_OPTIONS = [
     { hours: 12, label: "12h", description: "Light" },
@@ -30,12 +31,24 @@ export default function FastingTimer() {
     const [analysis, setAnalysis] = useState<any>(null);
     const [analyzing, setAnalyzing] = useState(false);
 
-    // Sync with PostgreSQL / Supabase
+    // Sync with PostgreSQL / Supabase / IndexedDB
     useEffect(() => {
         if (!user) { setLoading(false); return; }
 
         const fetchStatus = async () => {
              try {
+                 // 1. First check IndexedDB (Fastest recovery)
+                 const local = await getActiveSession('fasting');
+                 if (local && local.status === 'active') {
+                     console.log("[FASTING_RESTORE] Found local session:", local);
+                     setStartTime(new Date(local.startTime).getTime());
+                     setGoalHours(local.goal || 16);
+                     setIsFasting(true);
+                     setLoading(false);
+                     return;
+                 }
+
+                 // 2. Fallback to Supabase
                  const res = await fetch(`/api/fasting/status?userId=${user.uid}`);
                  if (res.ok) {
                      const { activeSession } = await res.json();
@@ -43,10 +56,19 @@ export default function FastingTimer() {
                          setStartTime(new Date(activeSession.startTime).getTime());
                          setGoalHours(activeSession.goal || 16);
                          setIsFasting(true);
+                         
+                         // Sync to local IDB if missing
+                         await saveActiveSession({
+                             type: 'fasting',
+                             startTime: activeSession.startTime,
+                             status: 'active',
+                             goal: activeSession.goal
+                         });
                      } else {
                          setIsFasting(false);
                          setStartTime(null);
                          setElapsed(0);
+                         await clearActiveSession('fasting');
                      }
                  }
              } catch (err) {
@@ -99,6 +121,15 @@ export default function FastingTimer() {
             });
 
             if (!response.ok) throw new Error("Status update failed");
+
+            // Persist to IDB locally
+            await saveActiveSession({
+                type: 'fasting',
+                startTime: new Date().toISOString(),
+                status: 'active',
+                goal: goalHours
+            });
+
         } catch (e) {
             console.error("Fasting start error", e);
         } finally {
@@ -129,6 +160,9 @@ export default function FastingTimer() {
             });
 
             if (!response.ok) throw new Error("Status update failed");
+            
+            // Clear from IDB
+            await clearActiveSession('fasting');
             
             // 3. Trigger Analysis and show it
             setAnalyzing(true);

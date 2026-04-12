@@ -1,10 +1,11 @@
 "use client";
 
 import { useAuth } from "@/context/AuthContext";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { db } from "@/lib/firebase/config";
-import { collection, query, orderBy, limit, getDocs } from "firebase/firestore";
+import { supabase } from "@/lib/supabase";
+import { supabaseWithRetry } from "@/lib/supabase-wrapper";
+import { getLocalJournals, saveLocalJournal } from "@/lib/utils/idb";
 
 interface JournalEntry {
     id: string;
@@ -21,36 +22,67 @@ export default function JournalDashboard() {
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
 
-    useEffect(() => {
+    const fetchEntries = useCallback(async () => {
         if (!user) return;
+        setLoading(true);
 
-        async function fetchEntries() {
-            try {
-                const q = query(
-                    collection(db, "users", user!.uid, "journal_entries"),
-                    orderBy("createdAt", "desc"),
-                    limit(50)
-                );
-                const snapshot = await getDocs(q);
+        try {
+            // 1. Fetch from Supabase (Robust Query)
+            const result = await supabaseWithRetry(() =>
+                supabase.from('journals')
+                .select('*')
+                .eq('user_id', user.uid)
+                .order('date', { ascending: false })
+            );
 
-                const fetchedEntries = snapshot.docs.map(doc => {
-                    const data = doc.data();
-                    return {
-                        id: doc.id,
-                        ...data,
-                        createdAt: data.createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
-                    } as JournalEntry;
-                });
+            if (result.data) {
+                const fetchedEntries = result.data.map((entry: any) => ({
+                    ...entry,
+                    createdAt: entry.date || entry.created_at || new Date().toISOString(),
+                }));
 
                 setEntries(fetchedEntries);
-            } catch (e) {
-                console.error("Failed to fetch journal", e);
-            } finally {
-                setLoading(false);
+
+                // 2. Cache to IndexedDB for offline access
+                for (const entry of fetchedEntries) {
+                    await saveLocalJournal({ ...entry, synced: true });
+                }
             }
+        } catch (e) {
+            console.warn("[JOURNAL_DASHBOARD] Network fetch failed, falling back to IndexedDB.", e);
+            // 3. Offline Fallback Layer (IndexedDB)
+            const localEntries = await getLocalJournals();
+            if (localEntries.length > 0) {
+                 setEntries(localEntries.map((entry: any) => ({
+                    ...entry,
+                    createdAt: entry.updatedAt || new Date().toISOString(),
+                })));
+            }
+        } finally {
+            setLoading(false);
         }
-        fetchEntries();
     }, [user]);
+
+    useEffect(() => {
+        fetchEntries();
+
+        // 4. Enable Supabase Realtime
+        if (user) {
+            const channel = supabase.channel(`journal_changes_${user.uid}`)
+                .on('postgres_changes', {
+                    event: '*',
+                    schema: 'public',
+                    table: 'journals',
+                    filter: `user_id=eq.${user.uid}`
+                }, (payload) => {
+                    console.log("[JOURNAL_REALTIME] Change detected:", payload);
+                    fetchEntries(); // Refresh list on change
+                })
+                .subscribe();
+
+            return () => { supabase.removeChannel(channel); };
+        }
+    }, [user, fetchEntries]);
 
     const filteredEntries = entries.filter(entry =>
         entry.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||

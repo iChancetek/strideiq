@@ -95,60 +95,70 @@ export function useActivities() {
 
         fetchActivities();
 
-        // Setup Supabase Realtime Broadcast
-        const channel = supabase.channel(`user:${user.uid}`)
-            .on('broadcast', { event: 'activity-created' }, (message) => {
-                const newActivity = message.payload;
-                const parsedActivity = {
-                    ...newActivity,
-                    date: new Date(newActivity.date)
-                };
-                setActivities(prev => {
-                    if (prev.some(a => a.id === parsedActivity.id)) return prev;
-                    return [parsedActivity, ...prev].sort((a, b) => b.date.getTime() - a.date.getTime());
-                });
-            })
-            .on('broadcast', { event: 'activity-updated' }, (message) => {
-                const updatedActivity = message.payload;
-                setActivities(prev => prev.map(a => 
-                    a.id === updatedActivity.id 
-                        ? { ...a, ...updatedActivity, date: updatedActivity.date ? new Date(updatedActivity.date) : a.date }
-                        : a
-                ));
-            })
-            .on('broadcast', { event: 'activity-deleted' }, (message) => {
-                const { id } = message.payload;
-                setActivities(prev => prev.filter(a => a.id !== id));
+        // 4. Enable Supabase Realtime (postgres_changes)
+        const channel = supabase.channel(`activities_changes_${user.uid}`)
+            .on('postgres_changes', {
+                event: '*',
+                schema: 'public',
+                table: 'activities',
+                filter: `user_id=eq.${user.uid}`
+            }, (payload) => {
+                console.log("[ACTIVITIES_REALTIME] Change detected:", payload);
+                if (payload.eventType === 'INSERT') {
+                    const newActivity = payload.new as any;
+                    setActivities(prev => {
+                        if (prev.some(a => a.id === newActivity.id)) return prev;
+                        return [{ ...newActivity, date: new Date(newActivity.date) }, ...prev];
+                    });
+                } else if (payload.eventType === 'UPDATE') {
+                    const updated = payload.new as any;
+                    setActivities(prev => prev.map(a => a.id === updated.id ? { ...a, ...updated, date: new Date(updated.date) } : a));
+                } else if (payload.eventType === 'DELETE') {
+                    const deleted = payload.old as any;
+                    setActivities(prev => prev.filter(a => a.id !== deleted.id));
+                }
             })
             .subscribe();
 
-        return () => {
-            supabase.removeChannel(channel);
-        };
+        return () => { supabase.removeChannel(channel); };
     }, [user, authLoading]);
 
     const addActivity = async (activity: Omit<Activity, "id" | "date" | "pace"> & { date: Date }) => {
         if (!user) throw new Error("User not authenticated");
 
-        const payload = {
+        const tempId = crypto.randomUUID();
+        const optimisticActivity: Activity = {
             ...activity,
-            userId: user.uid,
-            date: activity.date.toISOString(),
+            id: tempId,
+            pace: "0'00\"/mi", // Placeholder
         };
 
-        const response = await fetch("/api/activity/create", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-        });
+        // Optimistic UI Update
+        setActivities(prev => [optimisticActivity, ...prev]);
 
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.error || "Failed to save activity.");
+        try {
+            const payload = {
+                ...activity,
+                id: tempId,
+                userId: user.uid,
+                date: activity.date.toISOString(),
+            };
+
+            const response = await fetch("/api/activity/create", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            });
+
+            if (!response.ok) throw new Error("Failed to save activity");
+            
+            const data = await response.json();
+            return { activityId: data.activityId };
+        } catch (err) {
+            // Rollback on error
+            setActivities(prev => prev.filter(a => a.id !== tempId));
+            throw err;
         }
-
-        const data = await response.json();
-        return { activityId: data.activityId };
     };
 
     const updateActivity = async (activityId: string, updates: Partial<Activity>) => {

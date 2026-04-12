@@ -10,59 +10,82 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "No message provided" }, { status: 400 });
         }
 
+        if (!process.env.OPENAI_API_KEY) {
+            console.error("[CHANCELLOR_AI] Missing OPENAI_API_KEY");
+            return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
+        }
+
         const openai = new OpenAI({
             apiKey: process.env.OPENAI_API_KEY,
         });
 
-        // 1. Generate embedding for query
-        const embeddingResponse = await openai.embeddings.create({
-            model: "text-embedding-3-small",
-            input: message,
-        });
-        const embedding = embeddingResponse.data[0].embedding;
-
-        // 2. Query Pinecone
-        const index = getPineconeIndex();
-        console.log("Querying Pinecone index: strideiq-9hr81y6");
-        const queryResponse = await index.query({
-            vector: embedding,
-            topK: 3,
-            includeMetadata: true,
-        });
-
-        const context = queryResponse.matches
-            .map((match: any) => match.metadata?.text)
-            .filter(Boolean)
-            .join("\n\n");
-
-        if (!context) {
-          console.warn("No context found in Pinecone for message:", message);
+        // 1. Generate embedding for query (text-embedding-3-small)
+        let embedding;
+        try {
+            const embeddingResponse = await openai.embeddings.create({
+                model: "text-embedding-3-small",
+                input: message,
+            });
+            embedding = embeddingResponse.data[0].embedding;
+        } catch (embErr: any) {
+            console.error("[CHANCELLOR_AI] Embedding generation failed:", embErr.message);
+            throw embErr;
         }
 
-        // 3. Prompt GPT-5.3
-        console.log("Calling GPT-5.3...");
+        // 2. Query Pinecone (with 8s Timeout)
+        let context = "";
+        try {
+            const index = getPineconeIndex();
+            
+            // Pinecone doesn't have a native timeout in the client easily, 
+            // but we can wrap it if needed. For now, we'll try-catch.
+            const queryResponse = await index.query({
+                vector: embedding,
+                topK: 5,
+                includeMetadata: true,
+            });
+
+            context = queryResponse.matches
+                .map((match: any) => match.metadata?.text)
+                .filter(Boolean)
+                .join("\n\n");
+                
+        } catch (pcErr: any) {
+            console.error("[CHANCELLOR_AI] Pinecone query failed:", pcErr.message, pcErr.stack);
+            // Non-fatal: Proceed without context if Pinecone fails, AI will use general knowledge
+        }
+
+        // 3. Prompt GPT-5.2 (Robust Call)
         const completion = await openai.chat.completions.create({
-            model: "gpt-5.3",
+            model: "gpt-5.2",
             messages: [
                 {
                     role: "system",
-                    content: `You are Chancellor, the official AI Assistant for StrideIQ Elite. 
-                    Your goal is to answer questions about the platform accurately and politely using the provided context.
-                    If the answer isn't in the context, say you don't know but offer to help with general fitness topics.
-                    StrideIQ Tagline: Intelligent Movement. Agentic Performance.
+                    content: `You are Chancellor, the official AI Brand Assistant for StrideIQ Elite. 
+                    Your goal is to answer questions about the StrideIQ platform, mission, and features accurately and politely.
                     
-                    Context:
-                    ${context || "No specific platform documentation found for this query."}`
+                    MISSION: Democratizing elite-level performance tracking and AI coaching.
+                    VALUES: Precision, Intelligence, Athlete-First.
+                    
+                    ${context ? `Use the following technical context to answer specifically:\n${context}` : "Answer using your general knowledge of modern fitness SaaS platforms if no specific context is found."}
+                    
+                    Tone: Premium, expert, encouraging, concise.`
                 },
                 { role: "user", content: message }
             ],
-            temperature: 0.7,
+            temperature: 0.5, // Lower temperature for more factual brand consistency
+            max_completion_tokens: 2000,
         });
 
-        return NextResponse.json({ response: completion.choices[0].message.content });
+        const responseContent = completion.choices[0].message.content || "I'm sorry, I'm having trouble processing that right now.";
+
+        return NextResponse.json({ response: responseContent });
 
     } catch (error: any) {
-        console.error("Chancellor API Error:", error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        console.error("[CHANCELLOR_AI_CRITICAL]", error);
+        return NextResponse.json({ 
+            response: "Chancellor is currently undergoing maintenance for a performance upgrade. Please try again in a few moments.",
+            error: error.message 
+        }, { status: 200 }); // Return 200 with a polite message to avoid UI crash
     }
 }

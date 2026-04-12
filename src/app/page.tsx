@@ -60,7 +60,7 @@ const agents: Agent[] = [
     glowColor: "var(--secondary-glow)",
     title: "Multimodal Intelligence",
     description:
-      "Integrated GPT-5.3 perception for photos and videos. Get elite-level form analysis and metabolic insights from your visual logs.",
+      "Integrated GPT-5.2 perception for photos and videos. Get elite-level form analysis and metabolic insights from your visual logs.",
     delay: "anim-fade-up-delay-5",
   },
   {
@@ -288,7 +288,7 @@ export default function Home() {
           {/* Pill label */}
           <div className="section-label anim-fade-up" style={{ animationDelay: "0s" }}>
             <Zap size={12} />
-            Powered by GPT-5.3 Architecture
+            Powered by GPT-5.2 Architecture
           </div>
 
           {/* Headline */}
@@ -316,7 +316,7 @@ export default function Home() {
               marginBottom: "48px",
             }}
           >
-            The world's first native multimodal fitness platform. StrideIQ Elite leverages GPT-5.3 to perceive, adapt, and coach with human-level intelligence across all activity modes.
+            The world's first native multimodal fitness platform. StrideIQ Elite leverages GPT-5.2 to perceive, adapt, and coach with human-level intelligence across all activity modes.
           </p>
 
           {/* CTAs */}
@@ -350,7 +350,7 @@ export default function Home() {
             ))}
             <div className="stat-badge" style={{ fontSize: "13px", color: "var(--primary)" }}>
               <span style={{ fontWeight: 700, fontSize: "15px" }}>✦</span>
-              Multimodal GPT-5.3
+              Multimodal GPT-5.2
             </div>
           </div>
         </div>{/* end hero content wrapper */}

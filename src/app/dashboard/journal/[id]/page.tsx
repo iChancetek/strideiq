@@ -5,8 +5,6 @@ import JournalEditor from "@/components/dashboard/journal/JournalEditor";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { db } from "@/lib/firebase/config";
-import { doc, getDoc } from "firebase/firestore";
 
 export default function EntryPage() {
     const params = useParams();
@@ -26,19 +24,23 @@ export default function EntryPage() {
 
         async function fetchEntry() {
             try {
-                const docRef = doc(db, "users", user!.uid, "journal_entries", id);
-                const docSnap = await getDoc(docRef);
+                const token = await user?.getIdToken();
+                if (!token) return;
 
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    setInitialData({
-                        id: docSnap.id,
-                        ...data,
-                        createdAt: data.createdAt?.toDate?.()?.toISOString(),
-                        updatedAt: data.updatedAt?.toDate?.()?.toISOString()
-                    });
+                const response = await fetch(`/api/journal/${id}`, {
+                    method: "GET",
+                    headers: {
+                        "Authorization": `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.entry) {
+                        setInitialData(data.entry);
+                    }
                 } else {
-                    console.error("Failed to load entry");
+                    console.error("Failed to load entry via REST");
                 }
             } catch (e) {
                 console.error(e);

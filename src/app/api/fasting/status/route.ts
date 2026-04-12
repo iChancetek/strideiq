@@ -21,8 +21,15 @@ export async function GET(req: Request) {
         return NextResponse.json({ activeSession: activeSession || null });
 
     } catch (error: any) {
-        console.error("Fasting Status Fetch Error:", error);
-        return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+        console.error("[FASTING_STATUS_GET_ERROR]", {
+            message: error.message,
+            stack: error.stack,
+            userId
+        });
+        return NextResponse.json({ 
+            error: "Failed to fetch fasting status", 
+            details: error.message 
+        }, { status: 500 });
     }
 }
 
@@ -35,8 +42,10 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
         }
 
-        // Ensure user exists
-        await db.insert(users).values({ id: userId, email: "user@example.com" }).onConflictDoNothing();
+        // Ensure user exists - Explicitly target id for conflict
+        await db.insert(users)
+            .values({ id: userId, email: "user@example.com" })
+            .onConflictDoNothing({ target: users.id });
 
         if (action === "start") {
             const newId = crypto.randomUUID();
@@ -108,7 +117,14 @@ export async function POST(req: Request) {
         return NextResponse.json({ success: true });
 
     } catch (error: any) {
-        console.error("Fasting Toggle Error:", error);
-        return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+        console.error("[FASTING_STATUS_POST_ERROR]", {
+            message: error.message,
+            stack: error.stack,
+            body: { userId, action }
+        });
+        return NextResponse.json({ 
+            error: "Failed to update fasting status", 
+            details: error.message 
+        }, { status: 500 });
     }
 }

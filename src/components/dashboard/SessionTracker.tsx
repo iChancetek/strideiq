@@ -11,6 +11,7 @@ import { getActivityLabel, getActivityType, getModeConfig } from "@/lib/agents/m
 import PostSessionModal from "./PostSessionModal";
 import { supabase } from "@/lib/supabase";
 import { t } from "@/lib/translations";
+import { getActiveSession, saveActiveSession, clearActiveSession } from "@/lib/utils/idb";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 
@@ -108,38 +109,44 @@ export default function SessionTracker() {
     useEffect(() => { isPausedRef.current = isPaused; }, [isPaused]);
     useEffect(() => { isTrackingRef.current = isTracking; }, [isTracking]);
 
-    // ── Check for orphaned session from previous page load ────────────────────
+    // ── Check for orphaned session from IndexedDB ────────────────────
     useEffect(() => {
-        try {
-            const saved = sessionStorage.getItem(SESSION_KEY);
-            if (saved) {
-                const data = JSON.parse(saved);
-                // Only offer restore if the session was active within the last 2 hours
-                if (data.startTs && (Date.now() - data.startTs) < 2 * 3600 * 1000) {
-                    console.log("[AUTH_SESSION_RESTORE] Found orphaned session:", data);
-                    setSessionRestoreData(data);
-                } else {
-                    sessionStorage.removeItem(SESSION_KEY);
+        async function checkRestore() {
+            try {
+                const saved = await getActiveSession('run');
+                if (saved && saved.data) {
+                    const startTs = new Date(saved.startTime).getTime();
+                    // Restore if < 2 hours old
+                    if ((Date.now() - startTs) < 2 * 3600 * 1000) {
+                        console.log("[AUTH_SESSION_RESTORE] Found IDB session:", saved);
+                        setSessionRestoreData({ ...saved.data, startTs });
+                    } else {
+                        await clearActiveSession('run');
+                    }
                 }
-            }
-        } catch (e) { /* ignore */ }
+            } catch (e) { /* ignore */ }
+        }
+        checkRestore();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // ── Persist session state to sessionStorage on each tick ─────────────────
-    const persistSession = useCallback(() => {
+    // ── Persist session state to IndexedDB on each tick ─────────────────
+    const persistSession = useCallback(async () => {
         if (!isTrackingRef.current) return;
         try {
-            sessionStorage.setItem(SESSION_KEY, JSON.stringify({
-                startTs: sessionStartTsRef.current,
-                totalPausedMs: totalPausedMsRef.current,
-                distanceKm: distanceRef.current,
-                steps: stepsRef.current,
-                mode,
-                environment,
-                savedAt: Date.now(),
-            }));
-        } catch (e) { /* ignore storage quota errors */ }
+            await saveActiveSession({
+                type: 'run',
+                startTime: new Date(sessionStartTsRef.current).toISOString(),
+                lastHeartbeat: new Date().toISOString(),
+                data: {
+                    totalPausedMs: totalPausedMsRef.current,
+                    distanceKm: distanceRef.current,
+                    steps: stepsRef.current,
+                    mode,
+                    environment,
+                }
+            });
+        } catch (e) { /* ignore storage errors */ }
     }, [mode, environment]);
 
     // ── Page Visibility API: resync timer when phone unlocks / app foregrounds ─
@@ -163,6 +170,59 @@ export default function SessionTracker() {
         document.addEventListener("visibilitychange", onVisibilityChange);
         return () => document.removeEventListener("visibilitychange", onVisibilityChange);
     }, []);
+
+    useEffect(() => {
+        if (isTracking && !isPaused && environment === 'indoor') {
+            let lastAcel = 0;
+            const threshold = 1.2; // G-force threshold for step detection
+            
+            const handleMotion = (event: DeviceMotionEvent) => {
+                const accel = event.accelerationIncludingGravity;
+                if (!accel) return;
+                
+                const totalAccel = Math.sqrt((accel.x || 0)**2 + (accel.y || 0)**2 + (accel.z || 0)**2);
+                const delta = totalAccel - lastAcel;
+                lastAcel = totalAccel;
+                
+                if (delta > threshold) {
+                    stepsRef.current += 1;
+                    setSteps(stepsRef.current);
+                    
+                    // Estimate distance: steps * stride_length (standard 0.762m)
+                    const segmentKm = 0.000762; 
+                    distanceRef.current += segmentKm;
+                    setDistance(distanceRef.current);
+                }
+            };
+
+            window.addEventListener('devicemotion', handleMotion);
+            return () => window.removeEventListener('devicemotion', handleMotion);
+        }
+    }, [isTracking, isPaused, environment]);
+
+    // ── Supabase Heartbeat (15s) ──────────────────────────────────────────────
+    useEffect(() => {
+        if (isTracking && !isPaused && user) {
+            const interval = setInterval(async () => {
+                try {
+                    await supabase.from('active_sessions').upsert({
+                        user_id: user.uid,
+                        type: 'run',
+                        status: 'active',
+                        data: {
+                            distance: distanceRef.current,
+                            duration: activeTimeRef.current,
+                            steps: stepsRef.current,
+                            mode,
+                            environment,
+                        },
+                        updated_at: new Date().toISOString()
+                    });
+                } catch (e) { console.warn("Heartbeat sync failed"); }
+            }, 15000);
+            return () => clearInterval(interval);
+        }
+    }, [isTracking, isPaused, user, mode, environment]);
 
     useEffect(() => {
         if (isTracking && !isPaused) {
@@ -402,17 +462,20 @@ export default function SessionTracker() {
             );
         }
 
-        // Write initial snapshot
+        // Write initial snapshot to IDB
         try {
-            sessionStorage.setItem(SESSION_KEY, JSON.stringify({
-                startTs: sessionStartTsRef.current,
-                totalPausedMs: 0,
-                distanceKm: 0,
-                steps: 0,
-                mode,
-                environment,
-                savedAt: Date.now(),
-            }));
+            await saveActiveSession({
+                type: 'run',
+                startTime: new Date(sessionStartTsRef.current).toISOString(),
+                lastHeartbeat: new Date().toISOString(),
+                data: {
+                    totalPausedMs: 0,
+                    distanceKm: 0,
+                    steps: 0,
+                    mode,
+                    environment,
+                }
+            });
         } catch (e) { /* ignore */ }
     };
 
@@ -442,7 +505,7 @@ export default function SessionTracker() {
         const isTimeBased = mode === "meditation" || mode === "fasting";
         if (miles < 0.05 && !isTimeBased) {
             alert("Session too short to save.");
-            sessionStorage.removeItem(SESSION_KEY);
+            await clearActiveSession('run');
             lastAcceptedPos.current = null;
             smoothedPos.current = null;
             stepsRef.current = 0;
@@ -552,6 +615,7 @@ export default function SessionTracker() {
               .catch(err => console.error("[AI_COACH_FAILURE]", err));
 
             sessionStorage.removeItem(SESSION_KEY);
+            await clearActiveSession('run');
             setShowPostModal(false);
             setPendingSessionData(null);
         } catch (e: any) {
@@ -584,10 +648,11 @@ export default function SessionTracker() {
         }
     };
 
-    const handleDiscardSession = () => {
+    const handleDiscardSession = async () => {
         setShowPostModal(false);
         setPendingSessionData(null);
         sessionStorage.removeItem(SESSION_KEY);
+        await clearActiveSession('run');
         lastAcceptedPos.current = null;
         smoothedPos.current = null;
         stepsRef.current = 0;
@@ -665,7 +730,7 @@ export default function SessionTracker() {
                                 Restore
                             </button>
                             <button
-                                onClick={() => { sessionStorage.removeItem(SESSION_KEY); setSessionRestoreData(null); }}
+                                onClick={async () => { await clearActiveSession('run'); setSessionRestoreData(null); }}
                                 style={{ padding: "8px 12px", background: "rgba(255,255,255,0.08)", color: "var(--foreground-muted)", border: "none", borderRadius: "20px", cursor: "pointer", fontSize: "13px" }}
                             >
                                 Dismiss

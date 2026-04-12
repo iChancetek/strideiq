@@ -26,9 +26,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Session not found" }, { status: 404 });
     }
 
-    // 2. GPT-5.3 Metabolic Analysis
+    // 2. GPT-5.2 Metabolic Analysis
     const response = await openai.chat.completions.create({
-      model: "gpt-5.3",
+      model: "gpt-5.2",
       messages: [
         {
           role: "system",
@@ -43,14 +43,15 @@ export async function POST(req: Request) {
           - feedback (string, summary)
           - score (number, 1-100)
           - insights (array of string, 3 items)
-          - model (string, "GPT-5.3")`
+          - model (string, "GPT-5.2")`
         },
         {
           role: "user",
           content: `Analyze this fasting session: ${JSON.stringify(session)}`
         }
       ],
-      response_format: { type: "json_object" }
+      response_format: { type: "json_object" },
+      max_completion_tokens: 1500,
     });
 
     const analysis = JSON.parse(response.choices[0].message.content || "{}");

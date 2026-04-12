@@ -8,6 +8,8 @@ const BPM_RECOMMENDATIONS: Record<ActivityMode, { min: number; max: number; labe
     walk: { min: 100, max: 120, label: "Relaxed walking vibes" },
     bike: { min: 130, max: 150, label: "Endurance cycling beats" },
     hike: { min: 110, max: 130, label: "Scenic trail hiking tunes" },
+    fasting: { min: 60, max: 80, label: "Calm fasting focus" },
+    meditation: { min: 40, max: 60, label: "Deep meditation soundscapes" },
 };
 
 export class MediaAgent {
