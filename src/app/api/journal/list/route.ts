@@ -15,38 +15,37 @@ export async function GET(req: Request) {
             const decodedToken = await getAuth().verifyIdToken(idToken);
             userId = decodedToken.uid;
         } catch (authError) {
-            if (process.env.NODE_ENV === "development") {
-                console.warn("[JOURNAL_LIST] Auth failed in DEV mode. Bypassing to default test user.");
-                userId = "test_user_id"; 
-            } else {
-                console.warn("[JOURNAL_LIST] Rejecting request: Auth failure in Production");
-                return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-            }
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
         
         const db = getAdminDb();
-        console.log(`[JOURNAL_LIST] Request from User: ${userId} | Project: ${db.app.options.projectId}`);
+        console.log(`[JOURNAL_LIST] Request from User: ${userId} | Project: ${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}`);
 
-        // Query top-level 'entries' collection
+        // Query without orderBy so docs missing createdAt field are still returned
         const entryRef = db.collection("entries");
-        console.log(`[JOURNAL_LIST] Querying collection: ${entryRef.path}`);
-
         const snapshot = await entryRef
             .where("userId", "==", userId)
-            .orderBy("createdAt", "desc")
             .limit(100)
             .get();
 
-        console.log(`[JOURNAL_LIST] SQL FOUND ${snapshot.size} entries for user ${userId}`);
+        console.log(`[JOURNAL_LIST] Found ${snapshot.size} total entries for user ${userId}`);
 
         const entries = snapshot.docs
-            .map(doc => ({ id: doc.id, ...doc.data() }))
-            .filter((entry: any) => entry.type === "journal" || entry.type === "Reflection" || (!entry.type && entry.content))
-            .map((entry: any) => ({
-                ...entry,
-                createdAt: entry.createdAt || entry.date || new Date().toISOString(),
-                updatedAt: entry.updatedAt || new Date().toISOString(),
-            }));
+            .map(doc => {
+                const data = doc.data();
+                // Normalize createdAt — could be Firestore Timestamp, ISO string, or missing
+                const rawCreatedAt = data.createdAt;
+                const createdAt = rawCreatedAt?._seconds
+                    ? new Date(rawCreatedAt._seconds * 1000).toISOString()
+                    : rawCreatedAt?.toDate
+                        ? rawCreatedAt.toDate().toISOString()
+                        : typeof rawCreatedAt === 'string'
+                            ? rawCreatedAt
+                            : data.date || new Date().toISOString();
+                return { id: doc.id, ...data, createdAt, updatedAt: data.updatedAt || createdAt };
+            })
+            .filter((entry: any) => entry.type === "journal" || entry.type === "Reflection" || entry.type === "Journal" || (!entry.type && entry.content))
+            .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
         return NextResponse.json({ entries });
 

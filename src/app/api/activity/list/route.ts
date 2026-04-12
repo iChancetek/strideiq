@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase/admin";
 import { getAuth } from "firebase-admin/auth";
 import { headers } from "next/headers";
+import type { QueryDocumentSnapshot } from "firebase-admin/firestore";
 
 export async function GET(req: Request) {
     try {
@@ -22,7 +23,7 @@ export async function GET(req: Request) {
             .get();
             
         // Sorting manually since firestore needs composite index if we combine where and orderBy
-        let activities = snapshot.docs.map(doc => ({
+        let activities = snapshot.docs.map((doc: QueryDocumentSnapshot) => ({
             id: doc.id,
             ...doc.data(),
             date: doc.data().date?.toDate ? doc.data().date.toDate() : doc.data().date

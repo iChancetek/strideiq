@@ -1,4 +1,4 @@
-import { adminDb } from "@/lib/firebase/admin";
+import { getAdminDb } from "@/lib/firebase/admin";
 import { getAuth } from "firebase-admin/auth";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
@@ -25,10 +25,11 @@ export async function POST(req: Request) {
         const finalMedia = media || (imageUrls ? imageUrls.map((url: string) => ({ url, type: "image" })) : null);
 
         // Ensure parent user doc exists (prevents NOT_FOUND on new users)
-        await adminDb.collection("users").doc(userId).set({ uid: userId }, { merge: true });
+        const db = getAdminDb();
+        await db.collection("users").doc(userId).set({ uid: userId }, { merge: true });
 
         // Write to the top-level 'entries' collection (matches Firestore schema)
-        const entriesRef = adminDb.collection("entries");
+        const entriesRef = db.collection("entries");
 
         if (id) {
             console.log(`[JOURNAL_SAVE_ATTEMPT] Updating entry ${id}...`);

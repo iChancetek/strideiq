@@ -70,8 +70,23 @@ export const getAdminAuth = () => {
     return admin.auth();
 };
 
-// Legacy exports for compatibility (careful: these will still throw if accessed before init)
-export const adminDb = admin.apps.length ? getFirestore(admin.app(), "default") : null as any;
-export const adminAuth = admin.apps.length ? admin.auth() : null as any;
+// Safe lazy proxy for adminDb — all routes using `adminDb.collection(...)` will work correctly
+// because the proxy forwards property access to a live getFirestore() call at runtime.
+export const adminDb = new Proxy({} as ReturnType<typeof getFirestore>, {
+    get(_target, prop) {
+        const db = getFirestore(admin.app(), "default");
+        const val = (db as any)[prop];
+        return typeof val === "function" ? val.bind(db) : val;
+    }
+});
+
+// Safe lazy proxy for adminAuth
+export const adminAuth = new Proxy({} as ReturnType<typeof admin.auth>, {
+    get(_target, prop) {
+        const auth = admin.auth();
+        const val = (auth as any)[prop];
+        return typeof val === "function" ? val.bind(auth) : val;
+    }
+});
 
 export { adminInitialized };
