@@ -54,8 +54,8 @@ async function tavilySearch(query: string) {
 export async function POST(req: Request) {
     try {
         const auth = await verifyFirebaseToken();
-        if (auth.error) {
-            return NextResponse.json({ error: auth.error }, { status: auth.status });
+        if (auth.error || !auth.userId) {
+            return NextResponse.json({ error: auth.error || "Unauthorized" }, { status: auth.status || 401 });
         }
         const userId = auth.userId;
 
