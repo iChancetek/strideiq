@@ -7,8 +7,8 @@ import { verifyFirebaseToken } from "@/lib/auth-utils";
 export async function POST(req: Request) {
     try {
         const auth = await verifyFirebaseToken();
-        if (auth.error) {
-            return NextResponse.json({ error: auth.error }, { status: auth.status });
+        if (auth.error || !auth.userId) {
+            return NextResponse.json({ error: auth.error || "Unauthorized" }, { status: auth.status || 401 });
         }
         const userId = auth.userId;
 
@@ -20,7 +20,7 @@ export async function POST(req: Request) {
 
         // Delete from Postgres journals table where user matches
         await db.delete(journals).where(
-            and(eq(journals.id, id), eq(journals.userId, userId))
+            and(eq(journals.id, id as string), eq(journals.userId, userId))
         );
 
         return NextResponse.json({ success: true });

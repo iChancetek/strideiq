@@ -9,8 +9,8 @@ export async function POST(req: Request) {
         console.log("=== API /journal/save CALLED ===");
         
         const auth = await verifyFirebaseToken();
-        if (auth.error) {
-            return NextResponse.json({ error: auth.error }, { status: auth.status });
+        if (auth.error || !auth.userId) {
+            return NextResponse.json({ error: auth.error || "Unauthorized" }, { status: auth.status || 401 });
         }
         const userId = auth.userId;
 
@@ -42,7 +42,7 @@ export async function POST(req: Request) {
                 type,
                 media: finalMedia ?? null,
                 updatedAt: new Date()
-            }).where(and(eq(journals.id, id), eq(journals.userId, userId)));
+            }).where(and(eq(journals.id, id as string), eq(journals.userId, userId)));
             
             console.log(`[JOURNAL_SAVE_SUCCESS] Updated entry ${id}`);
             return NextResponse.json({ success: true, id });
