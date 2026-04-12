@@ -33,14 +33,17 @@ export function useTrainingPlan() {
         fetchPlan();
 
         // Setup Supabase Realtime Broadcast
-        const channel = supabase.channel(`user:${user.uid}`)
-            .on('broadcast', { event: 'plan-updated' }, () => {
-                fetchPlan(); // Re-fetch when plan changes
-            })
-            .subscribe();
+        let channel: any = null;
+        if (supabase) {
+            channel = supabase.channel(`user:${user.uid}`)
+                .on('broadcast', { event: 'plan-updated' }, () => {
+                    fetchPlan(); // Re-fetch when plan changes
+                })
+                .subscribe();
+        }
 
         return () => {
-            supabase.removeChannel(channel);
+            if (channel) supabase?.removeChannel(channel);
         };
     }, [user]);
 

@@ -37,18 +37,22 @@ export async function POST(req: NextRequest) {
         try {
             const index = getPineconeIndex();
             
-            // Pinecone doesn't have a native timeout in the client easily, 
-            // but we can wrap it if needed. For now, we'll try-catch.
-            const queryResponse = await index.query({
-                vector: embedding,
-                topK: 5,
-                includeMetadata: true,
-            });
+            if (index) {
+                // Pinecone doesn't have a native timeout in the client easily, 
+                // but we can wrap it if needed. For now, we'll try-catch.
+                const queryResponse = await index.query({
+                    vector: embedding,
+                    topK: 5,
+                    includeMetadata: true,
+                });
 
-            context = queryResponse.matches
-                .map((match: any) => match.metadata?.text)
-                .filter(Boolean)
-                .join("\n\n");
+                context = queryResponse.matches
+                    .map((match: any) => match.metadata?.text)
+                    .filter(Boolean)
+                    .join("\n\n");
+            } else {
+                console.log("[CHANCELLOR_AI] Pinecone index not available (missing key). Proceeding with general knowledge.");
+            }
                 
         } catch (pcErr: any) {
             console.error("[CHANCELLOR_AI] Pinecone query failed:", pcErr.message, pcErr.stack);

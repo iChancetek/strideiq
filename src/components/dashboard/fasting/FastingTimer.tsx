@@ -81,14 +81,17 @@ export default function FastingTimer() {
         fetchStatus();
 
         // Setup Supabase Realtime Broadcast
-        const channel = supabase.channel(`user:${user.uid}`)
-            .on('broadcast', { event: 'fasting-status-changed' }, () => {
-                fetchStatus(); // Re-fetch status when changed
-            })
-            .subscribe();
+        let channel: any = null;
+        if (supabase) {
+            channel = supabase.channel(`user:${user.uid}`)
+                .on('broadcast', { event: 'fasting-status-changed' }, () => {
+                    fetchStatus(); // Re-fetch status when changed
+                })
+                .subscribe();
+        }
 
         return () => {
-            supabase.removeChannel(channel);
+            if (channel) supabase?.removeChannel(channel);
         };
     }, [user]);
 

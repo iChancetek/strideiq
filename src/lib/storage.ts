@@ -9,6 +9,9 @@ export async function uploadFile(
     path: string,
     file: File
 ): Promise<{ url: string; error?: any }> {
+    if (!supabase) {
+        return { url: "", error: new Error("Supabase is not initialized. Please check your environment variables.") };
+    }
     try {
         const { data, error } = await supabase.storage
             .from(bucket)

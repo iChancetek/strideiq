@@ -96,31 +96,36 @@ export function useActivities() {
         fetchActivities();
 
         // 4. Enable Supabase Realtime (postgres_changes)
-        const channel = supabase.channel(`activities_changes_${user.uid}`)
-            .on('postgres_changes', {
-                event: '*',
-                schema: 'public',
-                table: 'activities',
-                filter: `user_id=eq.${user.uid}`
-            }, (payload) => {
-                console.log("[ACTIVITIES_REALTIME] Change detected:", payload);
-                if (payload.eventType === 'INSERT') {
-                    const newActivity = payload.new as any;
-                    setActivities(prev => {
-                        if (prev.some(a => a.id === newActivity.id)) return prev;
-                        return [{ ...newActivity, date: new Date(newActivity.date) }, ...prev];
-                    });
-                } else if (payload.eventType === 'UPDATE') {
-                    const updated = payload.new as any;
-                    setActivities(prev => prev.map(a => a.id === updated.id ? { ...a, ...updated, date: new Date(updated.date) } : a));
-                } else if (payload.eventType === 'DELETE') {
-                    const deleted = payload.old as any;
-                    setActivities(prev => prev.filter(a => a.id !== deleted.id));
-                }
-            })
-            .subscribe();
+        let channel: any = null;
+        if (supabase) {
+            channel = supabase.channel(`activities_changes_${user.uid}`)
+                .on('postgres_changes', {
+                    event: '*',
+                    schema: 'public',
+                    table: 'activities',
+                    filter: `user_id=eq.${user.uid}`
+                }, (payload) => {
+                    console.log("[ACTIVITIES_REALTIME] Change detected:", payload);
+                    if (payload.eventType === 'INSERT') {
+                        const newActivity = payload.new as any;
+                        setActivities(prev => {
+                            if (prev.some(a => a.id === newActivity.id)) return prev;
+                            return [{ ...newActivity, date: new Date(newActivity.date) }, ...prev];
+                        });
+                    } else if (payload.eventType === 'UPDATE') {
+                        const updated = payload.new as any;
+                        setActivities(prev => prev.map(a => a.id === updated.id ? { ...a, ...updated, date: new Date(updated.date) } : a));
+                    } else if (payload.eventType === 'DELETE') {
+                        const deleted = payload.old as any;
+                        setActivities(prev => prev.filter(a => a.id !== deleted.id));
+                    }
+                })
+                .subscribe();
+        }
 
-        return () => { supabase.removeChannel(channel); };
+        return () => { 
+            if (channel) supabase?.removeChannel(channel); 
+        };
     }, [user, authLoading]);
 
     const addActivity = async (activity: Omit<Activity, "id" | "date" | "pace"> & { date: Date }) => {

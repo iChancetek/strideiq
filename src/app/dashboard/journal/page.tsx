@@ -28,8 +28,10 @@ export default function JournalDashboard() {
 
         try {
             // 1. Fetch from Supabase (Robust Query)
+            const client = supabase;
+            if (!client) throw new Error("Supabase not available");
             const result = await supabaseWithRetry(async () =>
-                await supabase.from('journals')
+                await client.from('journals')
                 .select('*')
                 .eq('user_id', user.uid)
                 .order('date', { ascending: false })
@@ -67,8 +69,9 @@ export default function JournalDashboard() {
         fetchEntries();
 
         // 4. Enable Supabase Realtime
-        if (user) {
-            const channel = supabase.channel(`journal_changes_${user.uid}`)
+        let channel: any = null;
+        if (user && supabase) {
+            channel = supabase.channel(`journal_changes_${user.uid}`)
                 .on('postgres_changes', {
                     event: '*',
                     schema: 'public',
@@ -79,9 +82,11 @@ export default function JournalDashboard() {
                     fetchEntries(); // Refresh list on change
                 })
                 .subscribe();
-
-            return () => { supabase.removeChannel(channel); };
         }
+
+        return () => { 
+            if (channel) supabase?.removeChannel(channel); 
+        };
     }, [user, fetchEntries]);
 
     const filteredEntries = entries.filter(entry =>

@@ -38,23 +38,26 @@ export function useLikes(activityOwnerId: string, activityId: string) {
         fetchLikes();
 
         // Setup Supabase Realtime Broadcast
-        const channel = supabase.channel(`activity:${activityId}`)
-            .on('broadcast', { event: 'like-toggled' }, (message) => {
-                const { userId, isLiked: userLiked } = message.payload;
-                     
-                if (userLiked) {
-                    setLikes(prev => {
-                        if (prev.some(l => l.userId === userId)) return prev;
-                        return [...prev, { userId, userName: "User", userPhoto: undefined }];
-                    });
-                } else {
-                    setLikes(prev => prev.filter(l => l.userId !== userId));
-                }
-            })
-            .subscribe();
+        let channel: any = null;
+        if (supabase) {
+            channel = supabase.channel(`activity:${activityId}`)
+                .on('broadcast', { event: 'like-toggled' }, (message) => {
+                    const { userId, isLiked: userLiked } = message.payload;
+                        
+                    if (userLiked) {
+                        setLikes(prev => {
+                            if (prev.some(l => l.userId === userId)) return prev;
+                            return [...prev, { userId, userName: "User", userPhoto: undefined }];
+                        });
+                    } else {
+                        setLikes(prev => prev.filter(l => l.userId !== userId));
+                    }
+                })
+                .subscribe();
+        }
 
         return () => {
-            supabase.removeChannel(channel);
+            if (channel) supabase?.removeChannel(channel);
         };
     }, [activityOwnerId, activityId]);
 

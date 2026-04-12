@@ -49,18 +49,21 @@ export default function CommentsSection({ activityId, ownerId }: CommentsSection
         fetchComments();
 
         // Setup Supabase Realtime Broadcast
-        const channel = supabase.channel(`activity:${activityId}`)
-            .on('broadcast', { event: 'new-comment' }, (message) => {
-                const newComment = message.payload;
-                setComments(prev => {
-                    if (prev.some(c => c.id === newComment.id)) return prev;
-                    return [...prev, newComment];
-                });
-            })
-            .subscribe();
+        let channel: any = null;
+        if (supabase) {
+            channel = supabase.channel(`activity:${activityId}`)
+                .on('broadcast', { event: 'new-comment' }, (message) => {
+                    const newComment = message.payload;
+                    setComments(prev => {
+                        if (prev.some(c => c.id === newComment.id)) return prev;
+                        return [...prev, newComment];
+                    });
+                })
+                .subscribe();
+        }
 
         return () => {
-            supabase.removeChannel(channel);
+            if (channel) supabase?.removeChannel(channel);
         };
     }, [activityId, ownerId]);
 

@@ -204,6 +204,7 @@ export default function SessionTracker() {
     useEffect(() => {
         if (isTracking && !isPaused && user) {
             const interval = setInterval(async () => {
+                if (!supabase) return;
                 try {
                     await supabase.from('active_sessions').upsert({
                         user_id: user.uid,
@@ -563,25 +564,29 @@ export default function SessionTracker() {
                     const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
                     const filePath = `users/${user.uid}/activities/${fileName}`;
 
-                    const { data: uploadData, error: uploadError } = await supabase.storage
-                        .from('activities')
-                        .upload(filePath, file);
+                    if (supabase) {
+                        const { data: uploadData, error: uploadError } = await supabase.storage
+                            .from('activities')
+                            .upload(filePath, file);
 
-                    if (uploadError) {
-                        console.error("[STORAGE_UPLOAD_ERROR]", uploadError);
-                        continue;
+                        if (uploadError) {
+                            console.error("[STORAGE_UPLOAD_ERROR]", uploadError);
+                            continue;
+                        }
+
+                        const { data: { publicUrl } } = supabase.storage
+                            .from('activities')
+                            .getPublicUrl(filePath);
+
+                        mediaItems.push({ 
+                            type: mediaType, 
+                            url: publicUrl, 
+                            path: filePath, 
+                            createdAt: new Date().toISOString() 
+                        });
+                    } else {
+                        console.warn("[STORAGE_UPLOAD_SKIPPED] Supabase not available.");
                     }
-
-                    const { data: { publicUrl } } = supabase.storage
-                        .from('activities')
-                        .getPublicUrl(filePath);
-
-                    mediaItems.push({ 
-                        type: mediaType, 
-                        url: publicUrl, 
-                        path: filePath, 
-                        createdAt: new Date().toISOString() 
-                    });
                 }
             }
 
