@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { TrainingPlan } from "@/lib/types/training";
 import { useAuth } from "@/context/AuthContext";
+import { authenticatedFetch } from "@/lib/api-client";
 
 interface TrainingWizardProps {
     onPlanGenerated: (plan: TrainingPlan) => void;
@@ -32,13 +33,11 @@ export default function TrainingWizard({ onPlanGenerated }: TrainingWizardProps)
     const generatePlan = async () => {
         setIsLoading(true);
         try {
-            // Pass userId so the server saves via Admin SDK (bypasses Firestore rules)
-            const res = await fetch("/api/training/generate", {
+            // Use authenticatedFetch to handle token injection automatically
+            const res = await authenticatedFetch("/api/training/generate", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     ...formData,
-                    userId: user?.uid ?? null,
                     timeline: formData.goal.includes("Marathon") ? 16 : 8
                 }),
             });

@@ -4,8 +4,8 @@ import { useAuth } from "@/context/AuthContext";
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
-import { supabaseWithRetry } from "@/lib/supabase-wrapper";
 import { getLocalJournals, saveLocalJournal } from "@/lib/utils/idb";
+import { authenticatedFetch } from "@/lib/api-client";
 
 interface JournalEntry {
     id: string;
@@ -27,28 +27,26 @@ export default function JournalDashboard() {
         setLoading(true);
 
         try {
-            // 1. Fetch from Supabase (Robust Query)
-            const client = supabase;
-            if (!client) throw new Error("Supabase not available");
-            const result = await supabaseWithRetry(async () =>
-                await client.from('journals')
-                .select('*')
-                .eq('user_id', user.uid)
-                .order('date', { ascending: false })
-            );
-
-            if (result.data) {
-                const fetchedEntries = result.data.map((entry: any) => ({
+            // 1. Fetch from our authenticated API (backed by Supabase)
+            const res = await authenticatedFetch("/api/journal/list");
+            
+            if (res.ok) {
+                const fetchedEntries = await res.json();
+                const normalizedEntries = fetchedEntries.map((entry: any) => ({
                     ...entry,
                     createdAt: entry.date || entry.created_at || new Date().toISOString(),
                 }));
 
-                setEntries(fetchedEntries);
+                setEntries(normalizedEntries);
 
                 // 2. Cache to IndexedDB for offline access
-                for (const entry of fetchedEntries) {
+                for (const entry of normalizedEntries) {
                     await saveLocalJournal({ ...entry, synced: true });
                 }
+            } else if (res.status === 401) {
+                console.warn("[JOURNAL_DASHBOARD] Unauthorized - check auth token.");
+            } else {
+                throw new Error("Failed to fetch journals");
             }
         } catch (e) {
             console.warn("[JOURNAL_DASHBOARD] Network fetch failed, falling back to IndexedDB.", e);

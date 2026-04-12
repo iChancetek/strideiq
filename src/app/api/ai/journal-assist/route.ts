@@ -53,14 +53,27 @@ export async function POST(req: Request) {
                 userPrompt = `Improve this text:\n\n${text}`;
         }
 
-        const response = await openai.chat.completions.create({
-            model: "gpt-5.2",
-            messages: [
-                { role: "system", content: SYSTEM_PROMPT },
-                { role: "user", content: userPrompt }
-            ],
-            max_completion_tokens: 1000,
-        });
+        let response;
+        try {
+            response = await openai.chat.completions.create({
+                model: "gpt-5.2",
+                messages: [
+                    { role: "system", content: SYSTEM_PROMPT },
+                    { role: "user", content: userPrompt }
+                ],
+                max_completion_tokens: 1000,
+            });
+        } catch (e) {
+            console.warn("[Journal AI] Elite model gpt-5.2 unavailable, falling back to gpt-5.4");
+            response = await openai.chat.completions.create({
+                model: "gpt-5.4",
+                messages: [
+                    { role: "system", content: SYSTEM_PROMPT },
+                    { role: "user", content: userPrompt }
+                ],
+                max_completion_tokens: 1000,
+            });
+        }
 
         const result = response.choices[0].message.content;
 

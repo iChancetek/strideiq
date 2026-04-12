@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { Language } from "@/lib/translations";
+import { authenticatedFetch } from "@/lib/api-client";
 
 interface Settings {
     theme: "light" | "dark";
@@ -63,7 +64,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
         const loadRemoteSettings = async () => {
             try {
-                const res = await fetch("/api/user/settings");
+                const res = await authenticatedFetch("/api/user/settings");
                 if (res.ok) {
                     const remoteSettings = await res.json();
                     if (Object.keys(remoteSettings).length > 0) {
@@ -98,9 +99,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
         if (user) {
             try {
-                await fetch("/api/user/settings", {
+                await authenticatedFetch("/api/user/settings", {
                     method: "POST",
-                    headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(newSettings),
                 });
             } catch (error) {

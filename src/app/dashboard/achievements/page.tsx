@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import { authenticatedFetch } from "@/lib/api-client";
 
 // --- Badge Configuration ---
 const BADGE_CONFIG: Record<string, { label: string; emoji: string; color: string; description: string }> = {
@@ -23,7 +24,7 @@ export default function AchievementsPage() {
         if (user) {
             const fetchStats = async () => {
                 try {
-                    const res = await fetch("/api/user/stats");
+                    const res = await authenticatedFetch("/api/user/stats");
                     if (res.ok) {
                         const data = await res.json();
                         setUserStats(data);

@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 import { useMemo, useEffect, useState } from "react";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "@/lib/firebase/config";
+import { authenticatedFetch } from "@/lib/api-client";
 
 export default function Dashboard() {
     const { activities, loading } = useActivities();
@@ -18,12 +19,12 @@ export default function Dashboard() {
     const [user] = useAuthState(auth);
     const [userStats, setUserStats] = useState<any>(null);
 
-    // Fetch User Stats (Badges/Records)
+    // Fetch User Stats (Badges/Records) via Authenticated API
     useEffect(() => {
         if (user) {
             const fetchStats = async () => {
                 try {
-                    const res = await fetch("/api/user/stats");
+                    const res = await authenticatedFetch("/api/user/stats");
                     if (res.ok) {
                         const data = await res.json();
                         setUserStats(data);

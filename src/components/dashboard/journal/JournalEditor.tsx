@@ -7,6 +7,7 @@ import { Loader2, Wand2, Check, ArrowLeft, CloudOff, CloudCheck } from "lucide-r
 import { useSettings } from "@/context/SettingsContext"; // Import settings
 import { t } from "@/lib/translations"; // Import translations
 import { saveLocalJournal, deleteLocalJournal } from "@/lib/utils/idb";
+import { authenticatedFetch } from "@/lib/api-client";
 
 interface JournalEditorProps {
     initialData?: {
@@ -67,13 +68,8 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
         if (!content.trim()) return;
         setIsProcessingAI(true);
         try {
-            const token = await user?.getIdToken();
-            const res = await fetch("/api/ai/journal-assist", {
+            const res = await authenticatedFetch("/api/ai/journal-assist", {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${token}`
-                },
                 body: JSON.stringify({ text: content, command, tone })
             });
             const data = await res.json();
@@ -135,13 +131,8 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
 
             // 2. Background Sync
             try {
-                const token = await user.getIdToken();
-                const response = await fetch("/api/journal/save", {
+                const response = await authenticatedFetch("/api/journal/save", {
                     method: "POST",
-                    headers: { 
-                        "Content-Type": "application/json",
-                        "Authorization": `Bearer ${token}`
-                    },
                     body: JSON.stringify(payload),
                 });
 
@@ -189,12 +180,8 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
             const formData = new FormData();
             formData.append("file", file);
 
-            const token = await user?.getIdToken();
-            const res = await fetch("/api/upload", {
+            const res = await authenticatedFetch("/api/upload", {
                 method: "POST",
-                headers: {
-                    "Authorization": `Bearer ${token}`
-                },
                 body: formData
             });
 
@@ -217,15 +204,8 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
 
         setIsSaving(true);
         try {
-            const token = await user?.getIdToken();
-            if (!token) throw new Error("Unauthorized");
-
-            const response = await fetch("/api/journal/delete", {
+            const response = await authenticatedFetch("/api/journal/delete", {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${token}`
-                },
                 body: JSON.stringify({ id: initialData.id })
             });
 

@@ -111,14 +111,26 @@ export async function POST(req: Request) {
 
         for (let attempt = 0; attempt < 3; attempt++) {
             try {
-                // 1. Initial Call (Tool Check)
-                const response1 = await openai.chat.completions.create({
-                    model: "gpt-5.2",
-                    messages: messages,
-                    tools: tools as any,
-                    tool_choice: "auto",
-                    max_completion_tokens: 1500,
-                });
+                // 1. Initial Call (Tool Check) with ELITE model
+                let response1;
+                try {
+                    response1 = await openai.chat.completions.create({
+                        model: "gpt-5.2",
+                        messages: messages,
+                        tools: tools as any,
+                        tool_choice: "auto",
+                        max_completion_tokens: 1500,
+                    });
+                } catch (modelErr) {
+                    console.warn("[Training Plan] Elite model gpt-5.2 unavailable, falling back to gpt-5.4");
+                    response1 = await openai.chat.completions.create({
+                        model: "gpt-5.4",
+                        messages: messages,
+                        tools: tools as any,
+                        tool_choice: "auto",
+                        max_completion_tokens: 1500,
+                    });
+                }
 
                 const msg1 = response1.choices[0].message;
 
@@ -142,24 +154,46 @@ export async function POST(req: Request) {
                             content: raceDateResult
                         });
 
-                        const response2 = await openai.chat.completions.create({
-                            model: "gpt-5.2",
-                            messages: messages,
-                            response_format: { type: "json_object" },
-                            max_completion_tokens: 3000,
-                        });
+                        let response2;
+                        try {
+                            response2 = await openai.chat.completions.create({
+                                model: "gpt-5.2",
+                                messages: messages,
+                                response_format: { type: "json_object" },
+                                max_completion_tokens: 3000,
+                            });
+                        } catch (e) {
+                            console.warn("[Training Plan] Tool response fallback to gpt-5.4");
+                            response2 = await openai.chat.completions.create({
+                                model: "gpt-5.4",
+                                messages: messages,
+                                response_format: { type: "json_object" },
+                                max_completion_tokens: 3000,
+                            });
+                        }
 
                         const finalContent = response2.choices[0].message.content || "{}";
                         plan = JSON.parse(finalContent);
                     }
                 } else {
                     // Direct Response (No Tool Used)
-                    const finalResponse = await openai.chat.completions.create({
-                        model: "gpt-5.2",
-                        messages: messages,
-                        response_format: { type: "json_object" },
-                        max_completion_tokens: 3000,
-                    });
+                    let finalResponse;
+                    try {
+                        finalResponse = await openai.chat.completions.create({
+                            model: "gpt-5.2",
+                            messages: messages,
+                            response_format: { type: "json_object" },
+                            max_completion_tokens: 3000,
+                        });
+                    } catch (e) {
+                        console.warn("[Training Plan] Direct response fallback to gpt-5.4");
+                        finalResponse = await openai.chat.completions.create({
+                            model: "gpt-5.4",
+                            messages: messages,
+                            response_format: { type: "json_object" },
+                            max_completion_tokens: 3000,
+                        });
+                    }
 
                     const finalContent = finalResponse.choices[0].message.content || "{}";
                     plan = JSON.parse(finalContent);
