@@ -134,6 +134,32 @@ export default function Sidebar({ onLogout }: SidebarProps) {
                                 {t(lang, "achievements")}
                             </Link>
                         </li>
+
+                        {/* Admin Link (Conditional) */}
+                        {user?.email && ["chancellor@ichancetek.com", "chanceminus@gmail.com"].includes(user.email.toLowerCase()) && (
+                            <li>
+                                <Link
+                                    href="/admin"
+                                    onClick={() => setIsOpen(false)}
+                                    style={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: "14px",
+                                        padding: "12px 16px",
+                                        borderRadius: "14px",
+                                        background: pathname.startsWith("/admin") ? "rgba(255, 255, 255, 0.1)" : "transparent",
+                                        color: pathname.startsWith("/admin") ? "#fff" : "var(--foreground-muted)",
+                                        fontWeight: pathname.startsWith("/admin") ? 600 : 400,
+                                        border: pathname.startsWith("/admin") ? "1px solid rgba(255, 255, 255, 0.2)" : "1px solid transparent",
+                                        marginTop: "10px",
+                                        boxShadow: "0 0 15px rgba(204, 255, 0, 0.1)"
+                                    }}
+                                >
+                                    <span style={{ fontSize: "18px" }}>🛡️</span>
+                                    Admin Dashboard
+                                </Link>
+                            </li>
+                        )}
                     </ul>
                 </nav>
 
