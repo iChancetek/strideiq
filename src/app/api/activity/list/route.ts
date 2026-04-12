@@ -36,6 +36,7 @@ export async function GET(req: Request) {
             meta: { limit: limitVal, count: activities.length }
         });
     } catch (error: any) {
+        console.error("[ACTIVITY_LIST_ERROR]:", error);
         return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
     }
 }

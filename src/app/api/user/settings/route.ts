@@ -13,7 +13,8 @@ export async function GET(req: Request) {
 
         const doc = await adminDb.collection("users").doc(userId).get();
         return NextResponse.json(doc.data()?.settings || { theme: "dark" });
-    } catch (e) {
-        return NextResponse.json({ error: "Internal Error" }, { status: 500 });
+    } catch (e: any) {
+        console.error("[SETTINGS_ERROR]:", e);
+        return NextResponse.json({ error: e.message || "Internal Error" }, { status: 500 });
     }
 }
