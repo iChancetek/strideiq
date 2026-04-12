@@ -111,7 +111,7 @@ export default function ActivityFeedCard({ activity, ownerName, ownerPhoto, owne
                             <div style={{ fontSize: "18px", fontWeight: 700 }}>{activity.pace}</div>
                         </div>
                     )}
-                    {activity.calories > 0 && (
+                    {activity.calories !== undefined && activity.calories > 0 && (
                         <div>
                             <div style={{ fontSize: "11px", color: "var(--foreground-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>{t(lang, "calories")}</div>
                             <div style={{ fontSize: "18px", fontWeight: 700 }}>{activity.calories}</div>
