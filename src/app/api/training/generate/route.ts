@@ -1,8 +1,7 @@
 import { OpenAI } from "openai";
 import { NextResponse } from "next/server";
-import { db } from "@/db";
-import { trainingPlans, users } from "@/db/schema";
-import { verifyFirebaseToken } from "@/lib/auth-utils";
+import { adminDb } from "@/lib/firebase/admin";
+import { Timestamp } from "firebase-admin/firestore";
 
 const tools = [
     {
@@ -53,13 +52,7 @@ async function tavilySearch(query: string) {
 
 export async function POST(req: Request) {
     try {
-        const auth = await verifyFirebaseToken();
-        if (auth.error || !auth.userId) {
-            return NextResponse.json({ error: auth.error || "Unauthorized" }, { status: auth.status || 401 });
-        }
-        const userId = auth.userId;
-
-        const { goal, raceName, timeline, level, daysPerWeek } = await req.json();
+        const { goal, raceName, timeline, level, daysPerWeek, userId } = await req.json();
 
         if (!process.env.OPENAI_API_KEY) {
             return NextResponse.json({ error: "OpenAI API Key missing" }, { status: 500 });
@@ -105,149 +98,109 @@ export async function POST(req: Request) {
             { role: "user", content: userPrompt }
         ];
 
-        // --- RETRY LOGIC (3 Attempts) ---
-        let plan: any = null;
-        let lastErr: any = null;
+        // 1. Initial Call (Tool Check)
+        const response1 = await openai.chat.completions.create({
+            model: "gpt-4o",
+            messages: messages,
+            tools: tools as any,
+            tool_choice: "auto",
+        });
 
-        for (let attempt = 0; attempt < 3; attempt++) {
-            try {
-                // 1. Initial Call (Tool Check) with ELITE model
-                let response1;
-                try {
-                    response1 = await openai.chat.completions.create({
-                        model: "gpt-5.2",
-                        messages: messages,
-                        tools: tools as any,
-                        tool_choice: "auto",
-                        max_completion_tokens: 1500,
-                    });
-                } catch (modelErr) {
-                    console.warn("[Training Plan] Elite model gpt-5.2 unavailable, falling back to gpt-5.4");
-                    response1 = await openai.chat.completions.create({
-                        model: "gpt-5.4",
-                        messages: messages,
-                        tools: tools as any,
-                        tool_choice: "auto",
-                        max_completion_tokens: 1500,
-                    });
+        const msg1 = response1.choices[0].message;
+
+        // Handle Tool Call (Race Date Lookup)
+        if (msg1.tool_calls && msg1.tool_calls.length > 0) {
+            const toolCall = msg1.tool_calls[0] as any;
+
+            const assistantMessage = {
+                role: "assistant",
+                content: msg1.content || null,
+                tool_calls: msg1.tool_calls
+            };
+
+            if (toolCall.function.name === "tavily_search_race") {
+                const args = JSON.parse(toolCall.function.arguments);
+                const raceDateResult = await tavilySearch(args.query);
+
+                messages.push(assistantMessage);
+                messages.push({
+                    role: "tool",
+                    tool_call_id: toolCall.id,
+                    content: raceDateResult
+                });
+
+                const response2 = await openai.chat.completions.create({
+                    model: "gpt-4o",
+                    messages: messages,
+                    response_format: { type: "json_object" },
+                });
+
+                const finalContent = response2.choices[0].message.content || "{}";
+                const plan = JSON.parse(finalContent);
+
+                if (!plan.weeks || !Array.isArray(plan.weeks)) {
+                    throw new Error("Invalid plan structure generated");
                 }
 
-                const msg1 = response1.choices[0].message;
-
-                // Handle Tool Call (Race Date Lookup)
-                if (msg1.tool_calls && msg1.tool_calls.length > 0) {
-                    const toolCall = msg1.tool_calls[0] as any;
-                    const assistantMessage = {
-                        role: "assistant",
-                        content: msg1.content || null,
-                        tool_calls: msg1.tool_calls
-                    };
-
-                    if (toolCall.function.name === "tavily_search_race") {
-                        const args = JSON.parse(toolCall.function.arguments);
-                        const raceDateResult = await tavilySearch(args.query);
-
-                        messages.push(assistantMessage);
-                        messages.push({
-                            role: "tool",
-                            tool_call_id: toolCall.id,
-                            content: raceDateResult
-                        });
-
-                        let response2;
-                        try {
-                            response2 = await openai.chat.completions.create({
-                                model: "gpt-5.2",
-                                messages: messages,
-                                response_format: { type: "json_object" },
-                                max_completion_tokens: 3000,
-                            });
-                        } catch (e) {
-                            console.warn("[Training Plan] Tool response fallback to gpt-5.4");
-                            response2 = await openai.chat.completions.create({
-                                model: "gpt-5.4",
-                                messages: messages,
-                                response_format: { type: "json_object" },
-                                max_completion_tokens: 3000,
-                            });
-                        }
-
-                        const finalContent = response2.choices[0].message.content || "{}";
-                        plan = JSON.parse(finalContent);
-                    }
-                } else {
-                    // Direct Response (No Tool Used)
-                    let finalResponse;
-                    try {
-                        finalResponse = await openai.chat.completions.create({
-                            model: "gpt-5.2",
-                            messages: messages,
-                            response_format: { type: "json_object" },
-                            max_completion_tokens: 3000,
-                        });
-                    } catch (e) {
-                        console.warn("[Training Plan] Direct response fallback to gpt-5.4");
-                        finalResponse = await openai.chat.completions.create({
-                            model: "gpt-5.4",
-                            messages: messages,
-                            response_format: { type: "json_object" },
-                            max_completion_tokens: 3000,
-                        });
-                    }
-
-                    const finalContent = finalResponse.choices[0].message.content || "{}";
-                    plan = JSON.parse(finalContent);
+                // ✅ Save via Admin SDK (bypasses Firestore rules)
+                if (userId) {
+                    await savePlanToFirestore(userId, plan);
                 }
 
-                if (plan && plan.weeks && Array.isArray(plan.weeks)) {
-                    break; // Success!
-                }
-            } catch (e: any) {
-                lastErr = e;
-                console.warn(`[Training Plan] Attempt ${attempt + 1} failed:`, e?.message || e);
-                if (attempt < 2) await new Promise(r => setTimeout(r, 1000 * Math.pow(2, attempt)));
+                return NextResponse.json(plan);
             }
         }
 
-        if (!plan || !plan.weeks) {
-            throw lastErr || new Error("Failed after 3 attempts");
+        // Direct Response (No Tool Used)
+        const finalResponse = await openai.chat.completions.create({
+            model: "gpt-4o",
+            messages: messages,
+            response_format: { type: "json_object" },
+        });
+
+        const finalContent = finalResponse.choices[0].message.content || "{}";
+        const plan = JSON.parse(finalContent);
+
+        if (!plan.weeks || !Array.isArray(plan.weeks)) {
+            throw new Error("Invalid plan structure generated");
         }
 
-        // --- Save to Supabase ---
-        await savePlanToPostgres(userId, plan);
+        // ✅ Save via Admin SDK (bypasses Firestore rules)
+        if (userId) {
+            await savePlanToFirestore(userId, plan);
+        }
 
         return NextResponse.json(plan);
 
     } catch (error: any) {
-        console.error("Training Plan CRITICAL Error:", error);
-        return NextResponse.json({ error: "Failed to generate plan: " + error.message }, { status: 500 });
+        console.error("Training Plan Error:", error);
+        return NextResponse.json({ error: "Failed to generate plan." }, { status: 500 });
     }
 }
 
-async function savePlanToPostgres(userId: string, plan: any) {
+/**
+ * Saves the training plan to Firestore using the Admin SDK.
+ * Writes to the top-level 'trainingPlans' collection (matches Firestore schema).
+ * Non-fatal: we still return the plan to the user even if save fails.
+ */
+async function savePlanToFirestore(userId: string, plan: any) {
     try {
-        console.log(`[Training] Saving plan to Postgres for user: ${userId}`);
+        console.log(`[Training] Saving plan for user: ${userId}`);
 
-        // Ensure user exists (Upsert)
-        await db.insert(users).values({
-            id: userId,
-            email: "user@example.com", 
-        }).onConflictDoNothing();
+        // Ensure parent user doc exists
+        await adminDb.collection("users").doc(userId).set({ uid: userId }, { merge: true });
 
-        // Save to training_plans
-        const id = crypto.randomUUID();
-        await db.insert(trainingPlans).values({
-            id,
+        // Write to top-level 'trainingPlans' collection
+        await adminDb.collection("trainingPlans").doc(userId).set({
+            ...plan,
             userId,
-            goal: plan.goal || "Generic Running",
-            weeks: plan.weeks,
-            startDate: new Date(),
-            raceDate: plan.raceDate ? new Date(plan.raceDate) : new Date(Date.now() + 90 * 24 * 3600000), // Default 90 days out
-            isActive: true,
+            createdAt: Timestamp.now(),
+            startDate: new Date().toISOString(),
         });
 
-        console.log(`[Training] Plan saved successfully. ID: ${id}`);
+        console.log(`[Training] Plan saved successfully for user: ${userId}`);
     } catch (err) {
-        console.error("[Training] Failed to save plan to Postgres:", err);
+        console.error("[Training] Failed to save plan to Firestore:", err);
     }
 }
+

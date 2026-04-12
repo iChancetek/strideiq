@@ -1,14 +1,9 @@
+import { adminDb } from "@/lib/firebase/admin";
 import { getAuth } from "firebase-admin/auth";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
-import { db } from "@/db";
-import { journals } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
 
-export async function GET(
-    req: Request,
-    { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
     try {
         const idToken = (await headers()).get("Authorization")?.split("Bearer ")[1];
         if (!idToken) {
@@ -17,28 +12,28 @@ export async function GET(
 
         const decodedToken = await getAuth().verifyIdToken(idToken);
         const userId = decodedToken.uid;
-
         const { id } = await params;
 
-        if (!id) {
-            return NextResponse.json({ error: "Missing ID" }, { status: 400 });
+        // Fetch from top-level 'entries' collection
+        const docSnapshot = await adminDb.collection("entries").doc(id).get();
+
+        if (!docSnapshot.exists) {
+            return NextResponse.json({ error: "Not found" }, { status: 404 });
         }
 
-        const journalEntry = await db.query.journals.findFirst({
-            where: and(eq(journals.id, id), eq(journals.userId, userId))
+        const data = docSnapshot.data();
+
+        // Security: ensure this entry belongs to the requesting user
+        if (data?.userId !== userId) {
+            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
+
+        return NextResponse.json({
+            id: docSnapshot.id,
+            ...data,
+            createdAt: data?.createdAt?.toDate?.()?.toISOString(),
+            updatedAt: data?.updatedAt?.toDate?.()?.toISOString()
         });
-
-        if (!journalEntry) {
-            return NextResponse.json({ error: "Journal entry not found" }, { status: 404 });
-        }
-
-        const entry = {
-            ...journalEntry,
-            createdAt: journalEntry.createdAt?.toISOString() || new Date().toISOString(),
-            updatedAt: journalEntry.updatedAt?.toISOString() || new Date().toISOString(),
-        };
-
-        return NextResponse.json({ entry });
 
     } catch (error: any) {
         console.error("Journal Get Error:", error);

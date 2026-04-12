@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
-import { db } from "@/db";
-import { activities, leaderboards } from "@/db/schema";
-import { eq, and, sql } from "drizzle-orm";
-import { supabase } from "@/lib/supabase";
+import { adminDb } from "@/lib/firebase/admin";
+import { FieldValue } from "firebase-admin/firestore";
 import { z } from "zod";
 
 const deleteActivitySchema = z.object({
@@ -21,51 +19,46 @@ export async function DELETE(req: Request) {
 
         const { userId, activityId } = validation.data;
 
-        // Fetch activity before deleting to adjust stats
-        const [activity] = await db.select().from(activities).where(
-            and(eq(activities.id, activityId), eq(activities.userId, userId))
-        );
+        const docRef = adminDb.collection("users").doc(userId).collection("activities").doc(activityId);
+        const docSnap = await docRef.get();
 
-        if (!activity) {
+        if (!docSnap.exists) {
             return NextResponse.json({ error: "Activity not found" }, { status: 404 });
         }
 
+        const activity = docSnap.data()!;
+
         // Delete the document
-        await db.delete(activities).where(
-            and(eq(activities.id, activityId), eq(activities.userId, userId))
-        );
+        await docRef.delete();
 
         // Decrement aggregated stats
         try {
-            const dateObj = new Date(activity.date);
+            const dateObj = activity.date?.toDate ? activity.date.toDate() : new Date(activity.date);
             const monthKey = `${dateObj.getFullYear()}-${(dateObj.getMonth() + 1).toString().padStart(2, "0")}`;
 
-            await db.update(leaderboards)
-                .set({
-                    totalMiles: sql`${leaderboards.totalMiles} - ${activity.distance || 0}`,
-                    totalRuns: sql`${leaderboards.totalRuns} - 1`,
-                    totalTime: sql`${leaderboards.totalTime} - ${activity.duration || 0}`,
-                    totalSteps: sql`${leaderboards.totalSteps} - ${activity.steps || 0}`
-                })
-                .where(
-                    and(eq(leaderboards.userId, userId), eq(leaderboards.month, monthKey))
-                );
+            // Ensure the parent users/{uid} doc exists before writing to subcollections
+            const userDocRef = adminDb.collection("users").doc(userId);
+            await userDocRef.set({ uid: userId }, { merge: true });
 
+            // Decrement all-time stats
+            const allTimeRef = userDocRef.collection("stats").doc("allTime");
+            await allTimeRef.set({
+                totalMiles: FieldValue.increment(-(activity.distance || 0)),
+                totalRuns: FieldValue.increment(-1),
+                totalTime: FieldValue.increment(-(activity.duration || 0)),
+                lastUpdated: FieldValue.serverTimestamp(),
+            }, { merge: true });
+
+            // Decrement monthly stats
+            const monthlyRef = userDocRef.collection("stats").doc(monthKey);
+            await monthlyRef.set({
+                totalMiles: FieldValue.increment(-(activity.distance || 0)),
+                totalRuns: FieldValue.increment(-1),
+                totalTime: FieldValue.increment(-(activity.duration || 0)),
+                lastUpdated: FieldValue.serverTimestamp(),
+            }, { merge: true });
         } catch (statsErr) {
             console.error("Stats decrement failed (non-fatal):", statsErr);
-        }
-
-        // Broadcast deleted event
-        if (supabase) {
-            try {
-                await supabase.channel(`user:${userId}`).send({
-                    type: 'broadcast',
-                    event: 'activity-deleted',
-                    payload: { id: activityId }
-                });
-            } catch (pErr) {
-                console.error("Supabase broadcast failed:", pErr);
-            }
         }
 
         return NextResponse.json({ success: true });

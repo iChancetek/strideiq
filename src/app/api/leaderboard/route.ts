@@ -1,13 +1,11 @@
 import { NextResponse } from "next/server";
-import { db } from "@/db";
-import { leaderboards, users, friendships } from "@/db/schema";
-import { eq, desc, and, inArray, or } from "drizzle-orm";
+import { adminDb } from "@/lib/firebase/admin";
 
 export async function GET(req: Request) {
     try {
         const { searchParams } = new URL(req.url);
         const userId = searchParams.get("userId");
-        const type = searchParams.get("type") || "global";
+        const type = searchParams.get("type") || "global"; // "global" | "friends"
 
         // Default to current month if not specified
         const now = new Date();
@@ -18,55 +16,48 @@ export async function GET(req: Request) {
             return NextResponse.json({ error: "User ID required for friends leaderboard" }, { status: 400 });
         }
 
-        let friendIds: string[] = [];
+        const leaderboardRef = adminDb.collection("leaderboards").doc(period).collection("entries");
+        let query = leaderboardRef.orderBy("totalMiles", "desc").limit(50);
 
         if (type === "friends" && userId) {
-            // Fetch accepted friend relations
-            const friendsData = await db.query.friendships.findMany({
-                where: and(
-                    eq(friendships.status, "accepted"),
-                    or(
-                        eq(friendships.senderId, userId),
-                        eq(friendships.receiverId, userId)
-                    )
-                ),
-            });
+            // 1. Fetch Friends List
+            // We duplicate the friend fetching logic from /api/friends/list or abstract it.
+            // For now, let's just fetch accepted friend relations.
+            const [sent, received] = await Promise.all([
+                adminDb.collection("friends").where("requesterId", "==", userId).where("status", "==", "accepted").get(),
+                adminDb.collection("friends").where("receiverId", "==", userId).where("status", "==", "accepted").get()
+            ]);
 
-            const uniqueFriendIds = new Set<string>([userId]);
-            friendsData.forEach(f => {
-                uniqueFriendIds.add(f.senderId);
-                uniqueFriendIds.add(f.receiverId);
-            });
-            friendIds = Array.from(uniqueFriendIds);
+            const friendIds = new Set<string>([userId]); // Include self
+            sent.forEach(doc => friendIds.add(doc.data().receiverId));
+            received.forEach(doc => friendIds.add(doc.data().requesterId));
 
-            if (friendIds.length === 0) {
+            if (friendIds.size > 0) {
+                // Firestore 'in' limit is 10 (or 30? check docs. 30 in some versions, 10 in older). 
+                // Creating a friends leaderboard in Firestore is tricky with "orderBy". 
+                // We might need to fetch all top entries and filter in memory if the dataset is small, 
+                // OR fetch specific docs for each friend if N is small.
+
+                // Better approach for small N (<30): Fetch doc for each friend from the leaderboard collection.
+                const idsArray = Array.from(friendIds).slice(0, 30); // Cap at 30 for MVP
+
+                const refs = idsArray.map(id => leaderboardRef.doc(id));
+                const docs = await adminDb.getAll(...refs);
+
+                const entries = docs
+                    .filter(doc => doc.exists)
+                    .map(doc => doc.data())
+                    .sort((a, b) => (b?.totalMiles || 0) - (a?.totalMiles || 0)); // Sort in memory
+
+                return NextResponse.json({ entries });
+            } else {
                 return NextResponse.json({ entries: [] });
             }
         }
 
-        // Query the leaderboards with joined user data
-        const entriesQuery = typeof db.select === 'function' ? db.select({
-            userId: leaderboards.userId,
-            totalMiles: leaderboards.totalMiles,
-            totalRuns: leaderboards.totalRuns,
-            totalTime: leaderboards.totalTime,
-            totalSteps: leaderboards.totalSteps,
-            avgPace: leaderboards.avgPace,
-            month: leaderboards.month,
-            displayName: users.displayName,
-            photoURL: users.photoURL,
-        }).from(leaderboards)
-        .leftJoin(users, eq(leaderboards.userId, users.id))
-        .where(
-            type === "friends" && friendIds.length > 0
-                ? and(eq(leaderboards.month, period), inArray(leaderboards.userId, friendIds))
-                : eq(leaderboards.month, period)
-        )
-        .orderBy(desc(leaderboards.totalMiles))
-        .limit(50) : null;
-        
-        let entries: any[] = [];
-        if (entriesQuery) entries = await entriesQuery;
+        // Global Query
+        const snapshot = await query.get();
+        const entries = snapshot.docs.map(doc => doc.data());
 
         return NextResponse.json({ entries });
 

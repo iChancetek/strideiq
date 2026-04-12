@@ -1,27 +1,28 @@
-import { db } from "@/db";
-import { journals } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import { adminDb } from "@/lib/firebase/admin";
+import { getAuth } from "firebase-admin/auth";
+import { headers } from "next/headers";
 import { NextResponse } from "next/server";
-import { verifyFirebaseToken } from "@/lib/auth-utils";
 
-export async function POST(req: Request) {
+export async function DELETE(req: Request) {
     try {
-        const auth = await verifyFirebaseToken();
-        if (auth.error || !auth.userId) {
-            return NextResponse.json({ error: auth.error || "Unauthorized" }, { status: auth.status || 401 });
-        }
-        const userId = auth.userId;
+        const { id, userId: bodyUserId } = await req.json();
 
-        const { id } = await req.json();
+        let userId = bodyUserId;
+        if (!userId) {
+            const idToken = (await headers()).get("Authorization")?.split("Bearer ")[1];
+            if (!idToken) {
+                return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+            }
+            const decodedToken = await getAuth().verifyIdToken(idToken);
+            userId = decodedToken.uid;
+        }
 
         if (!id) {
             return NextResponse.json({ error: "Missing ID" }, { status: 400 });
         }
 
-        // Delete from Postgres journals table where user matches
-        await db.delete(journals).where(
-            and(eq(journals.id, id as string), eq(journals.userId, userId))
-        );
+        // Delete from top-level 'entries' collection
+        await adminDb.collection("entries").doc(id).delete();
 
         return NextResponse.json({ success: true });
 

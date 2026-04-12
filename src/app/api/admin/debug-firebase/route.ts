@@ -19,24 +19,17 @@ export async function GET() {
 
         if (adminInitialized && adminDb) {
             try {
-                // Test Write
-                const testRef = adminDb.collection("_debug").doc("connection_test");
-                await testRef.set({ timestamp: admin.firestore.FieldValue.serverTimestamp(), note: "Debugging NOT_FOUND error" });
-                
                 const colls = await adminDb.listCollections();
                 collections = colls.map(c => c.id);
-                firestoreStatus = "Connected (Write Success)";
-                
-                // Cleanup
-                await testRef.delete();
+                firestoreStatus = "Connected";
             } catch (err: any) {
-                console.error("[DEBUG_FIREBASE] Firestore test failed:", err);
-                firestoreStatus = `Error: ${err.code || "Unknown"}`;
+                console.error("[DEBUG_FIREBASE] Firestore listCollections failed:", err);
+                firestoreStatus = "Error";
                 firestoreError = {
                     message: err.message,
                     code: err.code,
                     details: err.details,
-                    stack: err.stack?.split("\n").slice(0, 5)
+                    stack: err.stack?.split("\n").slice(0, 3)
                 };
             }
         } else {

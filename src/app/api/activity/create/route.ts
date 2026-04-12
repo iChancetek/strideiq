@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 import { createActivitySchema } from "@/lib/validators/activity";
 import { updateUserStats } from "@/lib/server/activity-service";
-import { db } from "@/db";
-import { activities, users } from "@/db/schema";
-import { supabase } from "@/lib/supabase";
+import { adminDb } from "@/lib/firebase/admin";
+import { Timestamp } from "firebase-admin/firestore";
 
 export async function POST(req: Request) {
     try {
@@ -24,7 +23,7 @@ export async function POST(req: Request) {
         const activityData = validation.data;
         const activityDate = new Date(activityData.date);
 
-        // Calculate pace (seconds per mile) - purely for returning to frontend if needed
+        // Calculate pace (seconds per mile)
         const pace = activityData.distance > 0
             ? (activityData.duration / activityData.distance)
             : 0;
@@ -32,67 +31,31 @@ export async function POST(req: Request) {
         const paceSec = Math.floor(pace % 60);
         const paceStr = `${paceMin}:${paceSec < 10 ? "0" : ""}${paceSec}`;
 
-        // Ensure user exists (in PG we need foreign key satisfaction)
-        // Upsert standard user profile data in case this is their first API call after Auth
-        await db.insert(users).values({
-            id: userId,
-            email: "user@example.com", // Fallback for schema requirement if not provided
-        }).onConflictDoNothing();
+        // Ensure the parent users/{uid} doc exists before writing to subcollections
+        // This prevents NOT_FOUND errors for new users whose profile hasn't synced yet
+        const userDocRef = adminDb.collection("users").doc(userId);
+        await userDocRef.set({ uid: userId }, { merge: true });
 
-        const newId = crypto.randomUUID();
+        // Save using Admin SDK — bypasses client auth rules
+        const docRef = await userDocRef
+            .collection("activities")
+            .add({
+                ...activityData,
+                date: Timestamp.fromDate(activityDate),
+                createdAt: Timestamp.now(),
+                pace: paceStr,
+            });
 
-        // Insert into Neon Postgres
-        await db.insert(activities).values({
-            id: newId,
-            userId: userId,
-            type: activityData.type,
-            distance: activityData.distance,
-            duration: activityData.duration,
-            calories: activityData.calories || 0,
-            notes: activityData.notes || null,
-            date: activityDate,
-            mode: (activityData as any).mode || null,
-            environment: (activityData as any).environment || null,
-            mileSplits: (activityData as any).mileSplits || null,
-            pausedDuration: (activityData as any).pausedDuration || 0,
-            weatherSnapshot: (activityData as any).weatherSnapshot || null,
-            path: (activityData as any).path || null,
-            steps: activityData.steps || 0,
-            media: (activityData as any).media || null,
-            aiAnalysis: (activityData as any).aiAnalysis || null,
-            title: (activityData as any).title || null,
-            fastingSessionId: (activityData as any).fastingSessionId || null,
-        });
-
-        // Update aggregate stats (Leaderboards, etc)
+        // Update aggregate stats
         await updateUserStats(userId, {
             ...activityData,
             date: activityDate,
         });
 
-        // Broadcast to Supabase for Realtime Feeds
-        if (supabase) {
-            await supabase.channel(`user:${userId}`).send({
-                type: 'broadcast',
-                event: 'activity-created',
-                payload: {
-                    id: newId,
-                    type: activityData.type,
-                    distance: activityData.distance,
-                    duration: activityData.duration,
-                    date: activityDate
-                }
-            });
-        }
-
-        return NextResponse.json({ success: true, activityId: newId });
+        return NextResponse.json({ success: true, activityId: docRef.id });
 
     } catch (error: any) {
-        console.error("=== Activity Creation Error ===");
-        console.error("Message:", error.message);
-        
-        return NextResponse.json({ 
-            error: error.message || "Internal Server Error"
-        }, { status: 500 });
+        console.error("Activity Creation Error:", error);
+        return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
     }
 }

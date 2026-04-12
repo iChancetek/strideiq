@@ -1,8 +1,7 @@
+import { adminDb } from "@/lib/firebase/admin";
 import { getAuth } from "firebase-admin/auth";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
-import { db } from "@/db";
-import { fastingSessions, users } from "@/db/schema";
 
 export async function POST(req: Request) {
     try {
@@ -17,30 +16,25 @@ export async function POST(req: Request) {
         const body = await req.json();
         const { startTime, endTime, durationMinutes, type, goalHours } = body;
 
-        if (!startTime || !endTime || durationMinutes === undefined) {
+        if (!startTime || !endTime || !durationMinutes) {
             return NextResponse.json({ error: "Missing fields" }, { status: 400 });
         }
 
-        // Ensure user exists (foreign key constraint)
-        await db.insert(users).values({
-            id: userId,
-            email: "user@example.com", 
-        }).onConflictDoNothing();
+        // Ensure the parent users/{uid} doc exists before writing to subcollections
+        const userDocRef = adminDb.collection("users").doc(userId);
+        await userDocRef.set({ uid: userId }, { merge: true });
 
-        const newId = crypto.randomUUID();
-
-        await db.insert(fastingSessions).values({
-            id: newId,
-            userId,
-            startTime: new Date(startTime),
-            endTime: new Date(endTime),
-            duration: durationMinutes * 60, // Convert minutes to seconds for the db schema
-            goal: goalHours || 0,
-            status: 'completed',
-            createdAt: new Date(),
+        const logRef = userDocRef.collection("fasting_logs").doc();
+        await logRef.set({
+            startTime,
+            endTime,
+            durationMinutes,
+            type,
+            goalHours,
+            completedAt: new Date().toISOString()
         });
 
-        return NextResponse.json({ success: true, id: newId });
+        return NextResponse.json({ success: true, id: logRef.id });
 
     } catch (error) {
         console.error("Fasting Log Error:", error);

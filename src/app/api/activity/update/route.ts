@@ -1,8 +1,5 @@
 import { NextResponse } from "next/server";
-import { db } from "@/db";
-import { activities } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
-import { supabase } from "@/lib/supabase";
+import { adminDb } from "@/lib/firebase/admin";
 import { z } from "zod";
 
 const updateActivitySchema = z.object({
@@ -32,40 +29,35 @@ export async function PUT(req: Request) {
 
         const { userId, activityId, ...updates } = validation.data;
 
-        // Fetch existing activity
-        const [activity] = await db.select().from(activities).where(
-            and(eq(activities.id, activityId), eq(activities.userId, userId))
-        );
+        // Build the update object — only include provided fields
+        const updateData: Record<string, any> = {};
+        if (updates.distance !== undefined) updateData.distance = updates.distance;
+        if (updates.duration !== undefined) updateData.duration = updates.duration;
+        if (updates.calories !== undefined) updateData.calories = updates.calories;
+        if (updates.notes !== undefined) updateData.notes = updates.notes;
+        if (updates.type !== undefined) updateData.type = updates.type;
+        if (updates.media !== undefined) updateData.media = updates.media;
 
-        if (!activity) {
+        // Recalculate pace if distance or duration changed
+        const docRef = adminDb.collection("users").doc(userId).collection("activities").doc(activityId);
+        const docSnap = await docRef.get();
+
+        if (!docSnap.exists) {
             return NextResponse.json({ error: "Activity not found" }, { status: 404 });
         }
 
-        // Apply updates
-        await db.update(activities)
-            .set({
-                ...updates,
-                updatedAt: new Date(),
-            })
-            .where(
-                and(eq(activities.id, activityId), eq(activities.userId, userId))
-            );
+        const existing = docSnap.data()!;
+        const finalDistance = updateData.distance ?? existing.distance;
+        const finalDuration = updateData.duration ?? existing.duration;
 
-        // Notify real-time listeners
-        if (supabase) {
-            try {
-                await supabase.channel(`user:${userId}`).send({
-                    type: 'broadcast',
-                    event: 'activity-updated',
-                    payload: {
-                        id: activityId,
-                        ...updates
-                    }
-                });
-            } catch (err) {
-                console.error("Supabase broadcast silent failure:", err);
-            }
+        if (finalDistance > 0) {
+            const pace = finalDuration / finalDistance; // seconds per mile
+            const paceMin = Math.floor(pace / 60);
+            const paceSec = Math.floor(pace % 60);
+            updateData.pace = `${paceMin}:${paceSec < 10 ? "0" : ""}${paceSec}`;
         }
+
+        await docRef.update(updateData);
 
         return NextResponse.json({ success: true });
     } catch (error: any) {
