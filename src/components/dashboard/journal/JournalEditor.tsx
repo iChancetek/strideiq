@@ -513,7 +513,7 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
                         color: "white",
                     }}>
                         <Loader2 className="animate-spin" color="var(--primary)" />
-                        <span style={{ fontSize: "14px" }}>Journal enhancement options are not saving correctly. They were working perfectly before the recent changes.</span>
+                        <span style={{ fontSize: "14px" }}>Enhancing entry with AI...</span>
                     </div>
                 </div>
             )}

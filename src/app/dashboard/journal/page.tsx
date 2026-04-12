@@ -28,8 +28,8 @@ export default function JournalDashboard() {
 
         try {
             // 1. Fetch from Supabase (Robust Query)
-            const result = await supabaseWithRetry(() =>
-                supabase.from('journals')
+            const result = await supabaseWithRetry(async () =>
+                await supabase.from('journals')
                 .select('*')
                 .eq('user_id', user.uid)
                 .order('date', { ascending: false })
