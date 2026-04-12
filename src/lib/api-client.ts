@@ -23,7 +23,8 @@ export async function authenticatedFetch(url: string, options: RequestInit = {})
 
         return fetch(url, {
             ...options,
-            headers
+            headers,
+            cache: 'no-store' // Ensure we never serve stale data for authenticated routes
         });
     } catch (error) {
         console.error("[API Client] Failed to get auth token:", error);
