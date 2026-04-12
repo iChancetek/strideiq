@@ -12,7 +12,7 @@ export interface Activity {
     duration: number; // in seconds
     pace: string;
     date: Date;
-    calories: number;
+    calories?: number;
     notes?: string;
     mode?: "run" | "walk" | "bike" | "hike" | "meditation" | "fasting";
     environment?: "outdoor" | "indoor";

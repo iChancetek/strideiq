@@ -64,6 +64,7 @@ export default function MeditationPage() {
                 type: 'Meditation',
                 distance: 0,
                 duration,
+                calories: 0,
                 date: new Date(),
                 notes: notes || `Meditated with ${selectedTrack.label} for ${durationMinutes} minutes.`,
                 mode: 'meditation',

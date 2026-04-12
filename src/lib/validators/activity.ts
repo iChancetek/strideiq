@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const createActivitySchema = z.object({
-    type: z.enum(["Run", "Walk", "Bike", "Hike", "Treadmill", "HIIT"]),
+    type: z.enum(["Run", "Walk", "Bike", "Hike", "Treadmill", "HIIT", "Meditation", "Fasting"]),
     distance: z.number().min(0),
     duration: z.number().min(0), // in seconds
     elevation: z.number().optional().default(0),
@@ -13,7 +13,7 @@ export const createActivitySchema = z.object({
     date: z.string().datetime(), // ISO string
     shoeId: z.string().optional(),
     // Agentic AI fields
-    mode: z.enum(["run", "walk", "bike", "hike"]).optional(),
+    mode: z.enum(["run", "walk", "bike", "hike", "meditation", "fasting"]).optional(),
     environment: z.enum(["outdoor", "indoor"]).optional(),
     mileSplits: z.array(z.number()).optional(),
     pausedDuration: z.number().optional(),

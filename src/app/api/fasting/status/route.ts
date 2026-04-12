@@ -91,6 +91,7 @@ export async function POST(req: Request) {
                     type: "Fasting",
                     distance: 0,
                     duration: durationSeconds,
+                    calories: 0,
                     date: new Date(),
                     mode: "fasting",
                     notes: notes || `Fasting Session: ${Math.round(durationSeconds / 3600)} hours completed. Target was ${activeSession.goal}h.`,
