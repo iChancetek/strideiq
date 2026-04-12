@@ -3,7 +3,7 @@ import { Pinecone } from "@pinecone-database/pinecone";
 import OpenAI from "openai";
 
 const pc = new Pinecone({
-    apiKey: process.env.PINECONE_API_KEY!,
+    apiKey: process.env.PINECONE_API_KEY || "placeholder",
 });
 
 const openai = new OpenAI({
