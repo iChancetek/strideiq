@@ -2,8 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase/config";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 
 // --- Badge Configuration ---
@@ -25,11 +23,13 @@ export default function AchievementsPage() {
         if (user) {
             const fetchStats = async () => {
                 try {
-                    const statsRef = doc(db, "users", user.uid, "stats", "allTime");
-                    const snap = await getDoc(statsRef);
-                    if (snap.exists()) setUserStats(snap.data());
+                    const res = await fetch("/api/user/stats");
+                    if (res.ok) {
+                        const data = await res.json();
+                        setUserStats(data);
+                    }
                 } catch (e) {
-                    console.error("Error fetching stats:", e);
+                    console.error("Error fetching stats from Postgres:", e);
                 } finally {
                     setLoading(false);
                 }

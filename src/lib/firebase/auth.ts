@@ -12,8 +12,18 @@ import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
 
 const ADMIN_EMAILS = ["Chancellor@ichancetek.com", "Chanceminus@gmail.com"];
 
+import { syncUserToPostgres } from "@/lib/db/sync";
+
 const syncUserToFirestore = async (user: any) => {
     try {
+        // Sync to Postgres (High Priority for current migration)
+        syncUserToPostgres({
+            uid: user.uid,
+            email: user.email,
+            displayName: user.displayName,
+            photoURL: user.photoURL,
+        }).catch(err => console.error("[Sync] Postgres sync failed:", err));
+
         const userRef = doc(db, "users", user.uid);
         const userSnap = await getDoc(userRef);
 

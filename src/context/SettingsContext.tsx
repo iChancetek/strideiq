@@ -2,8 +2,6 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { db } from "@/lib/firebase/config";
-import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 import { Language } from "@/lib/translations";
 
 interface Settings {
@@ -59,24 +57,25 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         setLoaded(true);
     }, []);
 
-    // 2. Sync from Firestore when user logs in
+    // 2. Sync from Postgres when user logs in
     useEffect(() => {
         if (!user) return;
 
         const loadRemoteSettings = async () => {
             try {
-                const docRef = doc(db, "users", user.uid, "settings", "preferences");
-                const docSnap = await getDoc(docRef);
-                if (docSnap.exists()) {
-                    const remoteSettings = docSnap.data() as Partial<Settings>;
-                    setSettings(prev => {
-                        const merged = { ...prev, ...remoteSettings };
-                        localStorage.setItem("strideiq_settings", JSON.stringify(merged));
-                        return merged;
-                    });
+                const res = await fetch("/api/user/settings");
+                if (res.ok) {
+                    const remoteSettings = await res.json();
+                    if (Object.keys(remoteSettings).length > 0) {
+                        setSettings(prev => {
+                            const merged = { ...prev, ...remoteSettings };
+                            localStorage.setItem("strideiq_settings", JSON.stringify(merged));
+                            return merged;
+                        });
+                    }
                 }
             } catch (error) {
-                console.error("Error loading remote settings:", error);
+                console.error("Error loading remote settings from Postgres:", error);
             }
         };
 
@@ -99,10 +98,13 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
         if (user) {
             try {
-                const docRef = doc(db, "users", user.uid, "settings", "preferences");
-                await setDoc(docRef, updated, { merge: true });
+                await fetch("/api/user/settings", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(newSettings),
+                });
             } catch (error) {
-                console.error("Error syncing settings to Firestore:", error);
+                console.error("Error syncing settings to Postgres:", error);
             }
         }
     };

@@ -187,6 +187,35 @@ export const trainingPlans = pgTable("training_plans", {
     updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// --- USER SETTINGS ---
+export const userSettings = pgTable("user_settings", {
+    userId: text("user_id").primaryKey().references(() => users.id, { onDelete: 'cascade' }),
+    theme: text("theme").default("dark"),
+    units: text("units").default("imperial"),
+    activityMode: text("activity_mode").default("run"),
+    environment: text("environment").default("outdoor"),
+    voiceCoaching: boolean("voice_coaching").default(true),
+    weatherAnnouncements: boolean("weather_announcements").default(true),
+    autoPause: boolean("auto_pause").default(true),
+    autoPauseSensitivity: text("auto_pause_sensitivity").default("medium"),
+    showMap: boolean("show_map").default(true),
+    language: text("language").default("en"),
+    updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// --- USER STATS (All Time) ---
+export const userStats = pgTable("user_stats", {
+    userId: text("user_id").primaryKey().references(() => users.id, { onDelete: 'cascade' }),
+    totalDistance: doublePrecision("total_distance").default(0),
+    totalCalories: integer("total_calories").default(0),
+    totalRuns: integer("total_runs").default(0),
+    totalTime: integer("total_time").default(0), // Total active time in seconds
+    maxStreak: integer("max_streak").default(0),
+    bestMilePace: doublePrecision("best_mile_pace"),
+    longestRun: doublePrecision("longest_run").default(0),
+    lastUpdated: timestamp("last_updated").defaultNow(),
+});
+
 // --- RELATIONSHIPS ---
 export const usersRelations = relations(users, ({ many }) => ({
     activities: many(activities),

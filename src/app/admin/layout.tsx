@@ -1,10 +1,9 @@
 "use client";
 
 import { useAuthState } from "react-firebase-hooks/auth";
-import { auth, db } from "@/lib/firebase/config";
+import { auth } from "@/lib/firebase/config";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { doc, getDoc } from "firebase/firestore";
 import Link from "next/link";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -25,15 +24,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
     const checkAdminRole = async (uid: string) => {
         try {
-            const ref = doc(db, "users", uid);
-            const snap = await getDoc(ref);
-            if (snap.exists() && snap.data().role === "admin") {
-                setIsAdmin(true);
+            const res = await fetch("/api/user/profile");
+            if (res.ok) {
+                const userData = await res.json();
+                if (userData.role === "admin") {
+                    setIsAdmin(true);
+                } else {
+                    router.push("/dashboard"); // Kick non-admins out
+                }
             } else {
-                router.push("/dashboard"); // Kick non-admins out
+                router.push("/dashboard");
             }
         } catch (e) {
-            console.error(e);
+            console.error("Admin verification failed via Postgres:", e);
             router.push("/dashboard");
         } finally {
             setCheckingRole(false);

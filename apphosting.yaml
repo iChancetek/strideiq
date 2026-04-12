@@ -35,3 +35,21 @@ env:
   - variable: TAVILY_API_KEY
     secret: TAVILY_API_KEY
     availability: ["BUILD", "RUNTIME"]
+  - variable: DATABASE_URL
+    secret: DATABASE_URL
+    availability: ["BUILD", "RUNTIME"]
+  - variable: PINECONE_API_KEY
+    secret: PINECONE_API_KEY
+    availability: ["BUILD", "RUNTIME"]
+  - variable: OPENWEATHER_API_KEY
+    secret: OPENWEATHER_API_KEY
+    availability: ["BUILD", "RUNTIME"]
+  - variable: NEXT_PUBLIC_SUPABASE_URL
+    value: "https://gylalnwwotvrvyiogbqd.supabase.co"
+    availability: ["BUILD", "RUNTIME"]
+  - variable: NEXT_PUBLIC_SUPABASE_ANON_KEY
+    value: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5bGFsbnd3b3R2cnZ5aW9nYnFkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NzQ1MzMsImV4cCI6MjA5MDM1MDUzM30.8LJ69kMytzQzpdhBLV4WiTmTEwHPLv_0C1Mud_SvcMU"
+    availability: ["BUILD", "RUNTIME"]
+  - variable: PINECONE_HOST
+    value: "https://strideiq-9hr81y6.svc.aped-4627-b74a.pinecone.io"
+    availability: ["BUILD", "RUNTIME"]
