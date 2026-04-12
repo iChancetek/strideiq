@@ -12,17 +12,21 @@ import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
 
 const ADMIN_EMAILS = ["Chancellor@ichancetek.com", "Chanceminus@gmail.com"];
 
-import { syncUserToPostgres } from "@/lib/db/sync";
-
 const syncUserToFirestore = async (user: any) => {
     try {
-        // Sync to Postgres (High Priority for current migration)
-        syncUserToPostgres({
-            uid: user.uid,
-            email: user.email,
-            displayName: user.displayName,
-            photoURL: user.photoURL,
-        }).catch(err => console.error("[Sync] Postgres sync failed:", err));
+        // Sync to Postgres via API (To avoid bundling server-side DB code in the browser)
+        fetch("/api/user/sync", {
+            method: "POST",
+            headers: { 
+                "Content-Type": "application/json",
+                // Note: The /api/user/sync route should verify the session via cookies/headers
+            },
+            body: JSON.stringify({
+                email: user.email,
+                displayName: user.displayName,
+                photoURL: user.photoURL,
+            }),
+        }).catch(err => console.error("[Sync] Postgres API sync failed:", err));
 
         const userRef = doc(db, "users", user.uid);
         const userSnap = await getDoc(userRef);
