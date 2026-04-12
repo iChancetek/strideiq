@@ -1,4 +1,4 @@
-import { syncUserToPostgres } from "@/lib/db/sync";
+import { adminDb } from "@/lib/firebase/admin";
 import { NextResponse } from "next/server";
 import { verifyFirebaseToken } from "@/lib/auth-utils";
 
@@ -12,12 +12,13 @@ export async function POST(req: Request) {
         const body = await req.json();
         const { email, displayName, photoURL } = body;
 
-        await syncUserToPostgres({
+        await adminDb.collection("users").doc(auth.userId).set({
             uid: auth.userId,
             email: email || null,
             displayName: displayName || null,
             photoURL: photoURL || null,
-        });
+            lastSynced: new Date()
+        }, { merge: true });
 
         return NextResponse.json({ success: true });
     } catch (error: any) {
