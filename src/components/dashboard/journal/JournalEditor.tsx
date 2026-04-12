@@ -77,19 +77,18 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
                 body: JSON.stringify({ text: content, command, tone })
             });
             const data = await res.json();
-            if (data.result) {
+            if (data.result && user) {
                 const newContent = data.result;
                 setContent(newContent);
 
-                // Ensure the draft is saved locally immediately after AI change
                 const entryId = initialData?.id || crypto.randomUUID();
                 await saveLocalJournal({
                     id: entryId,
                     title: title || "",
                     content: newContent,
                     type: "journal",
-                    media: mediaItems.length > 0 ? mediaItems : null,
-                    userId: user.uid || "",
+                    media: mediaItems.length > 0 ? mediaItems : [],
+                    userId: user.uid,
                     updatedAt: new Date().toISOString(),
                     synced: false
                 });
@@ -122,7 +121,7 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
                 title: title || "",
                 content: content || "",
                 type: "journal",
-                media: mediaItems.length > 0 ? mediaItems : null,
+                media: mediaItems.length > 0 ? mediaItems : [],
                 userId: user.uid,
                 updatedAt: new Date().toISOString(),
             };

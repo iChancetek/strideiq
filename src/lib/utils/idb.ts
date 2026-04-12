@@ -7,6 +7,8 @@ export interface JournalDraft {
   id: string; // Temporary or actual ID
   title: string;
   content: string;
+  type?: string;
+  userId?: string;
   media: any[];
   mood?: string;
   updatedAt: string;

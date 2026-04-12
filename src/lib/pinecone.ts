@@ -9,5 +9,5 @@ export const pinecone = new Pinecone({
 });
 
 export const getPineconeIndex = () => {
-  return pinecone.index('strideiq-9hr81y6').host(process.env.PINECONE_HOST || '');
+  return pinecone.index({ host: process.env.PINECONE_HOST || '' });
 };
