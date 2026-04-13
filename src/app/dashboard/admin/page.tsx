@@ -85,6 +85,7 @@ export default function AdminDashboard() {
             
             setShowEditModal(false);
             setNewPassword("");
+            setSelectedUser({ ...selectedUser, displayName: data?.profile?.displayName || selectedUser.displayName });
             alert(`Action "${action}" completed successfully.`);
         } catch (err: any) {
             alert(err.message);
@@ -356,6 +357,30 @@ export default function AdminDashboard() {
                                 <p style={{ color: "var(--foreground-muted)", fontSize: "14px" }}>{selectedUser.displayName} ({selectedUser.email})</p>
                             </div>
                             <button onClick={() => setShowEditModal(false)} style={{ background: "none", border: "none", color: "#fff", cursor: "pointer", fontSize: "24px" }}>&times;</button>
+                        </div>
+
+                        <div style={{ marginBottom: "20px" }}>
+                            <label style={{ display: "block", fontSize: "12px", fontWeight: "700", marginBottom: "8px", color: "var(--foreground-muted)", textTransform: "uppercase" }}>Update Profile Detail</label>
+                            <div style={{ display: "flex", gap: "10px" }}>
+                                <input 
+                                    type="text" 
+                                    placeholder="Enter new display name..." 
+                                    defaultValue={selectedUser.displayName}
+                                    id="edit-display-name"
+                                    style={{ flex: 1, padding: "12px 16px", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.1)", background: "#000", color: "#fff" }}
+                                />
+                                <button 
+                                    onClick={() => {
+                                        const val = (document.getElementById("edit-display-name") as HTMLInputElement).value;
+                                        handleUserAction(selectedUser.uid, "edit", { profile: { displayName: val } });
+                                    }}
+                                    disabled={actionLoading}
+                                    className="btn-primary"
+                                    style={{ padding: "0 20px" }}
+                                >
+                                    Sync
+                                </button>
+                            </div>
                         </div>
 
                         <div style={{ marginBottom: "30px" }}>

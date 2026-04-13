@@ -7,6 +7,7 @@ import Link from "next/link";
 
 export default function SignupPage() {
     const [email, setEmail] = useState("");
+    const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
@@ -37,8 +38,14 @@ export default function SignupPage() {
             return;
         }
 
+        if (!username || username.length < 3) {
+            setError("Username must be at least 3 characters.");
+            setLoading(false);
+            return;
+        }
+
         try {
-            await signUpWithEmail(email, password);
+            await signUpWithEmail(email, password, username);
             // Verification email is sent automatically inside signUpWithEmail
             // Redirect to verify-email — they must verify before accessing dashboard
             router.push("/verify-email");
@@ -132,6 +139,27 @@ export default function SignupPage() {
                 </div>
 
                 <form onSubmit={handleEmailSignUp} style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
+                    <div>
+                        <label style={{ display: "block", marginBottom: "8px", fontSize: "14px", color: "var(--foreground-muted)" }}>Username</label>
+                        <input
+                            type="text"
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
+                            required
+                            placeholder="How should we call you?"
+                            disabled={loading}
+                            style={{
+                                width: "100%",
+                                padding: "12px",
+                                borderRadius: "var(--radius-sm)",
+                                background: "rgba(255,255,255,0.05)",
+                                border: "1px solid rgba(255,255,255,0.1)",
+                                color: "#fff",
+                                outline: "none",
+                                opacity: loading ? 0.5 : 1
+                            }}
+                        />
+                    </div>
                     <div>
                         <label style={{ display: "block", marginBottom: "8px", fontSize: "14px", color: "var(--foreground-muted)" }}>Email</label>
                         <input

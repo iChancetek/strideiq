@@ -53,9 +53,13 @@ export async function POST(req: Request) {
                     updatedAt: new Date().toISOString()
                 }, { merge: true });
                 
-                // If email changed, update auth as well
-                if (data.profile.email) {
-                    await adminAuth.updateUser(uid, { email: data.profile.email });
+                // Sync with Auth if displayName or email changed
+                const authUpdates: any = {};
+                if (data.profile.displayName) authUpdates.displayName = data.profile.displayName;
+                if (data.profile.email) authUpdates.email = data.profile.email;
+
+                if (Object.keys(authUpdates).length > 0) {
+                    await adminAuth.updateUser(uid, authUpdates);
                 }
                 break;
             default:

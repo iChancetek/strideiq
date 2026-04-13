@@ -41,10 +41,13 @@ const syncUserToFirestore = async (user: any) => {
             role = "admin";
         }
 
+        // Priority: Use provided displayName first (from signup), then auth profile name
+        const displayName = user.displayName || user._tempDisplayName || "";
+
         const userData = {
             uid: user.uid,
             email: user.email,
-            displayName: user.displayName || "",
+            displayName,
             photoURL: user.photoURL || "",
             lastLogin: serverTimestamp(),
             role, // Sync role
@@ -90,9 +93,17 @@ export const signInWithGoogleRedirect = async () => {
     }
 };
 
-export const signUpWithEmail = async (email: string, pass: string) => {
+export const signUpWithEmail = async (email: string, pass: string, username: string) => {
     try {
         const result = await createUserWithEmailAndPassword(auth, email, pass);
+        
+        // Update basic profile with username immediately
+        const { updateProfile } = await import("firebase/auth");
+        await updateProfile(result.user, { displayName: username });
+
+        // Temporarily store name for sync logic if needed (sync context might run before auth state stabilizes)
+        (result.user as any)._tempDisplayName = username;
+
         // Sync in background
         syncUserToFirestore(result.user).catch(err =>
             console.error("Background sync failed for Email signup:", err)

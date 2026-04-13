@@ -13,6 +13,8 @@ export default function SettingsPage() {
     const { user } = useAuth();
     const { settings, updateSettings, toggleTheme } = useSettings();
     const [uploading, setUploading] = useState(false);
+    const [editingName, setEditingName] = useState(user?.displayName || "");
+    const [savingName, setSavingName] = useState(false);
     const lang = settings.language || "en";
 
     const handleTestVoice = () => {
@@ -38,6 +40,30 @@ export default function SettingsPage() {
             alert(t(lang, "photoUploadFailed"));
         } finally {
             setUploading(false);
+        }
+    };
+
+    const handleNameUpdate = async () => {
+        if (!user || !editingName || editingName === user.displayName) return;
+        setSavingName(true);
+        try {
+            const { updateProfile } = await import("firebase/auth");
+            await updateProfile(user, { displayName: editingName });
+            
+            // Sync to Firestore immediately
+            const { db } = await import("@/lib/firebase/config");
+            const { doc, updateDoc } = await import("firebase/firestore");
+            await updateDoc(doc(db, "users", user.uid), {
+                displayName: editingName,
+                updatedAt: new Date().toISOString()
+            });
+
+            alert(t(lang, "profileUpdated") || "Profile Updated!");
+        } catch (error) {
+            console.error("Error updating name:", error);
+            alert("Failed to update display name.");
+        } finally {
+            setSavingName(false);
         }
     };
 
@@ -98,7 +124,24 @@ export default function SettingsPage() {
                     <div style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
                         <div>
                             <label style={{ display: "block", marginBottom: "5px", color: "var(--foreground-muted)" }}>{t(lang, "displayName")}</label>
-                            <input type="text" value={user?.displayName || ""} className="input-field" disabled style={{ color: "var(--foreground)" }} />
+                            <div style={{ display: "flex", gap: "10px" }}>
+                                <input 
+                                    type="text" 
+                                    value={editingName} 
+                                    onChange={(e) => setEditingName(e.target.value)}
+                                    className="input-field" 
+                                    placeholder={user?.displayName || "Enter name..."}
+                                    style={{ flex: 1, color: "var(--foreground)" }} 
+                                />
+                                <button 
+                                    onClick={handleNameUpdate}
+                                    disabled={savingName || editingName === user?.displayName}
+                                    className="btn-primary"
+                                    style={{ padding: "0 20px", fontSize: "12px", height: "auto", opacity: (savingName || editingName === user?.displayName) ? 0.5 : 1 }}
+                                >
+                                    {savingName ? "..." : "Save"}
+                                </button>
+                            </div>
                         </div>
                         <div>
                             <label style={{ display: "block", marginBottom: "5px", color: "var(--foreground-muted)" }}>{t(lang, "email")}</label>
