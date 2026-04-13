@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 
 export default function SupportPage() {
     return (
@@ -14,56 +15,137 @@ export default function SupportPage() {
                 </div>
             </nav>
 
-            <div style={{ maxWidth: "800px", margin: "0 auto", paddingTop: "140px", paddingLeft: "20px", paddingRight: "20px" }}>
-                <h1 style={{ fontSize: "48px", marginBottom: "20px" }}>Support Center</h1>
-                <p style={{ color: "var(--foreground-muted)", marginBottom: "40px" }}>How can we help you today?</p>
+            {/* Hero Section */}
+            <section style={{ paddingTop: "140px", textAlign: "center", paddingBottom: "60px", paddingLeft: "20px", paddingRight: "20px" }}>
+                <div style={{ display: "inline-block", padding: "8px 16px", borderRadius: "20px", background: "rgba(204, 255, 0, 0.1)", color: "#CCFF00", marginBottom: "20px", fontSize: "14px", fontWeight: 600, letterSpacing: "1px" }}>
+                    ELITE ASSISTANCE
+                </div>
+                <h1 style={{ fontSize: "clamp(40px, 6vw, 64px)", lineHeight: 1.1, marginBottom: "20px" }}>
+                    Support <span className="text-gradient">Center</span>
+                </h1>
+                <p style={{ fontSize: "18px", color: "var(--foreground-muted)", maxWidth: "700px", margin: "0 auto", lineHeight: 1.6 }}>
+                    Need help optimizing your StrideIQ experience? Our mission control is active 24/7 to ensure your training never stops.
+                </p>
+            </section>
 
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: "20px", marginBottom: "40px" }}>
-                    <div className="glass-panel" style={{ padding: "30px", borderRadius: "16px", textAlign: "center" }}>
-                        <div style={{ fontSize: "40px", marginBottom: "15px" }}>📧</div>
-                        <h3 style={{ marginBottom: "10px" }}>Email Support</h3>
-                        <p style={{ color: "var(--foreground-muted)", fontSize: "14px", marginBottom: "20px" }}>Get a response within 24 hours.</p>
-                        <a href="mailto:support@strideiq.fit" className="text-gradient" style={{ fontWeight: 600, textDecoration: "none" }}>support@strideiq.fit</a>
+            {/* Support Content */}
+            <div style={{ maxWidth: "1100px", margin: "0 auto", padding: "0 20px", display: "flex", flexDirection: "column", gap: "80px" }}>
+                
+                <Section 
+                    title="Get in Touch" 
+                    desc="Connect with our human or AI support agents for technical assistance."
+                >
+                    <SupportCard 
+                        icon="📧" 
+                        title="Email Support" 
+                        desc="For complex troubleshooting or account inquiries. Response time < 12h." 
+                        link="mailto:support@strideiq.fit"
+                        linkText="support@strideiq.fit"
+                    />
+                    <SupportCard 
+                        icon="🤖" 
+                        title="AI Help Agent" 
+                        desc="Chat with our intelligent support agent for instant feature guides and tips." 
+                        link="/dashboard/ai-coach"
+                        linkText="Ask the Coach"
+                    />
+                    <SupportCard 
+                        icon="🌐" 
+                        title="Community Feed" 
+                        desc="Ask the global StrideIQ family for training tips and community support." 
+                        link="/dashboard"
+                        linkText="Join the Feed"
+                    />
+                </Section>
+
+                <Section 
+                    title="Knowledge Base" 
+                    desc="Deep dives into the StrideIQ engine and how to master our autonomous agents."
+                >
+                    <SupportCard 
+                        icon="📖" 
+                        title="User Guide" 
+                        desc="Comprehensive documentation on GPS tracking, AI coaching, and data sync." 
+                        link="/learn-more"
+                        linkText="Read Manual"
+                    />
+                    <SupportCard 
+                        icon="⚙️" 
+                        title="Setup PWA" 
+                        desc="Learn how to install StrideIQ as a professional app on your homescreen." 
+                        link="/learn-more"
+                        linkText="Installation Guide"
+                    />
+                </Section>
+
+                <Section 
+                    title="Technical FAQ" 
+                    desc="Quick answers to the most common tactical questions."
+                >
+                    <div className="glass-panel" style={{ padding: "40px", borderRadius: "24px" }}>
+                        <FAQItem 
+                            q="Is my data shared with other apps?" 
+                            a="No. StrideIQ data stays within our secure cloud unless you explicitly use our upcoming export features." 
+                        />
+                        <FAQItem 
+                            q="What happens if I lose GPS signal?" 
+                            a="Our movement agents use dead-reckoning and cadence data to estimate your pace until signal is restored." 
+                        />
+                        <FAQItem 
+                            q="How do I promote to Admin?" 
+                            a="Admin status is reserved for project operators. If you are a developer, check the README in the repository." 
+                        />
+                        <FAQItem 
+                            q="Does the AI Coach work offline?" 
+                            a="Basic telemetry works offline, but AI-powered voice coaching and summary generation require a connection." 
+                        />
                     </div>
-                   <div className="glass-panel" style={{ padding: "30px", borderRadius: "16px", textAlign: "center" }}>
-                        <div style={{ fontSize: "40px", marginBottom: "15px" }}>📚</div>
-                        <h3 style={{ marginBottom: "10px" }}>Documentation</h3>
-                        <p style={{ color: "var(--foreground-muted)", fontSize: "14px", marginBottom: "20px" }}>Learn how to use every feature.</p>
-                        <Link href="/learn-more" style={{ color: "var(--primary)", textDecoration: "none", fontWeight: 600 }}>Browse Guide</Link>
-                    </div>
-                </div>
+                </Section>
 
-                <div className="glass-panel" style={{ padding: "40px", borderRadius: "24px" }}>
-                    <h2 style={{ marginBottom: "20px" }}>Frequently Asked Questions</h2>
-                    <FAQItem 
-                        q="Is StrideIQ free to use?" 
-                        a="Yes! StrideIQ is currently free for all users while in early access." 
-                    />
-                    <FAQItem 
-                        q="How do I install the PWA?" 
-                        a="Check our 'Learn More' page for step-by-step instructions for iOS, Android, and Desktop." 
-                    />
-                    <FAQItem 
-                        q="Can I sync my data across devices?" 
-                        a="Absolutely. Your data is synced to the StrideIQ cloud in real-time." 
-                    />
-                </div>
+            </div>
 
-                <div style={{ marginTop: "40px", textAlign: "center" }}>
-                    <Link href="/" className="btn-primary" style={{ display: "inline-flex", padding: "12px 30px" }}>
-                        Back to Home
-                    </Link>
-                </div>
+            {/* Footer Action */}
+            <div style={{ marginTop: "100px", textAlign: "center" }}>
+                <Link href="/" className="btn-primary" style={{ display: "inline-flex", padding: "12px 40px" }}>
+                    Mission Control Home
+                </Link>
             </div>
         </main>
     );
 }
 
+function Section({ title, desc, children }: { title: string, desc: string, children: React.ReactNode }) {
+    return (
+        <section>
+            <div style={{ marginBottom: "30px", borderLeft: "4px solid var(--primary)", paddingLeft: "20px" }}>
+                <h2 style={{ fontSize: "28px", marginBottom: "8px" }}>{title}</h2>
+                <p style={{ color: "var(--foreground-muted)", fontSize: "16px" }}>{desc}</p>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "20px" }}>
+                {children}
+            </div>
+        </section>
+    );
+}
+
+function SupportCard({ icon, title, desc, link, linkText }: { icon: string, title: string, desc: string, link: string, linkText: string }) {
+    return (
+        <div className="glass-panel" style={{ padding: "30px", borderRadius: "20px", display: "flex", flexDirection: "column", height: "100%" }}>
+            <div style={{ fontSize: "32px", marginBottom: "15px" }}>{icon}</div>
+            <h3 style={{ fontSize: "20px", marginBottom: "10px", fontWeight: 700 }}>{title}</h3>
+            <p style={{ color: "var(--foreground-muted)", lineHeight: 1.6, fontSize: "14px", flex: 1, marginBottom: "20px" }}>{desc}</p>
+            <Link href={link} className="text-gradient" style={{ fontWeight: 600, textDecoration: "none", fontSize: "14px" }}>
+                {linkText} →
+            </Link>
+        </div>
+    );
+}
+
 function FAQItem({ q, a }: { q: string, a: string }) {
     return (
-        <div style={{ marginBottom: "20px", paddingBottom: "20px", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
-            <h4 style={{ color: "#fff", marginBottom: "10px" }}>{q}</h4>
-            <p style={{ color: "var(--foreground-muted)", fontSize: "14px" }}>{a}</p>
+        <div style={{ marginBottom: "25px", paddingBottom: "25px", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+            <h4 style={{ color: "#fff", marginBottom: "10px", fontSize: "18px" }}>{q}</h4>
+            <p style={{ color: "var(--foreground-muted)", fontSize: "15px", lineHeight: 1.6 }}>{a}</p>
         </div>
     );
 }
