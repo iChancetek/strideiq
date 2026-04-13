@@ -18,22 +18,30 @@ export default function AdminDashboard() {
 
     useEffect(() => {
         if (authLoading) return;
+        
+        // Final security check: ensure user exists and is on the approved list
         if (!user || !user.email || !ADMIN_EMAILS.includes(user.email.toLowerCase())) {
             router.push("/dashboard");
             return;
         }
 
         authenticatedFetch("/api/admin/stats")
-            .then(res => res.json())
+            .then(async (res) => {
+                if (!res.ok) throw new Error("Unauthorized");
+                return res.json();
+            })
             .then(data => setStats(data))
-            .catch(err => console.error(err))
+            .catch(err => {
+                console.error("Admin stats fetch error:", err);
+                router.push("/dashboard");
+            })
             .finally(() => setLoading(false));
     }, [user, authLoading, router]);
 
     if (authLoading || loading) return (
         <DashboardLayout>
             <div style={{ padding: "40px", textAlign: "center", color: "var(--foreground-muted)" }}>
-                Loading Analytics...
+                Validating Admin Analytics...
             </div>
         </DashboardLayout>
     );
@@ -50,7 +58,7 @@ export default function AdminDashboard() {
         <DashboardLayout>
             <header style={{ marginBottom: "40px" }}>
                 <h1 style={{ fontSize: "32px", fontWeight: "bold" }}>Admin Dashboard</h1>
-                <p style={{ color: "var(--foreground-muted)" }}>System Overview & Health</p>
+                <p style={{ color: "var(--foreground-muted)" }}>System Overview & Analytics</p>
             </header>
 
             {/* KPI Cards */}
@@ -63,29 +71,31 @@ export default function AdminDashboard() {
                 ))}
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(400px, 1fr))", gap: "20px" }}>
                 {/* Activity Pie */}
-                <div className="glass-panel" style={{ padding: "24px", borderRadius: "16px", height: "400px" }}>
+                <div className="glass-panel" style={{ padding: "24px", borderRadius: "16px", minHeight: "400px" }}>
                     <h3 style={{ marginBottom: "20px" }}>Activity Distribution</h3>
-                    <ResponsiveContainer width="100%" height="80%">
-                        <PieChart>
-                            <Pie
-                                data={stats?.breakdown || []}
-                                innerRadius={60}
-                                outerRadius={80}
-                                paddingAngle={5}
-                                dataKey="value"
-                            >
-                                {stats?.breakdown?.map((entry: any, index: number) => (
-                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                ))}
-                            </Pie>
-                            <Tooltip
-                                contentStyle={{ background: "#222", border: "none", borderRadius: "8px", color: "#fff" }}
-                            />
-                        </PieChart>
-                    </ResponsiveContainer>
-                    <div style={{ display: "flex", justifyContent: "center", gap: "20px", flexWrap: "wrap" }}>
+                    <div style={{ height: "250px" }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                                <Pie
+                                    data={stats?.breakdown || []}
+                                    innerRadius={50}
+                                    outerRadius={70}
+                                    paddingAngle={5}
+                                    dataKey="value"
+                                >
+                                    {stats?.breakdown?.map((entry: any, index: number) => (
+                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                    ))}
+                                </Pie>
+                                <Tooltip
+                                    contentStyle={{ background: "#222", border: "none", borderRadius: "8px", color: "#fff" }}
+                                />
+                            </PieChart>
+                        </ResponsiveContainer>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "center", gap: "20px", flexWrap: "wrap", marginTop: "20px" }}>
                         {stats?.breakdown?.map((entry: any, index: number) => (
                             <div key={entry.name} style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px" }}>
                                 <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: COLORS[index % COLORS.length] }}></div>
@@ -95,17 +105,22 @@ export default function AdminDashboard() {
                     </div>
                 </div>
 
-                {/* Metric Leaders placeholder */}
-                <div className="glass-panel" style={{ padding: "24px", borderRadius: "16px", height: "400px" }}>
-                    <h3 style={{ marginBottom: "20px" }}>Metric Leaders (Activity Types)</h3>
-                    <ResponsiveContainer width="100%" height="80%">
-                        <BarChart data={stats?.breakdown || []}>
-                            <XAxis dataKey="name" stroke="#666" />
-                            <YAxis stroke="#666" />
-                            <Tooltip cursor={{ fill: 'rgba(255,255,255,0.05)' }} contentStyle={{ background: "#222", border: "none", borderRadius: "8px" }} />
-                            <Bar dataKey="value" fill="#00e5ff" radius={[4, 4, 0, 0]} />
-                        </BarChart>
-                    </ResponsiveContainer>
+                {/* Metric Leaders Bar */}
+                <div className="glass-panel" style={{ padding: "24px", borderRadius: "16px", minHeight: "400px" }}>
+                    <h3 style={{ marginBottom: "20px" }}>Active Submissions</h3>
+                    <div style={{ height: "300px" }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={stats?.breakdown || []}>
+                                <XAxis dataKey="name" stroke="#666" style={{ fontSize: "12px" }} />
+                                <YAxis stroke="#666" style={{ fontSize: "12px" }} />
+                                <Tooltip 
+                                    cursor={{ fill: 'rgba(255,255,255,0.05)' }} 
+                                    contentStyle={{ background: "#222", border: "none", borderRadius: "8px" }}
+                                />
+                                <Bar dataKey="value" fill="var(--primary)" radius={[4, 4, 0, 0]} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
                 </div>
             </div>
         </DashboardLayout>

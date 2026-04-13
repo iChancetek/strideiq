@@ -139,7 +139,7 @@ export default function Sidebar({ onLogout }: SidebarProps) {
                         {user?.email && ["chancellor@ichancetek.com", "chanceminus@gmail.com"].includes(user.email.toLowerCase()) && (
                             <li>
                                 <Link
-                                    href="/admin"
+                                    href="/dashboard/admin"
                                     onClick={() => setIsOpen(false)}
                                     style={{
                                         display: "flex",
