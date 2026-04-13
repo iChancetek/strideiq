@@ -62,6 +62,10 @@ export async function POST(req: Request) {
                     await adminAuth.updateUser(uid, authUpdates);
                 }
                 break;
+            case "revoke-session":
+                // Invalidate all active refresh tokens for the user
+                await adminAuth.revokeRefreshTokens(uid);
+                break;
             default:
                 return NextResponse.json({ error: "Invalid action" }, { status: 400 });
         }

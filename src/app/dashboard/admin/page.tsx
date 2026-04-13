@@ -404,6 +404,29 @@ export default function AdminDashboard() {
                             </div>
                         </div>
 
+                        <div style={{ marginBottom: "30px" }}>
+                            <label style={{ display: "block", fontSize: "12px", fontWeight: "700", marginBottom: "8px", color: "var(--foreground-muted)", textTransform: "uppercase" }}>Security Management</label>
+                            <button 
+                                onClick={() => handleUserAction(selectedUser.uid, "revoke-session")}
+                                disabled={actionLoading}
+                                style={{ 
+                                    width: "100%", 
+                                    padding: "12px", 
+                                    borderRadius: "12px", 
+                                    background: "rgba(255, 140, 0, 0.1)", 
+                                    color: "#ff8c00", 
+                                    border: "1px solid #ff8c00", 
+                                    fontWeight: "700", 
+                                    cursor: "pointer",
+                                    transition: "all 0.2s"
+                                }}
+                                onMouseEnter={e => e.currentTarget.style.background = "rgba(255, 140, 0, 0.2)"}
+                                onMouseLeave={e => e.currentTarget.style.background = "rgba(255, 140, 0, 0.1)"}
+                            >
+                                Terminate All Active Sessions
+                            </button>
+                        </div>
+
                         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "15px" }}>
                              <button 
                                 onClick={() => handleUserAction(selectedUser.uid, "delete")}
