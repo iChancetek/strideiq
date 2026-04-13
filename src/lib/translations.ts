@@ -141,6 +141,7 @@ type TranslationKeys = {
     publicProfile: string;
     automaticApproval: string;
     manualApproval: string;
+    profileUpdated: string;
 
     // Achievements
     achievementsTitle: string;
@@ -339,6 +340,7 @@ const translations: Record<Language, TranslationKeys> = {
         confirmDelete: "Are you sure you want to delete this entry?",
         confirmDiscard: "Are you sure you want to DISCARD changes?",
         saveBeforeLeaving: "Do you want to SAVE them before leaving?",
+        profileUpdated: "Profile updated successfully!",
     },
     es: {
         dashboard: "Tablero",
@@ -492,6 +494,7 @@ const translations: Record<Language, TranslationKeys> = {
         confirmDelete: "¿Estás seguro de que quieres eliminar esta entrada?",
         confirmDiscard: "¿Estás seguro de que quieres DESCARTAR los cambios?",
         saveBeforeLeaving: "¿Quieres GUARDARLOS antes de salir?",
+        profileUpdated: "¡Perfil actualizado con éxito!",
     },
     fr: {
         dashboard: "Tableau de Bord",
@@ -645,6 +648,7 @@ const translations: Record<Language, TranslationKeys> = {
         confirmDelete: "Êtes-vous sûr de vouloir supprimer cette entrée ?",
         confirmDiscard: "Êtes-vous sûr de vouloir ABANDONNER les modifications ?",
         saveBeforeLeaving: "Voulez-vous les SAUVEGARDER avant de quitter ?",
+        profileUpdated: "Profil mis à jour avec succès !",
     },
     zh: {
         dashboard: "仪表板",
@@ -798,6 +802,7 @@ const translations: Record<Language, TranslationKeys> = {
         confirmDelete: "确定要删除这篇日记吗？",
         confirmDiscard: "确定要放弃更改吗？",
         saveBeforeLeaving: "离开前要保存吗？",
+        profileUpdated: "个人资料更新成功！",
     },
     ar: {
         dashboard: "لوحة القيادة",
@@ -951,6 +956,7 @@ const translations: Record<Language, TranslationKeys> = {
         confirmDelete: "هل أنت متأكد أنك تريد حذف هذه المذكرة؟",
         confirmDiscard: "هل أنت متأكد أنك تريد تجاهل التغييرات؟",
         saveBeforeLeaving: "هل تريد حفظها قبل المغادرة؟",
+        profileUpdated: "تم تحديث الملف الشخصي بنجاح!",
     },
 };
 
