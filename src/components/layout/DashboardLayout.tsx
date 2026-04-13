@@ -131,77 +131,40 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         className="main-content"
       >
 
-        {/* Navigation Actions */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "30px", flexWrap: "wrap", gap: "10px" }}>
-          {/* Global Back Button */}
-          {showBackButton ? (
-            <div className="back-button-wrapper">
-              <button
-                onClick={() => router.back()}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                  background: "none",
-                  border: "none",
-                  color: "var(--foreground-muted)",
-                  cursor: "pointer",
-                  padding: "8px",
-                  borderRadius: "var(--radius-full)",
-                  transition: "all 0.2s",
-                  fontSize: "14px",
-                }}
-              >
-                <div style={{
-                  padding: "8px",
-                  borderRadius: "50%",
-                  background: "rgba(255,255,255,0.05)",
-                  backdropFilter: "blur(8px)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}>
-                  <ChevronLeft size={20} />
-                </div>
-                <span style={{ fontWeight: 500 }}>{t(lang, "back")}</span>
-              </button>
-            </div>
-          ) : <div />}
-
-          {/* Back to Home Button */}
-          <Link
-            href="/"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "10px",
-              padding: "10px 20px",
-              borderRadius: "var(--radius-full)",
-              background: "rgba(204, 255, 0, 0.05)",
-              border: "1px solid rgba(204, 255, 0, 0.15)",
-              color: "var(--primary)",
-              fontSize: "13px",
-              fontWeight: 700,
-              textDecoration: "none",
-              transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-              letterSpacing: "0.5px",
-              textTransform: "uppercase"
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.background = "rgba(204, 255, 0, 0.15)";
-              e.currentTarget.style.transform = "translateX(-4px)";
-              e.currentTarget.style.boxShadow = "0 0 20px rgba(204, 255, 0, 0.1)";
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.background = "rgba(204, 255, 0, 0.05)";
-              e.currentTarget.style.transform = "translateX(0)";
-              e.currentTarget.style.boxShadow = "none";
-            }}
-          >
-            <span style={{ fontSize: "16px" }}>←</span>
-            Back to Home
-          </Link>
-        </div>
+        {/* Global Back Button */}
+        {showBackButton && (
+          <div className="back-button-wrapper">
+            <button
+              onClick={() => router.back()}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                background: "none",
+                border: "none",
+                color: "var(--foreground-muted)",
+                cursor: "pointer",
+                padding: "8px",
+                borderRadius: "var(--radius-full)",
+                transition: "color 0.2s",
+                fontSize: "14px",
+              }}
+            >
+              <div style={{
+                padding: "8px",
+                borderRadius: "50%",
+                background: "rgba(255,255,255,0.05)",
+                backdropFilter: "blur(8px)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}>
+                <ChevronLeft size={20} />
+              </div>
+              <span style={{ fontWeight: 500 }}>{t(lang, "back")}</span>
+            </button>
+          </div>
+        )}
 
         {children}
         <VoiceCommandOverlay />

@@ -15,18 +15,24 @@ export default function ManualActivityModal({ isOpen, onClose }: Props) {
     const { addActivity } = useActivities();
     const [loading, setLoading] = useState(false);
 
-    const [title, setTitle] = useState("");
-    const [type, setType] = useState<"Run" | "Walk" | "Bike" | "Hike" | "Meditation">("Run");
-    const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
-    const [time, setTime] = useState("12:00");
-    const [distance, setDistance] = useState("0");
-    const [hours, setHours] = useState("0");
-    const [minutes, setMinutes] = useState("0");
-    const [seconds, setSeconds] = useState("0");
-    const [notes, setNotes] = useState("");
-    const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-    const fileInputRef = useRef<HTMLInputElement>(null);
-    const [user] = useAuthState(auth);
+    const [calories, setCalories] = useState("0");
+    const [steps, setSteps] = useState("0");
+    const [elevation, setElevation] = useState("0");
+
+    // Real-time Pace Calculation
+    const getPaceStr = () => {
+        const d = parseFloat(distance) || 0;
+        const h = parseInt(hours) || 0;
+        const m = parseInt(minutes) || 0;
+        const s = parseInt(seconds) || 0;
+        const totalSec = h * 3600 + m * 60 + s;
+        
+        if (d <= 0 || totalSec <= 0) return "--:--";
+        const paceSecPerMile = totalSec / d;
+        const paceM = Math.floor(paceSecPerMile / 60);
+        const paceS = Math.floor(paceSecPerMile % 60);
+        return `${paceM}'${paceS < 10 ? "0" : ""}${paceS}"/mi`;
+    };
 
     if (!isOpen) return null;
 
@@ -40,6 +46,9 @@ export default function ManualActivityModal({ isOpen, onClose }: Props) {
             const s = parseInt(seconds) || 0;
             const durationSeconds = h * 3600 + m * 60 + s;
             const distanceMiles = parseFloat(distance) || 0;
+            const cal = parseInt(calories) || 0;
+            const stepCount = parseInt(steps) || 0;
+            const elev = parseInt(elevation) || 0;
 
             if (durationSeconds <= 0) {
                 throw new Error("Duration must be greater than 0");
@@ -47,14 +56,6 @@ export default function ManualActivityModal({ isOpen, onClose }: Props) {
             if (type !== "Meditation" && distanceMiles <= 0) {
                 throw new Error("Distance must be greater than 0");
             }
-
-            // Calculate rough calories based on mode
-            let calPerMile = 100;
-            if (type === "Walk") calPerMile = 80;
-            if (type === "Bike") calPerMile = 45;
-            if (type === "Hike") calPerMile = 120;
-            if (type === "Meditation") calPerMile = 15;
-            const calories = Math.round(distanceMiles * calPerMile);
 
             // Construct Date object
             const activityDate = new Date(`${date}T${time}:00`);
@@ -72,14 +73,15 @@ export default function ManualActivityModal({ isOpen, onClose }: Props) {
                 distance: distanceMiles,
                 duration: durationSeconds,
                 date: activityDate,
-                calories,
+                calories: cal || Math.round(distanceMiles * 100), // Fallback to estimate
+                steps: stepCount,
+                elevation: elev,
                 notes: notes,
                 media: mediaItems,
                 isPublic: true,
                 environment: "outdoor"
             });
 
-            // Need to reload window or let snapshot update. The snapshot in useActivities handles it!
             onClose();
         } catch (e: any) {
             console.error("Save error:", e);
@@ -146,17 +148,19 @@ export default function ManualActivityModal({ isOpen, onClose }: Props) {
                             <label style={labelStyle}>Date</label>
                             <input type="date" value={date} onChange={e => setDate(e.target.value)} required style={inputStyle} disabled={loading} />
                         </div>
-                        <div style={{ flex: 1 }}>
-                            <label style={labelStyle}>Time</label>
-                            <input type="time" value={time} onChange={e => setTime(e.target.value)} required style={inputStyle} disabled={loading} />
-                        </div>
                     </div>
 
-                    {/* Distance */}
+                    {/* Distance & Pace */}
                     {type !== "Meditation" && (
-                    <div>
-                        <label style={labelStyle}>Distance (Miles)</label>
-                        <input type="number" step="0.01" min="0.01" value={distance} onChange={e => setDistance(e.target.value)} required style={inputStyle} disabled={loading} placeholder="e.g. 6.0" />
+                    <div style={{ display: "flex", gap: "15px", alignItems: "flex-end" }}>
+                        <div style={{ flex: 1 }}>
+                            <label style={labelStyle}>Distance (Miles)</label>
+                            <input type="number" step="0.01" min="0.01" value={distance} onChange={e => setDistance(e.target.value)} required style={inputStyle} disabled={loading} placeholder="e.g. 6.0" />
+                        </div>
+                        <div style={{ flex: 1, padding: "10px", background: "rgba(204,255,0,0.05)", borderRadius: "var(--radius-sm)", border: "1px solid rgba(204,255,0,0.1)", textAlign: "center" }}>
+                            <div style={{ fontSize: "10px", color: "var(--primary)", fontWeight: 700, textTransform: "uppercase" }}>Avg Pace</div>
+                            <div style={{ fontSize: "18px", fontWeight: 800, color: "var(--primary)" }}>{getPaceStr()}</div>
+                        </div>
                     </div>
                     )}
 
@@ -179,13 +183,29 @@ export default function ManualActivityModal({ isOpen, onClose }: Props) {
                         </div>
                     </div>
 
+                    {/* Extra Stats */}
+                    <div style={{ display: "flex", gap: "10px" }}>
+                        <div style={{ flex: 1 }}>
+                            <label style={labelStyle}>Calories</label>
+                            <input type="number" value={calories} onChange={e => setCalories(e.target.value)} style={inputStyle} disabled={loading} placeholder="Kcal" />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                            <label style={labelStyle}>Steps</label>
+                            <input type="number" value={steps} onChange={e => setSteps(e.target.value)} style={inputStyle} disabled={loading} placeholder="Steps" />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                            <label style={labelStyle}>Elevation (ft)</label>
+                            <input type="number" value={elevation} onChange={e => setElevation(e.target.value)} style={inputStyle} disabled={loading} placeholder="Gain" />
+                        </div>
+                    </div>
+
                     {/* Title & Notes */}
                     <div>
-                        <label style={labelStyle}>Title (Optional)</label>
-                        <input type="text" value={title} onChange={e => setTitle(e.target.value)} style={inputStyle} disabled={loading} placeholder="e.g. Evening Run" />
+                        <label style={labelStyle}>Activity Title</label>
+                        <input type="text" value={title} onChange={e => setTitle(e.target.value)} style={inputStyle} disabled={loading} placeholder="e.g. Morning Jog" />
                     </div>
                     <div>
-                        <label style={labelStyle}>Notes (Optional)</label>
+                        <label style={labelStyle}>Notes</label>
                         <textarea value={notes} onChange={e => setNotes(e.target.value)} style={{ ...inputStyle, minHeight: "80px", resize: "vertical" }} disabled={loading} placeholder="How did it feel?" />
                     </div>
 
@@ -261,7 +281,7 @@ export default function ManualActivityModal({ isOpen, onClose }: Props) {
                     </div>
 
                     <button type="submit" className="btn-primary" disabled={loading} style={{ marginTop: "10px", padding: "12px", justifyContent: "center", opacity: loading ? 0.7 : 1 }}>
-                        {loading ? "Saving..." : "Save Activity"}
+                        {loading ? "Saving Progress..." : "Save Activity"}
                     </button>
 
                 </form>

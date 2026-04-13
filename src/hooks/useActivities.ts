@@ -15,6 +15,7 @@ export interface Activity {
     notes?: string;
     mode?: "run" | "walk" | "bike" | "hike" | "meditation" | "fasting";
     environment?: "outdoor" | "indoor";
+    elevation?: number;
     mileSplits?: number[];
     pausedDuration?: number;
     weatherSnapshot?: {

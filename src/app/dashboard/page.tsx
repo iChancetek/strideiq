@@ -130,6 +130,24 @@ export default function Dashboard() {
                     <section className="glass-panel" style={{ padding: "25px", borderRadius: "var(--radius-lg)", minHeight: "300px" }}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
                             <h3 style={{ margin: 0 }}>Recent Activity</h3>
+                            <button 
+                                onClick={() => setIsManualModalOpen(true)}
+                                style={{
+                                    padding: "8px 16px",
+                                    borderRadius: "var(--radius-full)",
+                                    background: "rgba(255,255,255,0.05)",
+                                    border: "1px solid rgba(255,255,255,0.1)",
+                                    color: "var(--primary)",
+                                    fontSize: "13px",
+                                    fontWeight: 600,
+                                    cursor: "pointer",
+                                    transition: "all 0.2s"
+                                }}
+                                onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.1)"}
+                                onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,0.05)"}
+                            >
+                                + Manual Log
+                            </button>
                             <button onClick={() => router.push("/dashboard/activities")} style={{ fontSize: "12px", color: "var(--primary)", background: "none", border: "none", cursor: "pointer" }}>View All</button>
                         </div>
 
@@ -141,29 +159,38 @@ export default function Dashboard() {
                             </div>
                         ) : (
                             <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                                {activities.slice(0, 4).map(activity => (
-                                    <div key={activity.id} style={{
-                                        padding: "15px",
-                                        background: "rgba(255,255,255,0.03)",
-                                        borderRadius: "var(--radius-sm)",
-                                        display: "flex",
-                                        justifyContent: "space-between",
-                                        alignItems: "center",
-                                        border: "1px solid rgba(255,255,255,0.05)"
-                                    }}>
-                                        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                                            <div style={{ background: "rgba(255,255,255,0.1)", padding: "8px", borderRadius: "50%" }}>🏃</div>
-                                            <div>
-                                                <div style={{ fontWeight: 600, fontSize: "14px" }}>{activity.type}</div>
-                                                <div style={{ fontSize: "12px", color: "var(--foreground-muted)" }}>{activity.date.toLocaleDateString()}</div>
+                                {activities.slice(0, 4).map(activity => {
+                                    const isDistanceActivity = ["Run", "Walk", "Bike", "Hike"].includes(activity.type);
+                                    const icon = activity.type === "Fasting" ? "⏳" : activity.type === "Meditation" ? "🧘" : "🏃";
+                                    
+                                    return (
+                                        <div key={activity.id} style={{
+                                            padding: "15px",
+                                            background: "rgba(255,255,255,0.03)",
+                                            borderRadius: "var(--radius-sm)",
+                                            display: "flex",
+                                            justifyContent: "space-between",
+                                            alignItems: "center",
+                                            border: "1px solid rgba(255,255,255,0.05)"
+                                        }}>
+                                            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                                                <div style={{ background: "rgba(255,255,255,0.1)", padding: "8px", borderRadius: "50%", width: "40px", height: "40px", display: "flex", alignItems: "center", justifyContent: "center" }}>{icon}</div>
+                                                <div>
+                                                    <div style={{ fontWeight: 600, fontSize: "14px" }}>{activity.type}</div>
+                                                    <div style={{ fontSize: "12px", color: "var(--foreground-muted)" }}>{activity.date.toLocaleDateString()}</div>
+                                                </div>
+                                            </div>
+                                            <div style={{ textAlign: "right" }}>
+                                                <div style={{ fontWeight: 600, fontSize: "14px" }}>
+                                                    {isDistanceActivity ? `${activity.distance} mi` : activity.type === "Fasting" ? `${activity.goal || 16}h Goal` : `${Math.round(activity.duration / 60)} min`}
+                                                </div>
+                                                <div style={{ fontSize: "12px", color: "var(--foreground-muted)" }}>
+                                                    {isDistanceActivity ? `${activity.pace} /mi` : activity.type === "Fasting" ? "Fasting session" : "Mindset recovery"}
+                                                </div>
                                             </div>
                                         </div>
-                                        <div style={{ textAlign: "right" }}>
-                                            <div style={{ fontWeight: 600, fontSize: "14px" }}>{activity.distance} mi</div>
-                                            <div style={{ fontSize: "12px", color: "var(--foreground-muted)" }}>{activity.pace} /mi</div>
-                                        </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         )}
                     </section>
