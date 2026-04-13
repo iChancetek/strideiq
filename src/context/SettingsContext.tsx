@@ -16,6 +16,7 @@ interface Settings {
     autoPauseSensitivity: "low" | "medium" | "high";
     showMap: boolean;
     language: Language;
+    privateProfile: boolean;
 }
 
 interface SettingsContextType {
@@ -35,6 +36,7 @@ const defaultSettings: Settings = {
     autoPauseSensitivity: "medium",
     showMap: true,
     language: "en",
+    privateProfile: false,
 };
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);

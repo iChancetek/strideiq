@@ -31,16 +31,23 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Friendship status already exists" }, { status: 409 });
         }
 
-        // Create Request
+        // Check Privacy Settings for Auto-Approval
+        const settings = targetUserDoc.data()?.settings || {};
+        const isPrivate = settings.privateProfile === true;
+        
+        // Create Request (or direct friendship)
         await adminDb.collection("friends").add({
             requesterId: userId,
             receiverId: targetUserId,
-            status: "pending",
+            status: isPrivate ? "pending" : "accepted",
             createdAt: FieldValue.serverTimestamp(),
             updatedAt: FieldValue.serverTimestamp()
         });
 
-        return NextResponse.json({ success: true });
+        return NextResponse.json({ 
+            success: true, 
+            status: isPrivate ? "pending" : "accepted" 
+        });
 
     } catch (error: any) {
         console.error("Friend Request Error:", error);

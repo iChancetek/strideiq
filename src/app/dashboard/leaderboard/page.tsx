@@ -11,6 +11,7 @@ interface LeaderboardEntry {
     displayName: string;
     photoURL?: string;
     totalMiles: number;
+    totalSteps?: number;
     avgPace: number;
     rank?: number;
 }
@@ -18,6 +19,7 @@ interface LeaderboardEntry {
 export default function LeaderboardPage() {
     const [user] = useAuthState(auth);
     const [tab, setTab] = useState<"global" | "friends">("global");
+    const [sortBy, setSortBy] = useState<"totalMiles" | "totalSteps">("totalMiles");
     const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -25,15 +27,15 @@ export default function LeaderboardPage() {
     useEffect(() => {
         fetchLeaderboard();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [user, tab]);
+    }, [user, tab, sortBy]);
 
     const fetchLeaderboard = async () => {
         setLoading(true);
         setError(null);
         try {
             const url = user
-                ? `/api/leaderboard?type=${tab}&userId=${user.uid}`
-                : `/api/leaderboard?type=global`;
+                ? `/api/leaderboard?type=${tab}&userId=${user.uid}&sortBy=${sortBy}`
+                : `/api/leaderboard?type=global&sortBy=${sortBy}`;
 
             const res = await fetch(url);
             if (!res.ok) throw new Error(await res.text());
@@ -68,7 +70,7 @@ export default function LeaderboardPage() {
 
     return (
         <DashboardLayout>
-            <div style={{ maxWidth: "800px", margin: "0 auto", padding: "20px" }}>
+            <div style={{ maxWidth: "900px", margin: "0 auto", padding: "20px" }}>
                 {/* Back Arrow */}
                 <div style={{ marginBottom: "16px" }}>
                     <Link href="/dashboard" style={{
@@ -88,27 +90,51 @@ export default function LeaderboardPage() {
                     <h1 style={{ fontSize: "32px", fontWeight: "bold", marginBottom: "10px" }}>🏆 Leaderboard</h1>
                     <p style={{ color: "var(--foreground-muted)" }}>Monthly Challenge: {new Date().toLocaleString("default", { month: "long", year: "numeric" })}</p>
 
-                    <div style={{ display: "inline-flex", background: "rgba(255,255,255,0.05)", padding: "5px", borderRadius: "var(--radius-full)", marginTop: "20px", border: "1px solid rgba(255,255,255,0.08)" }}>
-                        {(["global", "friends"] as const).map(t => (
-                            <button
-                                key={t}
-                                onClick={() => setTab(t)}
-                                style={{
-                                    padding: "8px 24px",
-                                    borderRadius: "var(--radius-full)",
-                                    background: tab === t ? "var(--primary)" : "transparent",
-                                    color: tab === t ? "#000" : "var(--foreground-muted)",
-                                    border: "none",
-                                    cursor: "pointer",
-                                    fontWeight: "bold",
-                                    fontSize: "14px",
-                                    transition: "all 0.2s",
-                                    textTransform: "capitalize",
-                                }}
-                            >
-                                {t === "global" ? "🌍 Global" : "👥 Friends"}
-                            </button>
-                        ))}
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "10px", marginTop: "20px" }}>
+                        <div style={{ display: "inline-flex", background: "rgba(255,255,255,0.05)", padding: "4px", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.08)" }}>
+                            {(["global", "friends"] as const).map(t => (
+                                <button
+                                    key={t}
+                                    onClick={() => setTab(t)}
+                                    style={{
+                                        padding: "6px 20px",
+                                        borderRadius: "8px",
+                                        background: tab === t ? "var(--primary)" : "transparent",
+                                        color: tab === t ? "#000" : "var(--foreground-muted)",
+                                        border: "none",
+                                        cursor: "pointer",
+                                        fontWeight: "bold",
+                                        fontSize: "13px",
+                                        transition: "all 0.2s",
+                                        textTransform: "capitalize",
+                                    }}
+                                >
+                                    {t === "global" ? "🌍 Global" : "👥 Friends"}
+                                </button>
+                            ))}
+                        </div>
+
+                        <div style={{ display: "inline-flex", background: "rgba(0,0,0,0.2)", padding: "4px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.05)" }}>
+                            {(["totalMiles", "totalSteps"] as const).map(s => (
+                                <button
+                                    key={s}
+                                    onClick={() => setSortBy(s)}
+                                    style={{
+                                        padding: "4px 16px",
+                                        borderRadius: "6px",
+                                        background: sortBy === s ? "rgba(255,255,255,0.1)" : "transparent",
+                                        color: sortBy === s ? "var(--primary)" : "var(--foreground-muted)",
+                                        border: "none",
+                                        cursor: "pointer",
+                                        fontWeight: 600,
+                                        fontSize: "12px",
+                                        transition: "all 0.2s",
+                                    }}
+                                >
+                                    {s === "totalMiles" ? "Mileage" : "Steps"}
+                                </button>
+                            ))}
+                        </div>
                     </div>
                 </header>
 
@@ -122,7 +148,6 @@ export default function LeaderboardPage() {
 
                 <div className="glass-panel" style={{ borderRadius: "var(--radius-lg)", overflow: "hidden" }}>
                     {loading ? (
-                        // Loading skeleton
                         <div style={{ padding: "16px", display: "flex", flexDirection: "column", gap: "12px" }}>
                             {[1, 2, 3, 4, 5].map(i => (
                                 <div key={i} style={{
@@ -137,11 +162,11 @@ export default function LeaderboardPage() {
                     ) : entries.length === 0 ? (
                         <div style={{ padding: "60px 20px", textAlign: "center" }}>
                             <div style={{ fontSize: "48px", marginBottom: "16px" }}>🏁</div>
-                            <h3 style={{ fontSize: "20px", fontWeight: 700, marginBottom: "8px" }}>No runners on the board yet</h3>
+                            <h3 style={{ fontSize: "20px", fontWeight: 700, marginBottom: "8px" }}>No activity here yet</h3>
                             <p style={{ color: "var(--foreground-muted)", fontSize: "14px", marginBottom: "20px" }}>
                                 {tab === "friends"
-                                    ? "None of your friends have logged runs this month. Challenge them!"
-                                    : "Complete a run session to appear here!"}
+                                    ? "None of your friends have logged activity this month."
+                                    : "Complete a session to appear here!"}
                             </p>
                             <Link href="/dashboard/run" style={{
                                 padding: "12px 28px",
@@ -152,54 +177,60 @@ export default function LeaderboardPage() {
                                 fontWeight: 700,
                                 fontSize: "14px",
                             }}>
-                                Start a Run
+                                Get Started
                             </Link>
                         </div>
                     ) : (
-                        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                            <thead>
-                                <tr style={{ background: "rgba(255,255,255,0.04)", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-                                    <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "12px", color: "var(--foreground-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>Rank</th>
-                                    <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "12px", color: "var(--foreground-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>Runner</th>
-                                    <th style={{ padding: "12px 16px", textAlign: "right", fontSize: "12px", color: "var(--foreground-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>Miles</th>
-                                    <th style={{ padding: "12px 16px", textAlign: "right", fontSize: "12px", color: "var(--foreground-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>Avg Pace</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {entries.map((entry) => {
-                                    const isMe = user && entry.userId === user.uid;
-                                    return (
-                                        <tr key={entry.userId} style={{
-                                            borderBottom: "1px solid rgba(255,255,255,0.04)",
-                                            background: isMe ? "rgba(204,255,0,0.07)" : "transparent",
-                                        }}>
-                                            <td style={{ padding: "14px 16px", fontWeight: 700, fontSize: "18px" }}>
-                                                {rankBadge(entry.rank)}
-                                            </td>
-                                            <td style={{ padding: "14px 16px" }}>
-                                                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                                                    <div style={{ width: "36px", height: "36px", borderRadius: "50%", background: "#333", overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, color: "var(--primary)", fontSize: "14px" }}>
-                                                        {entry.photoURL
-                                                            ? <img src={entry.photoURL} alt={entry.displayName} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                                                            : (entry.displayName?.[0] || "?")
-                                                        }
+                        <div style={{ overflowX: "auto" }}>
+                            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "600px" }}>
+                                <thead>
+                                    <tr style={{ background: "rgba(255,255,255,0.04)", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+                                        <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "12px", color: "var(--foreground-muted)", textTransform: "uppercase" }}>Rank</th>
+                                        <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "12px", color: "var(--foreground-muted)", textTransform: "uppercase" }}>Runner</th>
+                                        <th style={{ padding: "12px 16px", textAlign: "right", fontSize: "12px", color: "var(--foreground-muted)", textTransform: "uppercase" }}>Miles</th>
+                                        <th style={{ padding: "12px 16px", textAlign: "right", fontSize: "12px", color: "var(--foreground-muted)", textTransform: "uppercase" }}>Steps</th>
+                                        <th style={{ padding: "12px 16px", textAlign: "right", fontSize: "12px", color: "var(--foreground-muted)", textTransform: "uppercase" }}>Avg Pace</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {entries.map((entry) => {
+                                        const isMe = user && entry.userId === user.uid;
+                                        return (
+                                            <tr key={entry.userId} style={{
+                                                borderBottom: "1px solid rgba(255,255,255,0.04)",
+                                                background: isMe ? "rgba(204,255,0,0.07)" : "transparent",
+                                            }}>
+                                                <td style={{ padding: "14px 16px", fontWeight: 700, fontSize: "18px" }}>
+                                                    {rankBadge(entry.rank)}
+                                                </td>
+                                                <td style={{ padding: "14px 16px" }}>
+                                                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                                                        <div style={{ width: "36px", height: "36px", borderRadius: "50%", background: "#333", overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, color: "var(--primary)", fontSize: "14px" }}>
+                                                            {entry.photoURL
+                                                                ? <img src={entry.photoURL} alt={entry.displayName} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                                                                : (entry.displayName?.[0] || "?")
+                                                            }
+                                                        </div>
+                                                        <span style={{ fontWeight: isMe ? 700 : 500 }}>
+                                                            {entry.displayName} {isMe && <span style={{ color: "var(--primary)", fontSize: "12px" }}>(You)</span>}
+                                                        </span>
                                                     </div>
-                                                    <span style={{ fontWeight: isMe ? 700 : 500 }}>
-                                                        {entry.displayName} {isMe && <span style={{ color: "var(--primary)", fontSize: "12px" }}>(You)</span>}
-                                                    </span>
-                                                </div>
-                                            </td>
-                                            <td style={{ padding: "14px 16px", textAlign: "right", fontWeight: 700, color: "var(--primary)" }}>
-                                                {entry.totalMiles?.toFixed(1) ?? "0.0"}
-                                            </td>
-                                            <td style={{ padding: "14px 16px", textAlign: "right", color: "var(--foreground-muted)", fontSize: "14px" }}>
-                                                {formatPace(entry.avgPace)}
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
+                                                </td>
+                                                <td style={{ padding: "14px 16px", textAlign: "right", fontWeight: 700, color: sortBy === 'totalMiles' ? "var(--primary)" : "var(--foreground)" }}>
+                                                    {(Number(entry.totalMiles) || 0).toFixed(1)}
+                                                </td>
+                                                <td style={{ padding: "14px 16px", textAlign: "right", fontWeight: 700, color: sortBy === 'totalSteps' ? "var(--primary)" : "var(--foreground)" }}>
+                                                    {(Number(entry.totalSteps) || 0).toLocaleString()}
+                                                </td>
+                                                <td style={{ padding: "14px 16px", textAlign: "right", color: "var(--foreground-muted)", fontSize: "14px" }}>
+                                                    {formatPace(entry.avgPace)}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
                     )}
                 </div>
             </div>
@@ -207,4 +238,3 @@ export default function LeaderboardPage() {
         </DashboardLayout>
     );
 }
-

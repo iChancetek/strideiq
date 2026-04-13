@@ -44,8 +44,9 @@ export default function Dashboard() {
 
         const recentActivities = activities.filter(a => a.date >= oneWeekAgo);
 
-        const weeklyDistance = recentActivities.reduce((sum, a) => sum + a.distance, 0);
-        const totalCalories = recentActivities.reduce((sum, a) => sum + (a.calories || 0), 0);
+        const weeklyDistance = recentActivities.reduce((sum, a) => sum + (Number(a.distance) || 0), 0);
+        const totalCalories = recentActivities.reduce((sum, a) => sum + (Number(a.calories) || 0), 0);
+        const weeklySteps = recentActivities.reduce((sum, a) => sum + (Number(a.steps) || 0), 0);
 
         // Avg Pace (weighted by distance)
         const totalDuration = recentActivities.reduce((sum, a) => sum + a.duration, 0);
@@ -54,35 +55,42 @@ export default function Dashboard() {
         const paceSec = Math.round(avgPaceDecimal % 60);
         const avgPace = `${paceMin}:${paceSec.toString().padStart(2, '0')}`;
 
-        // Simple Streak Calculation (Consecutive days ending today/yesterday)
+        // Robust Streak Calculation (Calendar Days)
         let streak = 0;
-        const distinctDays = Array.from(new Set(activities.map(a => a.date.toDateString()))).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+        const yesterday = today - 86400000;
 
-        if (distinctDays.length > 0) {
-            const today = new Date().toDateString();
-            const yesterday = new Date(new Date().setDate(new Date().getDate() - 1)).toDateString();
+        // Get unique sorted midnight-normalized timestamps
+        const activityDays = Array.from(new Set(
+            activities.map(a => {
+                const d = new Date(a.date);
+                return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+            })
+        )).sort((a, b) => b - a);
 
-            // Check if streak is active (activity today or yesterday)
-            if (distinctDays[0] === today || distinctDays[0] === yesterday) {
+        if (activityDays.length > 0) {
+            const latestActivity = activityDays[0];
+
+            // Streak is active if the latest activity is today or yesterday
+            if (latestActivity === today || latestActivity === yesterday) {
                 streak = 1;
-                let currentDate = new Date(distinctDays[0]);
+                let currentDay = latestActivity;
 
-                for (let i = 1; i < distinctDays.length; i++) {
-                    const prevDate = new Date(distinctDays[i]);
-                    const diffTime = Math.abs(currentDate.getTime() - prevDate.getTime());
-                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-                    if (diffDays === 1) {
+                for (let i = 1; i < activityDays.length; i++) {
+                    const prevDay = activityDays[i];
+                    // If this activity were exactly one day before the current Day in our streak
+                    if (currentDay - prevDay === 86400000) {
                         streak++;
-                        currentDate = prevDate;
+                        currentDay = prevDay;
                     } else {
+                        // Gap found
                         break;
                     }
                 }
             }
         }
 
-        return { weeklyDistance, avgPace, totalCalories, streak };
+        return { weeklyDistance, avgPace, totalCalories, weeklySteps, streak };
     }, [activities]);
 
     return (
@@ -98,7 +106,7 @@ export default function Dashboard() {
             {/* Stats Grid */}
             <div className="dash-stats-grid">
                 <StatCard title="Weekly Distance" value={stats.weeklyDistance.toFixed(1)} unit="mi" trend="neutral" />
-                <StatCard title="Avg Pace" value={stats.avgPace} unit="/mi" trend="neutral" />
+                <StatCard title="Weekly Steps" value={stats.weeklySteps.toLocaleString()} unit="steps" trend="neutral" />
                 <StatCard title="Active Calories" value={Math.round(stats.totalCalories).toLocaleString()} unit="kcal" trend="neutral" />
                 <StatCard title="Streak" value={stats.streak} unit="days" trend="up" trendLabel="Keep it up!" />
             </div>

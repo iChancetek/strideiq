@@ -43,7 +43,7 @@ export function useLikes(activityOwnerId: string, activityId: string) {
         fetchLikes();
     }, [activityOwnerId, activityId, user]);
 
-    const toggleLike = async () => {
+    const toggleLike = async (emoji: string = "👍") => {
         if (!user) return;
 
         try {
@@ -57,12 +57,22 @@ export function useLikes(activityOwnerId: string, activityId: string) {
                 body: JSON.stringify({
                     activityId,
                     userId: user.uid,
-                    activityOwnerId
+                    activityOwnerId,
+                    emoji
                 }),
             });
 
             if (!response.ok) {
                 throw new Error("Failed to toggle like");
+            }
+            
+            // Re-fetch to update UI after like/unlike
+            const res = await fetch(`/api/activity/likes?activityId=${activityId}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setLikes(data.likes || []);
             }
         } catch (err) {
             console.error("Error toggling like:", err);

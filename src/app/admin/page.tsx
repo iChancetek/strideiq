@@ -2,22 +2,41 @@
 
 import { useEffect, useState } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from "recharts";
+import DashboardLayout from "@/components/layout/DashboardLayout";
+import { authenticatedFetch } from "@/lib/api-client";
+import { useAuth } from "@/context/AuthContext";
+import { useRouter } from "next/navigation";
 
 const COLORS = ["#ccff00", "#00e5ff", "#ff0055", "#ffd700"];
+const ADMIN_EMAILS = ["chancellor@ichancetek.com", "chanceminus@gmail.com"];
 
 export default function AdminDashboard() {
+    const { user, loading: authLoading } = useAuth();
+    const router = useRouter();
     const [stats, setStats] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        fetch("/api/admin/stats")
+        if (authLoading) return;
+        if (!user || !user.email || !ADMIN_EMAILS.includes(user.email.toLowerCase())) {
+            router.push("/dashboard");
+            return;
+        }
+
+        authenticatedFetch("/api/admin/stats")
             .then(res => res.json())
             .then(data => setStats(data))
             .catch(err => console.error(err))
             .finally(() => setLoading(false));
-    }, []);
+    }, [user, authLoading, router]);
 
-    if (loading) return <div>Loading Analytics...</div>;
+    if (authLoading || loading) return (
+        <DashboardLayout>
+            <div style={{ padding: "40px", textAlign: "center", color: "var(--foreground-muted)" }}>
+                Loading Analytics...
+            </div>
+        </DashboardLayout>
+    );
 
     const cards = [
         { label: "Total Users", value: stats?.totalUsers || 0 },
@@ -28,7 +47,7 @@ export default function AdminDashboard() {
     ];
 
     return (
-        <div>
+        <DashboardLayout>
             <header style={{ marginBottom: "40px" }}>
                 <h1 style={{ fontSize: "32px", fontWeight: "bold" }}>Admin Dashboard</h1>
                 <p style={{ color: "var(--foreground-muted)" }}>System Overview & Health</p>
@@ -89,6 +108,6 @@ export default function AdminDashboard() {
                     </ResponsiveContainer>
                 </div>
             </div>
-        </div>
+        </DashboardLayout>
     );
 }

@@ -16,38 +16,31 @@ export async function GET(req: Request) {
             return NextResponse.json({ error: "User ID required for friends leaderboard" }, { status: 400 });
         }
 
+        const sortBy = searchParams.get("sortBy") || "totalMiles"; // "totalMiles" | "totalSteps"
+        const sortField = (sortBy === "totalSteps") ? "totalSteps" : "totalMiles";
+
         const leaderboardRef = adminDb.collection("leaderboards").doc(period).collection("entries");
-        let query = leaderboardRef.orderBy("totalMiles", "desc").limit(50);
+        let query = leaderboardRef.orderBy(sortField, "desc").limit(50);
 
         if (type === "friends" && userId) {
-            // 1. Fetch Friends List
-            // We duplicate the friend fetching logic from /api/friends/list or abstract it.
-            // For now, let's just fetch accepted friend relations.
             const [sent, received] = await Promise.all([
                 adminDb.collection("friends").where("requesterId", "==", userId).where("status", "==", "accepted").get(),
                 adminDb.collection("friends").where("receiverId", "==", userId).where("status", "==", "accepted").get()
             ]);
 
-            const friendIds = new Set<string>([userId]); // Include self
+            const friendIds = new Set<string>([userId]);
             sent.forEach(doc => friendIds.add(doc.data().receiverId));
             received.forEach(doc => friendIds.add(doc.data().requesterId));
 
             if (friendIds.size > 0) {
-                // Firestore 'in' limit is 10 (or 30? check docs. 30 in some versions, 10 in older). 
-                // Creating a friends leaderboard in Firestore is tricky with "orderBy". 
-                // We might need to fetch all top entries and filter in memory if the dataset is small, 
-                // OR fetch specific docs for each friend if N is small.
-
-                // Better approach for small N (<30): Fetch doc for each friend from the leaderboard collection.
-                const idsArray = Array.from(friendIds).slice(0, 30); // Cap at 30 for MVP
-
+                const idsArray = Array.from(friendIds).slice(0, 30);
                 const refs = idsArray.map(id => leaderboardRef.doc(id));
                 const docs = await adminDb.getAll(...refs);
 
                 const entries = docs
                     .filter(doc => doc.exists)
                     .map(doc => doc.data())
-                    .sort((a, b) => (b?.totalMiles || 0) - (a?.totalMiles || 0)); // Sort in memory
+                    .sort((a, b) => (b?.[sortField] || 0) - (a?.[sortField] || 0));
 
                 return NextResponse.json({ entries });
             } else {
@@ -55,7 +48,6 @@ export async function GET(req: Request) {
             }
         }
 
-        // Global Query
         const snapshot = await query.get();
         const entries = snapshot.docs.map(doc => doc.data());
 

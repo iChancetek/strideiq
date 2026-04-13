@@ -135,6 +135,12 @@ type TranslationKeys = {
     languageDesc: string;
     support: string;
     installApp: string;
+    privacy: string;
+    privateProfile: string;
+    privateProfileDesc: string;
+    publicProfile: string;
+    automaticApproval: string;
+    manualApproval: string;
 
     // Achievements
     achievementsTitle: string;
@@ -294,6 +300,12 @@ const translations: Record<Language, TranslationKeys> = {
         languageDesc: "Change the display language",
         support: "Support",
         installApp: "Install App (PWA)",
+        privacy: "Privacy",
+        privateProfile: "Private Profile",
+        privateProfileDesc: "Require approval for friend requests",
+        publicProfile: "Public Profile",
+        automaticApproval: "Automatic Approval",
+        manualApproval: "Manual Approval",
         achievementsTitle: "Achievements",
         unlocked: "Unlocked",
         locked: "Locked",
@@ -441,6 +453,12 @@ const translations: Record<Language, TranslationKeys> = {
         languageDesc: "Cambiar el idioma de la interfaz",
         support: "Soporte",
         installApp: "Instalar App (PWA)",
+        privacy: "Privacidad",
+        privateProfile: "Perfil Privado",
+        privateProfileDesc: "Requerir aprobación para solicitudes de amistad",
+        publicProfile: "Perfil Público",
+        automaticApproval: "Aprobación Automática",
+        manualApproval: "Aprobación Manual",
         achievementsTitle: "Logros",
         unlocked: "Desbloqueado",
         locked: "Bloqueado",
@@ -588,6 +606,12 @@ const translations: Record<Language, TranslationKeys> = {
         languageDesc: "Changer la langue d'affichage",
         support: "Support",
         installApp: "Installer l'App (PWA)",
+        privacy: "Confidentialité",
+        privateProfile: "Profil Privé",
+        privateProfileDesc: "Nécessite une approbation pour les demandes d'amis",
+        publicProfile: "Profil Public",
+        automaticApproval: "Approbation Automatique",
+        manualApproval: "Approbation Manuelle",
         achievementsTitle: "Réalisations",
         unlocked: "Débloqué",
         locked: "Verrouillé",
@@ -735,6 +759,12 @@ const translations: Record<Language, TranslationKeys> = {
         languageDesc: "切换显示语言",
         support: "支持",
         installApp: "安装应用 (PWA)",
+        privacy: "隐私设置",
+        privateProfile: "私密资料",
+        privateProfileDesc: "加好友需要经过我的批准",
+        publicProfile: "公开资料",
+        automaticApproval: "自动批准",
+        manualApproval: "手动批准",
         achievementsTitle: "成就",
         unlocked: "已解锁",
         locked: "未解锁",
@@ -882,6 +912,12 @@ const translations: Record<Language, TranslationKeys> = {
         languageDesc: "تغيير لغة العرض",
         support: "الدعم",
         installApp: "تثبيت التطبيق (PWA)",
+        privacy: "الخصوصية",
+        privateProfile: "ملف شخصي خاص",
+        privateProfileDesc: "يتطلب الموافقة على طلبات الصداقة",
+        publicProfile: "ملف شخصي عام",
+        automaticApproval: "موافقة تلقائية",
+        manualApproval: "موافقة يدوية",
         achievementsTitle: "الإنجازات",
         unlocked: "مفتوح",
         locked: "مقفل",

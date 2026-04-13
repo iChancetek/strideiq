@@ -23,6 +23,9 @@ export default function ActivityFeedCard({ activity, ownerName, ownerPhoto, owne
     const { likeCount, isLiked, toggleLike, likes } = useLikes(ownerId, activity.id);
     const [showComments, setShowComments] = useState(false);
     const [currentMediaIdx, setCurrentMediaIdx] = useState(0);
+    const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+
+    const EMOJIS = ["👍", "👍🏻", "👍🏼", "👍🏽", "👍🏾", "👍🏿"];
 
     const formatDuration = (totalSeconds: number) => {
         const h = Math.floor(totalSeconds / 3600);
@@ -102,7 +105,7 @@ export default function ActivityFeedCard({ activity, ownerName, ownerPhoto, owne
                     {activity.distance > 0 && (
                         <div>
                             <div style={{ fontSize: "11px", color: "var(--foreground-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>{t(lang, "distance")}</div>
-                            <div style={{ fontSize: "18px", fontWeight: 700 }}>{activity.distance} {settings.units === "imperial" ? "mi" : "km"}</div>
+                            <div style={{ fontSize: "18px", fontWeight: 700 }}>{(Number(activity.distance) || 0).toFixed(1)} {settings.units === "imperial" ? "mi" : "km"}</div>
                         </div>
                     )}
                     {activity.pace && activity.pace !== "0'00\"/mi" && activity.pace !== "--" && (
@@ -252,23 +255,40 @@ export default function ActivityFeedCard({ activity, ownerName, ownerPhoto, owne
                         <div style={{ display: "flex", marginRight: "4px" }}>
                             {likes.slice(0, 3).map((l, i) => (
                                 <div key={l.userId} style={{
-                                    width: "24px",
-                                    height: "24px",
+                                    width: "28px",
+                                    height: "28px",
                                     borderRadius: "50%",
                                     background: "rgba(255,255,255,0.1)",
                                     border: "2px solid var(--surface, #111)",
-                                    overflow: "hidden",
-                                    marginLeft: i > 0 ? "-8px" : "0",
+                                    overflow: "visible",
+                                    marginLeft: i > 0 ? "-10px" : "0",
                                     display: "flex",
                                     alignItems: "center",
                                     justifyContent: "center",
                                     fontSize: "10px",
                                     fontWeight: 700,
+                                    position: "relative"
                                 }}>
                                     {l.userPhoto ? (
                                         // eslint-disable-next-line @next/next/no-img-element
-                                        <img src={l.userPhoto} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                                    ) : l.userName[0]}
+                                        <img src={l.userPhoto} alt="" style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />
+                                    ) : l.userName?.[0] || 'U'}
+                                    <div style={{
+                                        position: "absolute",
+                                        bottom: "-2px",
+                                        right: "-4px",
+                                        fontSize: "12px",
+                                        background: "var(--surface)",
+                                        borderRadius: "50%",
+                                        width: "16px",
+                                        height: "16px",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        border: "1px solid rgba(255,255,255,0.1)"
+                                    }}>
+                                        {l.emoji || "👍"}
+                                    </div>
                                 </div>
                             ))}
                         </div>
@@ -286,27 +306,75 @@ export default function ActivityFeedCard({ activity, ownerName, ownerPhoto, owne
                 display: "flex",
                 borderTop: "1px solid rgba(255,255,255,0.05)",
             }}>
-                <button
-                    onClick={toggleLike}
-                    style={{
-                        flex: 1,
-                        padding: "12px",
-                        background: "none",
-                        border: "none",
-                        borderRight: "1px solid rgba(255,255,255,0.05)",
-                        color: isLiked ? "var(--primary)" : "var(--foreground-muted)",
-                        cursor: "pointer",
-                        fontSize: "14px",
-                        fontWeight: isLiked ? 700 : 500,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: "8px",
-                        transition: "color 0.2s",
-                    }}
-                >
-                    {isLiked ? "👍" : "👍"} {t(lang, "kudos")}
-                </button>
+                <div style={{ flex: 1, position: "relative" }}>
+                    <button
+                        onClick={() => toggleLike(EMOJIS[0])}
+                        onMouseEnter={() => setShowEmojiPicker(true)}
+                        onMouseLeave={() => setShowEmojiPicker(false)}
+                        style={{
+                            width: "100%",
+                            padding: "12px",
+                            background: "none",
+                            border: "none",
+                            borderRight: "1px solid rgba(255,255,255,0.05)",
+                            color: isLiked ? "var(--primary)" : "var(--foreground-muted)",
+                            cursor: "pointer",
+                            fontSize: "14px",
+                            fontWeight: isLiked ? 700 : 500,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: "8px",
+                            transition: "color 0.2s",
+                        }}
+                    >
+                        {isLiked ? (likes.find(l => l.userId === user?.uid)?.emoji || "👍") : "👍"} {t(lang, "kudos")}
+                    </button>
+                    
+                    {/* Emoji Picker Popover */}
+                    {showEmojiPicker && (
+                        <div 
+                            onMouseEnter={() => setShowEmojiPicker(true)}
+                            onMouseLeave={() => setShowEmojiPicker(false)}
+                            style={{
+                            position: "absolute",
+                            bottom: "100%",
+                            left: "50%",
+                            transform: "translateX(-50%)",
+                            background: "rgba(20, 20, 20, 0.95)",
+                            backdropFilter: "blur(10px)",
+                            border: "1px solid rgba(255,255,255,0.1)",
+                            borderRadius: "30px",
+                            padding: "8px 12px",
+                            display: "flex",
+                            gap: "10px",
+                            zIndex: 100,
+                            marginBottom: "8px",
+                            boxShadow: "0 8px 32px rgba(0,0,0,0.4)"
+                        }}>
+                            {EMOJIS.map(e => (
+                                <button 
+                                    key={e} 
+                                    onClick={() => { toggleLike(e); setShowEmojiPicker(false); }}
+                                    style={{
+                                        fontSize: "20px",
+                                        background: "none",
+                                        border: "none",
+                                        cursor: "pointer",
+                                        padding: "4px",
+                                        transition: "transform 0.2s",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center"
+                                    }}
+                                    className="emoji-btn"
+                                >
+                                    {e}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </div>
                 <button
                     onClick={() => setShowComments(!showComments)}
                     style={{

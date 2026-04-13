@@ -7,7 +7,7 @@ export async function GET(req: Request) {
         const query = searchParams.get("q");
         const currentUserId = searchParams.get("userId");
 
-        if (!query || query.length < 3) {
+        if (!query || query.length < 2) {
             return NextResponse.json({ users: [] });
         }
 
@@ -19,31 +19,50 @@ export async function GET(req: Request) {
         // We will do a simple prefix match on 'email' and 'displayName' for this MVP.
         // Firestore requires indexes for this.
 
+        const isEmail = query.includes("@");
         const usersRef = adminDb.collection("users");
+        let results: any[] = [];
 
-        // 1. Search Email (exact or prefix if we set it up, typically exact for privacy)
-        // Let's assume exact email match for privacy first, or displayName prefix.
-
-        // Let's just search Display Name for now as it's more "social".
-        const nameQuery = usersRef
-            .where("displayName", ">=", query)
-            .where("displayName", "<=", query + "\uf8ff")
-            .limit(10)
-            .get();
-
-        const [nameSnap] = await Promise.all([nameQuery]);
-
-        const results: any[] = [];
-        nameSnap.forEach(doc => {
-            if (doc.id === currentUserId) return;
-            const data = doc.data();
-            results.push({
-                uid: doc.id,
-                displayName: data.displayName,
-                photoURL: data.photoURL,
-                // Do not leak email
+        if (isEmail) {
+            // 1. Search Email (exact)
+            const emailSnap = await usersRef.where("email", "==", query.toLowerCase()).limit(1).get();
+            emailSnap.forEach(doc => {
+                if (doc.id === currentUserId) return;
+                const data = doc.data();
+                results.push({
+                    uid: doc.id,
+                    displayName: data.displayName || data.name || "Runner",
+                    photoURL: data.photoURL || null,
+                });
             });
-        });
+        }
+
+        // 2. Search Display Name (prefix) - Case sensitivity is a Firestore limitation
+        // For better results, we search the provided case AND capitalized first letter
+        const capitalized = query.charAt(0).toUpperCase() + query.slice(1);
+        
+        const [nameSnap, capSnap] = await Promise.all([
+            usersRef.where("displayName", ">=", query).where("displayName", "<=", query + "\uf8ff").limit(10).get(),
+            usersRef.where("displayName", ">=", capitalized).where("displayName", "<=", capitalized + "\uf8ff").limit(10).get()
+        ]);
+
+        const seen = new Set(results.map(r => r.uid));
+        
+        const processSnap = (snap: any) => {
+            snap.forEach((doc: any) => {
+                if (doc.id === currentUserId || seen.has(doc.id)) return;
+                seen.add(doc.id);
+                const data = doc.data();
+                results.push({
+                    uid: doc.id,
+                    displayName: data.displayName || data.name || "Runner",
+                    photoURL: data.photoURL || null,
+                });
+            });
+        };
+
+        processSnap(nameSnap);
+        processSnap(capSnap);
 
         return NextResponse.json({ users: results });
 

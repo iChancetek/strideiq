@@ -250,6 +250,23 @@ export default function SettingsPage() {
                     </div>
                 </div>
 
+                {/* Privacy Preferences */}
+                <div className="glass-panel" style={{ padding: "20px", borderRadius: "16px", marginBottom: "20px" }}>
+                    <h3 style={{ marginBottom: "15px", borderBottom: "1px solid rgba(255,255,255,0.1)", paddingBottom: "10px" }}>{t(lang, "privacy")}</h3>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+                        <div>
+                            <span>{t(lang, "privateProfile")}</span>
+                            <div style={{ fontSize: "12px", color: "var(--foreground-muted)" }}>{t(lang, "privateProfileDesc")}</div>
+                        </div>
+                        <button onClick={() => updateSettings({ privateProfile: !settings.privateProfile })} style={toggleStyle(settings.privateProfile)}>
+                            <div style={toggleKnob(settings.privateProfile)} />
+                        </button>
+                    </div>
+                    <div style={{ fontSize: "12px", color: settings.privateProfile ? "var(--secondary)" : "var(--primary)", fontWeight: 600, marginTop: "8px" }}>
+                        {settings.privateProfile ? `🔒 ${t(lang, "manualApproval")}` : `🔓 ${t(lang, "automaticApproval")}`}
+                    </div>
+                </div>
+
                 {/* Support */}
                 <div className="glass-panel" style={{ padding: "20px", borderRadius: "16px" }}>
                     <h3 style={{ marginBottom: "15px", borderBottom: "1px solid rgba(255,255,255,0.1)", paddingBottom: "10px" }}>{t(lang, "support")}</h3>
