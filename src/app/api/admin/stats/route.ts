@@ -43,13 +43,22 @@ export async function GET(req: Request) {
         });
         const growth = Object.entries(growthCount).sort().map(([name, value]) => ({ name, value })).slice(-6);
 
+        // 6. Active in last 24h
+        const now = new Date();
+        const oneDay = 24 * 60 * 60 * 1000;
+        const activeLast24h = users.filter(u => {
+            if (!u.lastLogin) return false;
+            const last = u.lastLogin.toDate ? u.lastLogin.toDate() : new Date(u.lastLogin);
+            return (now.getTime() - last.getTime()) < oneDay;
+        }).length;
+
         const breakdown = Object.entries(activityTypeCount).map(([name, value]) => ({ name, value }));
 
         return NextResponse.json({
             totalUsers,
             totalSessions,
-            totalMiles,
-            totalSteps,
+            totalMiles: Number(totalMiles) || 0,
+            totalSteps: Number(totalSteps) || 0,
             activeLast24h,
             breakdown,
             growth
