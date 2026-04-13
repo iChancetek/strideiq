@@ -7,6 +7,8 @@ export interface Workout {
     duration?: string; // "30 min"
     description: string; // "Easy run at conversational pace"
     completed: boolean;
+    note?: string;      // User added note (text or transcribed voice)
+    videoUrl?: string;  // AI suggested demo video
 }
 
 export interface TrainingWeek {

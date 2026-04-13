@@ -4,20 +4,25 @@ import { useActivities, Activity } from "@/hooks/useActivities";
 import { useAuth } from "@/context/AuthContext";
 import ActivityFeedCard from "@/components/dashboard/ActivityFeedCard";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import ManualActivityModal from "@/components/dashboard/ManualActivityModal";
+
+type Period = "daily" | "weekly" | "monthly" | "yearly";
 
 export default function ActivitiesPage() {
     const { user } = useAuth();
     const { activities, loading } = useActivities();
     const [isManualModalOpen, setIsManualModalOpen] = useState(false);
+    const [activePeriod, setActivePeriod] = useState<Period>("weekly");
 
     // Sort activities by date (newest first)
-    const sortedActivities = [...activities].sort(
-        (a, b) => b.date.getTime() - a.date.getTime()
-    );
+    const sortedActivities = useMemo(() => {
+        return [...activities].sort((a, b) => b.date.getTime() - a.date.getTime());
+    }, [activities]);
 
-    const weeklyStats = getWeeklyStats(activities);
+    const stats = useMemo(() => {
+        return getStatsForPeriod(activities, activePeriod);
+    }, [activities, activePeriod]);
 
     if (loading) {
         return (
@@ -35,6 +40,13 @@ export default function ActivitiesPage() {
             </div>
         );
     }
+
+    const periods: { key: Period; label: string }[] = [
+        { key: "daily", label: "Daily" },
+        { key: "weekly", label: "Weekly" },
+        { key: "monthly", label: "Monthly" },
+        { key: "yearly", label: "Yearly" },
+    ];
 
     return (
         <div style={{ maxWidth: "640px", margin: "0 auto", paddingBottom: "40px" }}>
@@ -83,7 +95,7 @@ export default function ActivitiesPage() {
                             padding: "10px 20px",
                             borderRadius: "var(--radius-full, 24px)",
                             background: "var(--primary)",
-                            color: "#fff",
+                            color: "#000",
                             textDecoration: "none",
                             fontSize: "14px",
                             fontWeight: 600,
@@ -94,31 +106,55 @@ export default function ActivitiesPage() {
                 </div>
             </div>
 
-            {/* Weekly Summary Card */}
+            {/* Summary Card with Controls */}
             <div className="glass-panel" style={{
-                padding: "20px",
+                padding: "24px",
                 borderRadius: "var(--radius-lg, 16px)",
                 marginBottom: "24px",
             }}>
-                <div style={{ fontSize: "13px", color: "var(--foreground-muted)", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "12px" }}>
-                    This Week
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+                    <div style={{ fontSize: "13px", color: "var(--foreground-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>
+                        {activePeriod === "daily" ? "Today" : `This ${activePeriod.replace("ly", "")}`}
+                    </div>
+                    <div style={{ display: "flex", background: "rgba(0,0,0,0.2)", padding: "4px", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.05)" }}>
+                        {periods.map(p => (
+                            <button
+                                key={p.key}
+                                onClick={() => setActivePeriod(p.key)}
+                                style={{
+                                    padding: "6px 12px",
+                                    borderRadius: "8px",
+                                    background: activePeriod === p.key ? "var(--primary)" : "transparent",
+                                    color: activePeriod === p.key ? "#000" : "var(--foreground-muted)",
+                                    border: "none",
+                                    cursor: "pointer",
+                                    fontSize: "11px",
+                                    fontWeight: 700,
+                                    transition: "all 0.2s"
+                                }}
+                            >
+                                {p.label}
+                            </button>
+                        ))}
+                    </div>
                 </div>
-                <div style={{ display: "flex", gap: "32px" }}>
+
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "10px" }}>
                     <div>
-                        <div style={{ fontSize: "28px", fontWeight: 800 }}>{weeklyStats.count}</div>
-                        <div style={{ fontSize: "12px", color: "var(--foreground-muted)" }}>Activities</div>
+                        <div style={{ fontSize: "24px", fontWeight: 800 }}>{stats.count}</div>
+                        <div style={{ fontSize: "11px", color: "var(--foreground-muted)" }}>Activities</div>
                     </div>
                     <div>
-                        <div style={{ fontSize: "28px", fontWeight: 800 }}>{weeklyStats.distance.toFixed(1)}</div>
-                        <div style={{ fontSize: "12px", color: "var(--foreground-muted)" }}>Miles</div>
+                        <div style={{ fontSize: "24px", fontWeight: 800, color: "var(--primary)" }}>{stats.distance.toFixed(1)}</div>
+                        <div style={{ fontSize: "11px", color: "var(--foreground-muted)" }}>Miles</div>
                     </div>
                     <div>
-                        <div style={{ fontSize: "28px", fontWeight: 800 }}>{formatDuration(weeklyStats.duration)}</div>
-                        <div style={{ fontSize: "12px", color: "var(--foreground-muted)" }}>Time</div>
+                        <div style={{ fontSize: "24px", fontWeight: 800 }}>{formatDuration(stats.duration)}</div>
+                        <div style={{ fontSize: "11px", color: "var(--foreground-muted)" }}>Time</div>
                     </div>
                     <div>
-                        <div style={{ fontSize: "28px", fontWeight: 800 }}>{weeklyStats.calories.toLocaleString()}</div>
-                        <div style={{ fontSize: "12px", color: "var(--foreground-muted)" }}>Calories</div>
+                        <div style={{ fontSize: "24px", fontWeight: 800 }}>{stats.calories.toLocaleString()}</div>
+                        <div style={{ fontSize: "11px", color: "var(--foreground-muted)" }}>Calories</div>
                     </div>
                 </div>
             </div>
@@ -169,16 +205,32 @@ export default function ActivitiesPage() {
     );
 }
 
-function getWeeklyStats(activities: Activity[]) {
+function getStatsForPeriod(activities: Activity[], period: Period) {
     const now = new Date();
-    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const weekly = activities.filter(a => a.date >= weekAgo);
+    const startTime = new Date();
+
+    switch (period) {
+        case "daily":
+            startTime.setHours(0, 0, 0, 0);
+            break;
+        case "weekly":
+            startTime.setDate(now.getDate() - 7);
+            break;
+        case "monthly":
+            startTime.setDate(now.getDate() - 30);
+            break;
+        case "yearly":
+            startTime.setDate(now.getDate() - 365);
+            break;
+    }
+
+    const filtered = activities.filter(a => a.date >= startTime);
 
     return {
-        count: weekly.length,
-        distance: weekly.reduce((sum, a) => sum + a.distance, 0),
-        duration: weekly.reduce((sum, a) => sum + a.duration, 0),
-        calories: weekly.reduce((sum, a) => sum + (a.calories || 0), 0),
+        count: filtered.length,
+        distance: filtered.reduce((sum, a) => sum + (Number(a.distance) || 0), 0),
+        duration: filtered.reduce((sum, a) => sum + (Number(a.duration) || 0), 0),
+        calories: filtered.reduce((sum, a) => sum + (Number(a.calories) || 0), 0),
     };
 }
 

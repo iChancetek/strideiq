@@ -5,7 +5,7 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useActivities } from "@/hooks/useActivities";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
-type Period = "hour" | "day" | "month" | "year";
+type Period = "hour" | "day" | "week" | "month" | "year";
 
 interface BucketData {
     label: string;
@@ -23,6 +23,14 @@ function getHourLabel(h: number) {
 
 function getDayLabel(d: Date) {
     return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+}
+
+function getWeekLabel(d: Date) {
+    const start = new Date(d);
+    start.setDate(d.getDate() - d.getDay() + (d.getDay() === 0 ? -6 : 1)); // Mon
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6); // Sun
+    return `${start.toLocaleDateString("en-US", { month: "short", day: "numeric" })} - ${end.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
 }
 
 function getMonthLabel(m: number, y: number) {
@@ -69,6 +77,24 @@ export default function StepsPage() {
                 });
                 break;
             }
+            case "week": {
+                // Last 12 weeks, bucket by week
+                rangeStart = new Date(now);
+                rangeStart.setDate(rangeStart.getDate() - 12 * 7);
+                filtered = filtered.filter((a) => a.date >= rangeStart);
+                for (let w = 0; w < 12; w++) {
+                    const date = new Date(rangeStart);
+                    date.setDate(date.getDate() + w * 7);
+                    bucketMap.set(getWeekLabel(date), 0);
+                }
+                filtered.forEach((a) => {
+                    const key = getWeekLabel(a.date);
+                    if (bucketMap.has(key)) {
+                        bucketMap.set(key, (bucketMap.get(key) || 0) + (a.steps ?? 0));
+                    }
+                });
+                break;
+            }
             case "month": {
                 // Last 12 months
                 for (let i = 11; i >= 0; i--) {
@@ -98,7 +124,7 @@ export default function StepsPage() {
 
         const buckets: BucketData[] = Array.from(bucketMap.entries()).map(([label, steps]) => ({ label, steps }));
         const totalSteps = buckets.reduce((sum, b) => sum + b.steps, 0);
-        const numDays = period === "hour" ? 1 : period === "day" ? 7 : period === "month" ? 30 : 365;
+        const numDays = period === "hour" ? 1 : period === "day" ? 7 : period === "week" ? 84 : period === "month" ? 365 : 365 * 2;
         const dailyAvg = Math.round(totalSteps / Math.max(numDays, 1));
 
         return { buckets, totalSteps, dailyAvg };
@@ -119,6 +145,7 @@ export default function StepsPage() {
     const periods: { key: Period; label: string }[] = [
         { key: "hour", label: "Hour" },
         { key: "day", label: "Day" },
+        { key: "week", label: "Week" },
         { key: "month", label: "Month" },
         { key: "year", label: "Year" },
     ];
@@ -130,7 +157,7 @@ export default function StepsPage() {
                     <h1 style={{ fontSize: "32px", fontWeight: "bold", marginBottom: "8px" }}>
                         👟 Steps <span className="text-gradient">Tracker</span>
                     </h1>
-                    <p style={{ color: "var(--foreground-muted)" }}>Track your steps across hours, days, months, and years</p>
+                    <p style={{ color: "var(--foreground-muted)" }}>Track your steps across hours, days, weeks, months, and years</p>
                 </header>
 
                 {/* Period Tabs */}
@@ -188,7 +215,7 @@ export default function StepsPage() {
                         <div style={{ fontSize: "14px", color: "var(--foreground-muted)", marginBottom: "8px", textTransform: "uppercase", letterSpacing: "1px" }}>Total Steps</div>
                         <div style={{ fontSize: "36px", fontWeight: "bold", color: "var(--primary)" }}>{totalSteps.toLocaleString()}</div>
                         <div style={{ fontSize: "12px", color: "var(--foreground-muted)", marginTop: "4px" }}>
-                            {period === "hour" ? "Last 24h" : period === "day" ? "Last 7 days" : period === "month" ? "Last 12 months" : "All time"}
+                            {period === "hour" ? "Last 24h" : period === "day" ? "Last 7 days" : period === "week" ? "Last 12 weeks" : period === "month" ? "Last 12 months" : "All time"}
                         </div>
                     </div>
 

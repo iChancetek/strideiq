@@ -2,35 +2,35 @@
 
 import FastingTimer from "@/components/dashboard/fasting/FastingTimer";
 import { useAuth } from "@/context/AuthContext";
-import { useEffect, useState } from "react";
+import { useActivities } from "@/hooks/useActivities";
+import { useState, useMemo } from "react";
 import Link from "next/link";
+import { Trash2, Edit2, Loader2 } from "lucide-react";
 
 export default function FastingPage() {
     const { user } = useAuth();
-    const [history, setHistory] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
+    const { activities, loading, deleteActivity, updateActivity } = useActivities();
+    const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
-    useEffect(() => {
-        if (!user) return;
-        async function fetchHistory() {
-            try {
-                const token = await user?.getIdToken();
-                if (!token) return;
-                const res = await fetch("/api/fasting/list", {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-                if (res.ok) {
-                    const data = await res.json();
-                    setHistory(data.logs || []);
-                }
-            } catch (e) {
-                console.error(e);
-            } finally {
-                setLoading(false);
-            }
+    // Filter and format fasting history
+    const history = useMemo(() => {
+        return activities
+            .filter(a => a.type === "Fasting")
+            .sort((a, b) => b.date.getTime() - a.date.getTime());
+    }, [activities]);
+
+    const handleDelete = async (id: string) => {
+        if (!confirm("Are you sure you want to delete this fast?")) return;
+        setIsDeleting(id);
+        try {
+            await deleteActivity(id);
+        } catch (e) {
+            console.error(e);
+            alert("Failed to delete activity");
+        } finally {
+            setIsDeleting(null);
         }
-        fetchHistory();
-    }, [user]);
+    };
 
     return (
         <div style={{ maxWidth: "900px", margin: "0 auto", padding: "0 16px", paddingBottom: "40px" }}>
@@ -160,7 +160,7 @@ export default function FastingPage() {
                             </p>
                         </div>
                     ) : (
-                        <div style={{ display: "flex", flexDirection: "column", gap: "12px", maxHeight: "300px", overflowY: "auto" }}>
+                        <div style={{ display: "flex", flexDirection: "column", gap: "12px", maxHeight: "400px", overflowY: "auto" }}>
                             {history.map(log => (
                                 <div key={log.id} style={{
                                     padding: "14px 16px",
@@ -186,16 +186,27 @@ export default function FastingPage() {
                                         </div>
                                         <div>
                                             <div style={{ fontWeight: 700, fontSize: "14px" }}>
-                                                {new Date(log.endTime).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
+                                                {new Date(log.date).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
                                             </div>
-                                            <div style={{ fontSize: "10px", color: "var(--foreground-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>{log.type || "Custom"}</div>
+                                            <div style={{ fontSize: "10px", color: "var(--foreground-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>{log.mode || "Custom"}</div>
                                         </div>
                                     </div>
-                                    <div style={{ textAlign: "right" }}>
-                                        <div style={{ fontWeight: 700, fontSize: "18px", color: "var(--primary)", fontFamily: "monospace" }}>
-                                            {log.durationMinutes?.toFixed(1)}
+                                    <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+                                        <div style={{ textAlign: "right" }}>
+                                            <div style={{ fontWeight: 700, fontSize: "18px", color: "var(--primary)", fontFamily: "monospace" }}>
+                                                {(Number(log.duration) / 3600).toFixed(1)}
+                                            </div>
+                                            <div style={{ fontSize: "10px", color: "var(--foreground-muted)" }}>hours</div>
                                         </div>
-                                        <div style={{ fontSize: "10px", color: "var(--foreground-muted)" }}>hours</div>
+                                        <div style={{ display: "flex", gap: "8px" }}>
+                                            <button 
+                                                onClick={() => handleDelete(log.id)}
+                                                disabled={isDeleting === log.id}
+                                                style={{ background: "transparent", border: "none", color: "rgba(255,50,50,0.6)", cursor: "pointer", padding: "4px" }}
+                                            >
+                                                {isDeleting === log.id ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             ))}

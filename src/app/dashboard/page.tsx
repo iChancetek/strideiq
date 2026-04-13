@@ -49,9 +49,9 @@ export default function Dashboard() {
         const weeklyDistance = recentActivities.reduce((sum, a) => sum + (Number(a.distance) || 0), 0);
         const totalCalories = recentActivities.reduce((sum, a) => sum + (Number(a.calories) || 0), 0);
         const weeklySteps = recentActivities.reduce((sum, a) => sum + (Number(a.steps) || 0), 0);
-
+        
         // Avg Pace (weighted by distance)
-        const totalDuration = recentActivities.reduce((sum, a) => sum + a.duration, 0);
+        const totalDuration = recentActivities.reduce((sum, a) => sum + (Number(a.duration) || 0), 0);
         const avgPaceDecimal = weeklyDistance > 0 ? totalDuration / weeklyDistance : 0;
         const paceMin = Math.floor(avgPaceDecimal / 60);
         const paceSec = Math.round(avgPaceDecimal % 60);

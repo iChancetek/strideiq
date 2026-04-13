@@ -4,7 +4,7 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useActivities } from "@/hooks/useActivities";
-import { Loader2, History, MessageSquare, Info } from "lucide-react";
+import { Loader2, History, MessageSquare, Info, Trash2 } from "lucide-react";
 import { getActiveSession, saveActiveSession, clearActiveSession } from "@/lib/utils/idb";
 
 const TRACKS = [
@@ -17,7 +17,7 @@ const DURATIONS = [10, 15, 20, 30];
 
 export default function MeditationPage() {
     const { user } = useAuth();
-    const { activities, addActivity } = useActivities();
+    const { activities, addActivity, deleteActivity } = useActivities();
     
     // Configuration State
     const [selectedTrack, setSelectedTrack] = useState(TRACKS[0]);
@@ -418,14 +418,40 @@ export default function MeditationPage() {
                         <h2 style={{ fontSize: "20px", fontWeight: 700 }}>Recovery History</h2>
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                        {activities.filter(a => a.type === "Meditation").slice(0, 5).map(m => (
+                        {activities.filter(a => a.type === "Meditation").slice(0, 10).map(m => (
                             <div key={m.id} className="glass-panel" style={{ padding: "16px", borderRadius: "12px", display: "flex", justifyContent: "space-between", alignItems: "center", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)" }}>
-                                <div>
-                                    <div style={{ fontWeight: 600 }}>{new Date(m.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</div>
-                                    <div style={{ fontSize: "12px", color: "var(--foreground-muted)" }}>{m.notes?.substring(0, 40)}...</div>
+                                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                                    <div style={{
+                                        width: "36px",
+                                        height: "36px",
+                                        borderRadius: "8px",
+                                        background: "rgba(0,0,0,0.3)",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        fontSize: "14px",
+                                    }}>
+                                        🧘
+                                    </div>
+                                    <div>
+                                        <div style={{ fontWeight: 600 }}>{new Date(m.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</div>
+                                        <div style={{ fontSize: "12px", color: "var(--foreground-muted)" }}>{m.notes?.substring(0, 40)}{m.notes && m.notes.length > 40 ? "..." : ""}</div>
+                                    </div>
                                 </div>
-                                <div style={{ color: "var(--primary)", fontWeight: 700 }}>
-                                    {Math.round(m.duration / 60)} min
+                                <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+                                    <div style={{ color: "var(--primary)", fontWeight: 700 }}>
+                                        {Math.round(m.duration / 60)} min
+                                    </div>
+                                    <button 
+                                        onClick={() => {
+                                            if (confirm("Delete this meditation record?")) {
+                                                deleteActivity(m.id);
+                                            }
+                                        }}
+                                        style={{ background: "transparent", border: "none", color: "rgba(255,50,50,0.6)", cursor: "pointer", padding: "4px" }}
+                                    >
+                                        <Trash2 size={16} />
+                                    </button>
                                 </div>
                             </div>
                         ))}

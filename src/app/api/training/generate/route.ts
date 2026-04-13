@@ -61,16 +61,17 @@ export async function POST(req: Request) {
         const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
         const systemPrompt = `You are StrideIQ's Elite Head Coach.
-        Your task is to generate a structured, professional running training plan.
+        Your task is to generate a structured, professional 7-day training plan.
         - Analyze the user's goal, level, and schedule.
         - If a 'raceName' is provided, use the 'tavily_search_race' tool to find the exact date if you don't know it.
         - Generate a valid JSON response matching the schema provided.
+        - IMPORTANT: For each workout (except Rest), include a 'videoUrl' pointing to a relevant high-quality instructional YouTube video from reputable fitness channels.
         - Tone: Professional, expert, encouraging.
-        - Structure: Array of weeks, each containing an array of workouts (Mon-Sun).
+        - Structure: Array of weeks (usually 1 for current request), each containing an array of workouts (Mon-Sun).
         - IMPORTANT: Return ONLY valid JSON.
         `;
 
-        const userPrompt = `Create a ${timeline}-week training plan for a ${level} runner aiming to ${goal}.
+        const userPrompt = `Create a 1-week training plan for a ${level} runner aiming to ${goal}.
         Race: ${raceName || "None"}
         Frequency: ${daysPerWeek} days/week.
         Start Date: Today (${new Date().toISOString().split('T')[0]}).
@@ -85,11 +86,10 @@ export async function POST(req: Request) {
               "focus": "Base Building",
               "workouts": [
                 { "day": "Monday", "type": "Rest", "description": "Rest day", "completed": false },
-                { "day": "Tuesday", "type": "Run", "distance": "3 miles", "description": "Easy run", "completed": false }
+                { "day": "Tuesday", "type": "Run", "distance": "3 miles", "description": "Easy run", "completed": false, "videoUrl": "https://www.youtube.com/watch?v=..." }
                 ... (7 days)
               ]
             }
-            ...
           ]
         }`;
 

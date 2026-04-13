@@ -24,3 +24,46 @@ export async function GET(req: Request) {
         return NextResponse.json({ error: e.message || "Internal Server Error" }, { status: 500 });
     }
 }
+
+export async function POST(req: Request) {
+    try {
+        const idToken = (await headers()).get("Authorization")?.split("Bearer ")[1];
+        if (!idToken) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+        const decodedToken = await getAuth().verifyIdToken(idToken);
+        const userId = decodedToken.uid;
+
+        const { weekIndex, workoutIndex, completed, note } = await req.json();
+
+        // Use userId as doc ID for active plan
+        const planRef = adminDb.collection("trainingPlans").doc(userId);
+        const planDoc = await planRef.get();
+        
+        if (!planDoc.exists) {
+            return NextResponse.json({ error: "No active plan found" }, { status: 404 });
+        }
+
+        const planData = planDoc.data();
+        if (!planData || !planData.weeks || !planData.weeks[weekIndex]) {
+            return NextResponse.json({ error: "Invalid plan index" }, { status: 400 });
+        }
+
+        // Update the specific workout
+        const updatedWeeks = [...planData.weeks];
+        updatedWeeks[weekIndex].workouts[workoutIndex] = {
+            ...updatedWeeks[weekIndex].workouts[workoutIndex],
+            completed,
+            note: note !== undefined ? note : (updatedWeeks[weekIndex].workouts[workoutIndex].note || "")
+        };
+
+        await planRef.update({
+            weeks: updatedWeeks,
+            lastUpdated: Date.now()
+        });
+
+        return NextResponse.json({ success: true });
+    } catch (e: any) {
+        console.error("Update Plan Error:", e);
+        return NextResponse.json({ error: e.message || "Internal Server Error" }, { status: 500 });
+    }
+}
