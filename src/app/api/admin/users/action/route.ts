@@ -3,6 +3,7 @@ import { adminDb, adminAuth } from "@/lib/firebase/admin";
 import { verifyAdmin } from "@/lib/auth-utils";
 
 export async function POST(req: Request) {
+    let action = "unknown";
     try {
         const authCheck = await verifyAdmin();
         if ("error" in authCheck) {
@@ -10,7 +11,8 @@ export async function POST(req: Request) {
         }
 
         const body = await req.json();
-        const { uid, action, data } = body;
+        const { uid, data } = body;
+        action = body.action || "unknown";
 
         if (!uid || !action) {
             return NextResponse.json({ error: "Missing uid or action" }, { status: 400 });
