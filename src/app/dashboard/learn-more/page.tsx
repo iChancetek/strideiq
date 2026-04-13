@@ -7,57 +7,64 @@ const features = [
         title: "Activity Tracking",
         emoji: "🏃",
         color: "var(--primary)",
-        description: "Track runs, walks, and bike rides with GPS, pace, and elevation. Real-time stats with automatic calorie estimates.",
-        modules: "GPS • Pace • Elevation • Calories"
+        description: "Track runs, walks, and bike rides with GPS. Now supports high-resolution video uploads to share your post-session moments.",
+        modules: "GPS • Video • Pace • Calories"
     },
     {
         title: "AI Performance Coach",
         emoji: "🤖",
         color: "var(--primary)",
-        description: "Chat with your personal AI coach. Choose from three coaching personas: Onyx (discipline), Titan (power), or Zen (balance).",
+        description: "Chat with your personal AI coach. Choose from Onyx (running), Titan (exercise), or Zen (meditation) for tailored guidance.",
         modules: "Chat • Voice • Personas"
+    },
+    {
+        title: "Social Notifications",
+        emoji: "🔔",
+        color: "var(--primary)",
+        description: "Stay in the loop with real-time alerts. Get notified immediately when friends like or comment on your activities.",
+        modules: "Real-time • Likes • Comments"
+    },
+    {
+        title: "Performance Analytics",
+        emoji: "📈",
+        color: "var(--secondary)",
+        description: "Analyze your progress with dynamic aggregation. Switch between Daily, Weekly, Monthly, and Yearly performance views.",
+        modules: "Daily • Weekly • Monthly • Yearly"
+    },
+    {
+        title: "Steps & Trends",
+        emoji: "👟",
+        color: "var(--primary)",
+        description: "Track daily steps and monitor long-term trends. The Step Tracker now includes a 12-week historical trend analysis.",
+        modules: "Steps • 12-Week Trends • Leaderboard"
+    },
+    {
+        title: "Unified Ecosystem",
+        emoji: "🌐",
+        color: "var(--accent)",
+        description: "Direct integration with the broader community. Access Famio for social networking and iSkylar for AI therapy.",
+        modules: "Famio • iSkylar • Platform Sync"
     },
     {
         title: "Training Plans",
         emoji: "📅",
         color: "var(--secondary)",
-        description: "AI-generated training plans tailored to your fitness level and goals. Structured weekly workouts with progressive overload.",
-        modules: "Weekly Plan • Auto-Generate • Progress"
+        description: "AI-generated training plans tailored to your goals. Structured weekly workouts that adapt to your progress.",
+        modules: "Weekly Plan • Custom AI • Progress"
     },
     {
-        title: "Fasting Tracker",
+        title: "Fasting & Metabolic",
         emoji: "⏳",
         color: "var(--accent)",
-        description: "Monitor your fasting windows with a visual countdown timer. Track your metabolic health alongside your fitness.",
-        modules: "Timer • History • Streaks"
+        description: "Monitor fasting windows with a visual countdown. Correlate your metabolic health with your activity data.",
+        modules: "Timer • History • Metabolic Health"
     },
     {
-        title: "Journal",
+        title: "Journal & Mindset",
         emoji: "📓",
         color: "var(--secondary)",
-        description: "Log your thoughts, mood, and reflections. AI agents correlate your mental state with your physical performance.",
-        modules: "Daily Entry • Mood • Insights"
-    },
-    {
-        title: "Steps & Leaderboard",
-        emoji: "👟",
-        color: "var(--primary)",
-        description: "Track daily steps and compete on global leaderboards. Every step counts toward your rank.",
-        modules: "Steps • Ranking • Streaks"
-    },
-    {
-        title: "Friends & Community",
-        emoji: "👥",
-        color: "var(--secondary)",
-        description: "Connect with other athletes. View their activities, follow their progress, and stay motivated together.",
-        modules: "Friends • Social Feed • Invite"
-    },
-    {
-        title: "Meditation",
-        emoji: "🧘",
-        color: "var(--accent)",
-        description: "Guided breathing exercises and meditation sessions to enhance focus, recovery, and mental clarity.",
-        modules: "Breathing • Timer • Sessions"
+        description: "Log your thoughts and mood. AI agents help correlate your mental state with your physical output.",
+        modules: "Daily Entry • AI Assistant • Insights"
     },
 ];
 

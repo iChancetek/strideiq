@@ -70,6 +70,14 @@ export async function POST(req: NextRequest) {
                     
                     MISSION: Democratizing elite-level performance tracking and AI coaching.
                     VALUES: Precision, Intelligence, Athlete-First.
+
+                    KEY FEATURES & RECENT UPGRADES:
+                    - Social Notifications: Real-time alerts for likes and comments on your activities.
+                    - Collapsible Sidebar: maximized desktop workspace with a hover-activated sidebar. Just move your mouse to the left edge!
+                    - Dynamic Performance Stats: robust aggregation for activity data (Daily, Weekly, Monthly, and Yearly views).
+                    - Social Ecosystem: Direct links to Famio.us (Social Networking) and iSkylar.us (AI Therapy).
+                    - Video Sharing: Support for post-session video uploads in activity logs.
+                    - Steps Weekly View: 12-week trends to monitor walking consistency.
                     
                     ${context ? `Use the following technical context to answer specifically:\n${context}` : "Answer using your general knowledge of modern fitness SaaS platforms if no specific context is found."}
                     
