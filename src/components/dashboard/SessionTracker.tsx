@@ -86,6 +86,7 @@ export default function SessionTracker() {
     const [pendingSessionData, setPendingSessionData] = useState<any>(null);
     const [mapVisible, setMapVisible] = useState(settings.showMap);
     const [sessionRestoreData, setSessionRestoreData] = useState<any>(null); // orphaned session from prior page load
+    const [isRestoring, setIsRestoring] = useState(false);
 
     const watchId = useRef<number | null>(null);
     const lastAcceptedPos = useRef<[number, number] | null>(null);
@@ -101,6 +102,7 @@ export default function SessionTracker() {
 
     // ── Accumulated-segment timer (backgrounding-safe) ────────────────────────
     const activeTimeRef = useRef(0);       // total active seconds
+    const pathRef = useRef<[number, number][]>([]); // mirror of path state for persistence
     const lastTickRef = useRef<number>(0); // last Date.now() when tick ran
     const timerRef = useRef<NodeJS.Timeout | null>(null);
     const isPausedRef = useRef(false);
@@ -144,6 +146,7 @@ export default function SessionTracker() {
                     steps: stepsRef.current,
                     mode,
                     environment,
+                    path: pathRef.current, // Save the coordinate trace
                 }
             });
         } catch (e) { /* ignore storage errors */ }
@@ -352,7 +355,11 @@ export default function SessionTracker() {
             stepsRef.current += Math.round(segmentMiles * stepsPerMile);
             setSteps(stepsRef.current);
 
-            setPath((prev) => [...prev, newPos]);
+            setPath((prev) => {
+                const newPath = [...prev, newPos];
+                pathRef.current = newPath;
+                return newPath;
+            });
 
             // Feed agent core
             const geoPos: GeoPosition = {
@@ -676,9 +683,20 @@ export default function SessionTracker() {
                                     setElapsedTime(elapsed);
                                     setDistance(sessionRestoreData.distanceKm || 0);
                                     setSteps(sessionRestoreData.steps || 0);
+                                    
+                                    // Restore path and refs
+                                    const restoredPath = sessionRestoreData.path || [];
+                                    setPath(restoredPath);
+                                    pathRef.current = restoredPath;
+                                    if (restoredPath.length > 0) {
+                                        const last = restoredPath[restoredPath.length - 1];
+                                        lastAcceptedPos.current = last;
+                                        setCurrentPos(last);
+                                    }
+
                                     setSessionRestoreData(null);
                                     setIsTracking(true);
-                                    console.log("[AUTH_SESSION_RESTORE] Session restored. elapsed=" + elapsed + "s");
+                                    console.log("[AUTH_SESSION_RESTORE] Session restored with " + restoredPath.length + " points. elapsed=" + elapsed + "s");
                                 }}
                                 style={{ padding: "8px 16px", background: "var(--primary)", color: "#000", border: "none", borderRadius: "20px", fontWeight: 700, cursor: "pointer", fontSize: "13px" }}
                             >

@@ -19,7 +19,14 @@ export type ActiveSession =
   | {
       type: 'run';
       startTime: string;
-      data: any; // All session-specific data (distance, steps, etc.)
+      data: {
+        totalPausedMs: number;
+        distanceKm: number;
+        steps: number;
+        mode: string;
+        environment: string;
+        path?: [number, number][]; // Persist the coordinates trace
+      }; 
       lastHeartbeat: string;
     }
   | {
@@ -27,6 +34,12 @@ export type ActiveSession =
       startTime: string;
       status: 'active' | 'paused' | 'completed';
       goal: number;
+    }
+  | {
+      type: 'meditation';
+      startTime: string;
+      trackId: string;
+      durationMinutes: number;
     };
 
 export interface SyncAction {
@@ -93,13 +106,13 @@ export async function saveActiveSession(session: ActiveSession) {
   return db.put('sessions', session);
 }
 
-export async function getActiveSession<T extends 'run' | 'fasting'>(type: T): Promise<Extract<ActiveSession, { type: T }> | null> {
+export async function getActiveSession<T extends 'run' | 'fasting' | 'meditation'>(type: T): Promise<Extract<ActiveSession, { type: T }> | null> {
   const db = await getDB();
   if (!db) return null;
   return db.get('sessions', type) as any;
 }
 
-export async function clearActiveSession(type: 'run' | 'fasting') {
+export async function clearActiveSession(type: 'run' | 'fasting' | 'meditation') {
   const db = await getDB();
   if (!db) return;
   return db.delete('sessions', type);

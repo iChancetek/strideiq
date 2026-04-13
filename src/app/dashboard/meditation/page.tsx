@@ -5,6 +5,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useActivities } from "@/hooks/useActivities";
 import { Loader2, History, MessageSquare, Info } from "lucide-react";
+import { getActiveSession, saveActiveSession, clearActiveSession } from "@/lib/utils/idb";
 
 const TRACKS = [
     { id: "focus", label: "Deep Focus", src: "https://cdn.pixabay.com/audio/2022/05/27/audio_1808fbf07a.mp3", color: "#CCFF00" }, // Ambient Piano
@@ -24,41 +25,119 @@ export default function MeditationPage() {
     const [notes, setNotes] = useState("");
     const [showNotes, setShowNotes] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const [loading, setLoading] = useState(true);
 
     // Audio State
     const [volume, setVolume] = useState(0.5);
     const [isMuted, setIsMuted] = useState(false);
 
     // Session State
-    const [isActive, setIsActive] = useState(false); // Timer running?
-    const [isPaused, setIsPaused] = useState(false);
+    const [isActive, setIsActive] = useState(false);
+    const [startTime, setStartTime] = useState<number | null>(null);
     const [secondsLeft, setSecondsLeft] = useState(10 * 60);
 
     const audioRef = useRef<HTMLAudioElement | null>(null);
+    const wakeLockRef = useRef<any>(null);
 
-    // Sync Volume
+    // Restore Session on Mount
+    useEffect(() => {
+        async function restore() {
+            try {
+                const saved = await getActiveSession('meditation');
+                if (saved) {
+                    const start = new Date(saved.startTime).getTime();
+                    const now = Date.now();
+                    const totalSec = saved.durationMinutes * 60;
+                    const elapsed = Math.floor((now - start) / 1000);
+                    
+                    if (elapsed < totalSec) {
+                        const track = TRACKS.find(t => t.id === saved.trackId) || TRACKS[0];
+                        setSelectedTrack(track);
+                        setDurationMinutes(saved.durationMinutes);
+                        setStartTime(start);
+                        setSecondsLeft(totalSec - elapsed);
+                        setIsActive(true);
+                        console.log("[MEDITATION_RESTORE] Resuming session from " + new Date(start).toLocaleTimeString());
+                    } else {
+                        await clearActiveSession('meditation');
+                    }
+                }
+            } catch (e) {
+                console.error("Failed to restore meditation", e);
+            } finally {
+                setLoading(false);
+            }
+        }
+        restore();
+    }, []);
+
+    // Wake Lock Logic
+    useEffect(() => {
+        const requestWakeLock = async () => {
+            if ('wakeLock' in navigator && isActive) {
+                try {
+                    wakeLockRef.current = await (navigator as any).wakeLock.request('screen');
+                } catch (err: any) {
+                    console.log(`Wake Lock error: ${err.message}`);
+                }
+            }
+        };
+        requestWakeLock();
+        return () => {
+            if (wakeLockRef.current) {
+                wakeLockRef.current.release().then(() => { wakeLockRef.current = null; });
+            }
+        };
+    }, [isActive]);
+
+    // Resync on Visibility Change (Background/Sleep recovery)
+    useEffect(() => {
+        const handleVisibility = () => {
+            if (document.visibilityState === "visible" && isActive && startTime) {
+                const now = Date.now();
+                const totalSec = durationMinutes * 60;
+                const elapsed = Math.floor((now - startTime) / 1000);
+                const remaining = Math.max(0, totalSec - elapsed);
+                setSecondsLeft(remaining);
+                console.log("[MEDITATION_SYNC] Visibility sync from wall-clock: " + remaining + "s left");
+                
+                // Ensure audio is playing if browser paused it
+                if (remaining > 0 && audioRef.current && audioRef.current.paused) {
+                    audioRef.current.play().catch(() => {});
+                }
+            }
+        };
+        document.addEventListener("visibilitychange", handleVisibility);
+        return () => document.removeEventListener("visibilitychange", handleVisibility);
+    }, [isActive, startTime, durationMinutes]);
+
+    // Audio volume sync
     useEffect(() => {
         if (audioRef.current) {
             audioRef.current.volume = isMuted ? 0 : volume;
         }
     }, [volume, isMuted]);
-    // Timer Countdown Logic
+
+    // Timer Tick
     useEffect(() => {
-        let interval: NodeJS.Timeout | any;
-        if (isActive && !isPaused && secondsLeft > 0) {
+        let interval: NodeJS.Timeout;
+        if (isActive && startTime) {
             interval = setInterval(() => {
-                setSecondsLeft((prev) => prev - 1);
+                const now = Date.now();
+                const totalSec = durationMinutes * 60;
+                const elapsed = Math.floor((now - startTime) / 1000);
+                const remaining = Math.max(0, totalSec - elapsed);
+                setSecondsLeft(remaining);
             }, 1000);
         }
         return () => clearInterval(interval);
-    }, [isActive, isPaused, secondsLeft]);
+    }, [isActive, startTime, durationMinutes]);
 
-    const saveSession = useCallback(async () => {
+    const saveActivityRecord = useCallback(async () => {
         if (!user) return;
         setIsSaving(true);
         try {
             const duration = durationMinutes * 60;
-            // Add to StrideIQ Activities Feed
             await addActivity({
                 type: 'Meditation',
                 distance: 0,
@@ -69,7 +148,7 @@ export default function MeditationPage() {
                 mode: 'meditation',
                 environment: 'indoor',
             });
-            console.log("[MEDITATION] Session saved.");
+            await clearActiveSession('meditation');
             setNotes("");
             setShowNotes(false);
         } catch (e) {
@@ -79,65 +158,65 @@ export default function MeditationPage() {
         }
     }, [user, durationMinutes, notes, selectedTrack.label, addActivity]);
 
-    // Handle Session Complete
+    // Completion Handler
     useEffect(() => {
         if (secondsLeft === 0 && isActive) {
             setIsActive(false);
-            setIsPaused(false);
             if (audioRef.current) {
                 audioRef.current.pause();
                 audioRef.current.currentTime = 0;
             }
-            saveSession(); // Auto-save on completion
+            saveActivityRecord();
             alert("Session Complete. Namaste. 🙏");
         }
-    }, [secondsLeft, isActive, saveSession]);
+    }, [secondsLeft, isActive, saveActivityRecord]);
 
-    // Handle Start
-    const startSession = () => {
-        if (!isActive) {
-            setSecondsLeft(durationMinutes * 60);
-        }
-        setIsActive(true);
-        setIsPaused(false);
-        if (audioRef.current) {
-            audioRef.current.volume = isMuted ? 0 : volume; // Set volume before playing
-            audioRef.current.play().catch(e => console.log("Audio play failed (user interaction needed first)"));
-        }
-    };
-
-    // Handle Pause
-    const pauseSession = () => {
-        setIsPaused(true);
-        if (audioRef.current) audioRef.current.pause();
-    };
-
-    // Handle Resume
-    const resumeSession = () => {
-        setIsPaused(false);
-        if (audioRef.current) {
-            audioRef.current.volume = isMuted ? 0 : volume; // Set volume before playing
-            audioRef.current.play();
-        }
-    };
-
-    // Handle Stop/Reset
-    const stopSession = () => {
-        setIsActive(false);
-        setIsPaused(false);
+    const startSession = async () => {
+        const startTs = Date.now();
+        setStartTime(startTs);
         setSecondsLeft(durationMinutes * 60);
+        setIsActive(true);
+
+        // Persist to IDB
+        await saveActiveSession({
+            type: 'meditation',
+            startTime: new Date(startTs).toISOString(),
+            trackId: selectedTrack.id,
+            durationMinutes: durationMinutes
+        });
+
+        if (audioRef.current) {
+            audioRef.current.volume = isMuted ? 0 : volume;
+            audioRef.current.play().catch(e => console.log("Audio play failed"));
+        }
+    };
+
+    const stopSession = async () => {
+        setIsActive(false);
+        setStartTime(null);
+        setSecondsLeft(durationMinutes * 60);
+        await clearActiveSession('meditation');
         if (audioRef.current) {
             audioRef.current.pause();
             audioRef.current.currentTime = 0;
         }
     };
 
-    // Helper to format time
     const formatTime = (seconds: number) => {
         const mins = Math.floor(seconds / 60);
         const secs = seconds % 60;
         return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
     };
+
+    if (loading) {
+        return (
+            <DashboardLayout>
+                <div style={{ height: "calc(100vh - 200px)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <Loader2 className="animate-spin" size={48} color="var(--primary)" />
+                </div>
+            </DashboardLayout>
+        );
+    }
 
     return (
         <DashboardLayout>
@@ -159,7 +238,7 @@ export default function MeditationPage() {
                 }}>
 
                     {/* Visualizer Background */}
-                    {isActive && !isPaused && (
+                    {isActive && (
                         <div className="breathing-circle" style={{ borderColor: selectedTrack.color }}></div>
                     )}
 
@@ -236,17 +315,16 @@ export default function MeditationPage() {
                                 textShadow: isActive ? `0 0 30px ${selectedTrack.color}40` : "none",
                                 transition: "text-shadow 0.5s"
                             }}>
-                                {isActive ? formatTime(secondsLeft) : `${durationMinutes}:00`}
+                                {formatTime(secondsLeft)}
                             </div>
                             <div style={{ color: selectedTrack.color, fontWeight: 600, display: "flex", justifyContent: "center", alignItems: "center", gap: "10px" }}>
-                                {isActive && !isPaused && <span className="animate-spin">💿</span>}
-                                {isActive ? (isPaused ? "PAUSED" : `PLAYING: ${selectedTrack.label.toUpperCase()}`) : "READY"}
+                                {isActive && <span className="animate-spin">💿</span>}
+                                {isActive ? `PLAYING: ${selectedTrack.label.toUpperCase()}` : "READY"}
                             </div>
                         </div>
 
                         {/* 4. Controls & Volume */}
                         <div>
-                            {/* Main Session Controls */}
                             <div style={{ display: "flex", justifyContent: "center", gap: "20px", marginBottom: "30px" }}>
                                 {!isActive ? (
                                     <button
@@ -257,43 +335,18 @@ export default function MeditationPage() {
                                         Start Session
                                     </button>
                                 ) : (
-                                    <>
-                                        {isPaused ? (
-                                            <button
-                                                onClick={resumeSession}
-                                                style={{
-                                                    background: "var(--primary)", color: "#000", border: "none",
-                                                    padding: "16px 32px", borderRadius: "12px", fontSize: "18px", fontWeight: 600, cursor: "pointer"
-                                                }}
-                                            >
-                                                Resume
-                                            </button>
-                                        ) : (
-                                            <button
-                                                onClick={pauseSession}
-                                                style={{
-                                                    background: "rgba(255,255,255,0.1)", color: "#fff", border: "none",
-                                                    padding: "16px 32px", borderRadius: "12px", fontSize: "18px", fontWeight: 600, cursor: "pointer"
-                                                }}
-                                            >
-                                                Pause
-                                            </button>
-                                        )}
-
-                                        <button
-                                            onClick={stopSession}
-                                            style={{
-                                                background: "rgba(255, 50, 50, 0.2)", color: "#ff3333", border: "1px solid rgba(255, 50, 50, 0.5)",
-                                                padding: "16px 32px", borderRadius: "12px", fontSize: "18px", fontWeight: 600, cursor: "pointer"
-                                            }}
-                                        >
-                                            Stop
-                                        </button>
-                                    </>
+                                    <button
+                                        onClick={stopSession}
+                                        style={{
+                                            background: "rgba(255, 50, 50, 0.2)", color: "#ff3333", border: "1px solid rgba(255, 50, 50, 0.5)",
+                                            padding: "16px 32px", borderRadius: "12px", fontSize: "18px", fontWeight: 600, cursor: "pointer"
+                                        }}
+                                    >
+                                        Stop & Reset
+                                    </button>
                                 )}
                             </div>
 
-                            {/* Volume Control (Only visible when Active) */}
                             {isActive && (
                                 <div style={{
                                     display: "flex", alignItems: "center", justifyContent: "center", gap: "15px",
@@ -328,7 +381,6 @@ export default function MeditationPage() {
                             loop
                             onError={(e) => {
                                 console.error("Audio Missing:", e);
-                                alert(`Could not play '${selectedTrack.label}'. Ensure internet connection is active.`);
                             }}
                         />
 
@@ -336,10 +388,10 @@ export default function MeditationPage() {
                 </div>
 
                 <p style={{ marginTop: "40px", opacity: 0.5, fontSize: "14px" }}>
-                    Tip: Use headphones for the best immersive experience.
+                    Tip: StrideIQ sessions stay active even if you lock your phone or restart your browser.
                 </p>
 
-                {/* Notes Toggle (Non-intrusive) */}
+                {/* Notes Toggle */}
                 <div style={{ marginTop: "24px", display: "flex", justifyContent: "center" }}>
                     <button 
                         onClick={() => setShowNotes(!showNotes)}
@@ -359,7 +411,7 @@ export default function MeditationPage() {
                     )}
                 </div>
 
-                {/* History Section (Non-intrusive bottom) */}
+                {/* History Section */}
                 <section style={{ marginTop: "80px", textAlign: "left", maxWidth: "600px", margin: "80px auto 0" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "20px" }}>
                         <History size={20} color="var(--primary)" />
@@ -377,9 +429,6 @@ export default function MeditationPage() {
                                 </div>
                             </div>
                         ))}
-                        {activities.filter(a => a.type === "Meditation").length === 0 && (
-                            <p style={{ color: "var(--foreground-muted)", fontSize: "14px", fontStyle: "italic" }}>No recovery sessions recorded yet.</p>
-                        )}
                     </div>
                 </section>
             </div>

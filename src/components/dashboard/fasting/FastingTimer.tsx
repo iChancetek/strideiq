@@ -88,7 +88,19 @@ export default function FastingTimer() {
         if (!isFasting || !startTime) return;
         setElapsed(Date.now() - startTime); // Immediate update on mount
         const interval = setInterval(() => setElapsed(Date.now() - startTime), 1000);
-        return () => clearInterval(interval);
+
+        const handleVisibility = () => {
+            if (document.visibilityState === "visible") {
+                setElapsed(Date.now() - startTime);
+                console.log("[FASTING_SYNC] Resyncing timer from wall-clock");
+            }
+        };
+        document.addEventListener("visibilitychange", handleVisibility);
+
+        return () => {
+            clearInterval(interval);
+            document.removeEventListener("visibilitychange", handleVisibility);
+        };
     }, [isFasting, startTime]);
 
     const toggleFasting = async () => {
