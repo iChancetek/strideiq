@@ -62,14 +62,14 @@ export default function Sidebar({ onLogout }: SidebarProps) {
                 transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                 overflow: "hidden" // Contains the scrollable nav
             }}>
-                <div style={{ marginBottom: "30px", paddingLeft: "4px" }}>
+                <Link href="/dashboard" style={{ textDecoration: "none", color: "inherit", display: "block", marginBottom: "30px", paddingLeft: "4px" }}>
                     <h2 style={{ fontSize: "24px", letterSpacing: "-0.5px", fontWeight: 800 }}>
                         Stride<span className="text-gradient">IQ</span>
                     </h2>
                     <div style={{ fontSize: "11px", color: "var(--foreground-muted)", marginTop: "4px", letterSpacing: "0.5px", textTransform: "uppercase" }}>
                         Agentic Fitness
                     </div>
-                </div>
+                </Link>
 
                 <nav style={{ flex: 1, overflowY: "auto", margin: "0 -10px", padding: "0 10px", scrollbarWidth: "none" }}>
                     <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: "8px" }}>

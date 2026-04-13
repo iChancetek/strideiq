@@ -141,14 +141,14 @@ export default function Home() {
         }}
       >
         {/* Logo */}
-        <div style={{ display: "flex", alignItems: "baseline", gap: "10px" }}>
+        <Link href="/dashboard" style={{ textDecoration: "none", color: "inherit", display: "flex", alignItems: "baseline", gap: "10px" }}>
           <h1 style={{ fontSize: "22px", letterSpacing: "-0.5px", fontFamily: "var(--font-heading)", fontWeight: 800 }}>
             Stride<span className="text-gradient">IQ</span> <span style={{ fontSize: "14px", verticalAlign: "top", color: "var(--primary)" }}>ELITE</span>
           </h1>
           <span style={{ fontSize: "11px", color: "var(--foreground-muted)", fontWeight: 400, letterSpacing: "0.4px" }}>
             by ChanceTEK Fitness
           </span>
-        </div>
+        </Link>
 
         {/* Nav Links */}
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>

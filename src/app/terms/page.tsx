@@ -7,7 +7,7 @@ export default function TermsPage() {
         <main style={{ minHeight: "100vh", paddingBottom: "100px" }}>
             {/* Header Nav */}
             <nav className="glass-panel" style={{ position: "fixed", top: 0, left: 0, right: 0, padding: "20px 40px", zIndex: 100, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <Link href="/" style={{ fontSize: "24px", letterSpacing: "-0.5px" }}>Stride<span className="text-gradient">IQ</span></Link>
+                <Link href="/dashboard" style={{ fontSize: "24px", letterSpacing: "-0.5px" }}>Stride<span className="text-gradient">IQ</span></Link>
                 <div style={{ display: "flex", gap: "20px" }}>
                     <Link href="/login" style={{ color: "var(--foreground-muted)" }}>Log In</Link>
                     <Link href="/signup" className="text-gradient" style={{ fontWeight: 600 }}>Get Started</Link>
@@ -88,7 +88,7 @@ export default function TermsPage() {
 
             {/* Footer Action */}
             <div style={{ marginTop: "100px", textAlign: "center" }}>
-                <Link href="/" className="btn-primary" style={{ display: "inline-flex", padding: "12px 40px" }}>
+                <Link href="/dashboard" className="btn-primary" style={{ display: "inline-flex", padding: "12px 40px" }}>
                     Back to Control Center
                 </Link>
             </div>
