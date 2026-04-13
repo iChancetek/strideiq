@@ -33,16 +33,15 @@ export async function GET(req: Request) {
             // approximate active user via activity owner if available (not all activities might have userId ref stored directly if not careful, assuming they do or we query differently)
         });
 
-        // Current date for login stats
-        // We'd need a specific 'logins' collection to track daily logins accurately.
-        // For now, we use 'lastLogin' from users.
-        const now = new Date();
-        const oneDay = 24 * 60 * 60 * 1000;
-        const activeLast24h = users.filter(u => {
-            if (!u.lastLogin) return false;
-            const last = u.lastLogin.toDate ? u.lastLogin.toDate() : new Date(u.lastLogin);
-            return (now.getTime() - last.getTime()) < oneDay;
-        }).length;
+        // 5. User Growth (Last 6 months)
+        const growthCount: Record<string, number> = {};
+        users.forEach(u => {
+            const date = u.lastLogin?.toDate ? u.lastLogin.toDate() : new Date(u.lastLogin || Date.now());
+            // Better to use creationTime if available, but for now we'll use a fallback or current month
+            const yearMonth = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+            growthCount[yearMonth] = (growthCount[yearMonth] || 0) + 1;
+        });
+        const growth = Object.entries(growthCount).sort().map(([name, value]) => ({ name, value })).slice(-6);
 
         const breakdown = Object.entries(activityTypeCount).map(([name, value]) => ({ name, value }));
 
@@ -52,7 +51,8 @@ export async function GET(req: Request) {
             totalMiles,
             totalSteps,
             activeLast24h,
-            breakdown
+            breakdown,
+            growth
         });
 
     } catch (error: any) {

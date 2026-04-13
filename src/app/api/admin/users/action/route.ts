@@ -1,58 +1,69 @@
 import { NextResponse } from "next/server";
-import { adminAuth, adminDb } from "@/lib/firebase/admin";
+import { adminDb, adminAuth } from "@/lib/firebase/admin";
+import { verifyAdmin } from "@/lib/auth-utils";
 
 export async function POST(req: Request) {
     try {
-        const body = await req.json();
-        const { action, targetUserId, requesterId, newPassword, role } = body;
-
-        if (!targetUserId || !action) {
-            return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+        const authCheck = await verifyAdmin();
+        if ("error" in authCheck) {
+            return NextResponse.json({ error: authCheck.error }, { status: authCheck.status });
         }
 
-        // Verify Requester is Admin
-        if (requesterId) {
-            const requesterDoc = await adminDb.collection("users").doc(requesterId).get();
-            if (!requesterDoc.exists || requesterDoc.data()?.role !== "admin") {
-                return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
-            }
-        } else {
-            // For strict security, always require requesterId or identify via token
-            return NextResponse.json({ error: "Unauthorized - No requester ID" }, { status: 403 });
+        const body = await req.json();
+        const { uid, action, data } = body;
+
+        if (!uid || !action) {
+            return NextResponse.json({ error: "Missing uid or action" }, { status: 400 });
+        }
+
+        // Prevent admin from disabling/deleting themselves (safeguard)
+        if (uid === authCheck.userId && (action === "disable" || action === "delete")) {
+            return NextResponse.json({ error: "You cannot disable or delete your own account." }, { status: 400 });
         }
 
         switch (action) {
-            case "toggleStatus":
-                const userRec = await adminAuth.getUser(targetUserId);
-                const newStatus = !userRec.disabled;
-                await adminAuth.updateUser(targetUserId, { disabled: newStatus });
-                // Also update firestore for UI consistency if we tracked it there, but auth is source of truth for login.
-                await adminDb.collection("users").doc(targetUserId).set({ disabled: newStatus }, { merge: true });
-                return NextResponse.json({ success: true, disabled: newStatus });
-
-            case "deleteUser":
-                await adminAuth.deleteUser(targetUserId);
-                await adminDb.collection("users").doc(targetUserId).delete();
-                // Ideally delete their activities too, or keep for stats (anonymized)
-                return NextResponse.json({ success: true });
-
-            case "resetPassword":
-                if (!newPassword || newPassword.length < 6) return NextResponse.json({ error: "Invalid password" }, { status: 400 });
-                await adminAuth.updateUser(targetUserId, { password: newPassword });
-                return NextResponse.json({ success: true });
-
-            case "changeRole":
-                if (!role) return NextResponse.json({ error: "Missing role" }, { status: 400 });
-                await adminDb.collection("users").doc(targetUserId).set({ role }, { merge: true });
-                // Custom claims for role-based security rules
-                await adminAuth.setCustomUserClaims(targetUserId, { role });
-                return NextResponse.json({ success: true });
-
+            case "disable":
+                await adminAuth.updateUser(uid, { disabled: true });
+                break;
+            case "enable":
+                await adminAuth.updateUser(uid, { disabled: false });
+                break;
+            case "delete":
+                // Delete from Auth
+                await adminAuth.deleteUser(uid);
+                // Delete from Firestore Profile
+                await adminDb.collection("users").doc(uid).delete();
+                // Optionally delete entries, friends, etc. - in production we'd do a batch delete or use a trigger.
+                break;
+            case "update-password":
+                if (!data?.password || data.password.length < 6) {
+                    return NextResponse.json({ error: "Password must be at least 6 characters." }, { status: 400 });
+                }
+                await adminAuth.updateUser(uid, { password: data.password });
+                break;
+            case "edit":
+                if (!data?.profile) {
+                    return NextResponse.json({ error: "Missing profile data" }, { status: 400 });
+                }
+                // Update Firestore profile
+                await adminDb.collection("users").doc(uid).set({
+                    ...data.profile,
+                    updatedAt: new Date().toISOString()
+                }, { merge: true });
+                
+                // If email changed, update auth as well
+                if (data.profile.email) {
+                    await adminAuth.updateUser(uid, { email: data.profile.email });
+                }
+                break;
             default:
                 return NextResponse.json({ error: "Invalid action" }, { status: 400 });
         }
+
+        return NextResponse.json({ success: true, action });
+
     } catch (error: any) {
-        console.error("Admin Action Error:", error);
+        console.error(`[ADMIN_USER_ACTION_ERROR] ${action}:`, error);
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }
