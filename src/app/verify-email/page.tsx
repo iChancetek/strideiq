@@ -6,6 +6,7 @@ import { auth } from "@/lib/firebase/config";
 import { sendEmailVerification } from "firebase/auth";
 import { logOut } from "@/lib/firebase/auth";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export default function VerifyEmailPage() {
     const { user } = useAuth();
@@ -98,8 +99,36 @@ export default function VerifyEmailPage() {
             justifyContent: "center",
             background: "#000",
             color: "#fff",
-            padding: "20px"
+            padding: "20px",
+            position: "relative"
         }}>
+            {/* Back to Home Arrow */}
+            <Link 
+                href="/" 
+                style={{ 
+                    position: "absolute", 
+                    top: "40px", 
+                    left: "40px", 
+                    display: "flex", 
+                    alignItems: "center", 
+                    gap: "10px", 
+                    color: "var(--foreground-muted)", 
+                    textDecoration: "none", 
+                    fontSize: "14px", 
+                    fontWeight: 500,
+                    transition: "all 0.2s"
+                }}
+                onMouseEnter={e => {
+                    e.currentTarget.style.color = "var(--primary)";
+                    e.currentTarget.style.transform = "translateX(-5px)";
+                }}
+                onMouseLeave={e => {
+                    e.currentTarget.style.color = "var(--foreground-muted)";
+                    e.currentTarget.style.transform = "translateX(0)";
+                }}
+            >
+                <span style={{ fontSize: "20px" }}>←</span> Back to Home
+            </Link>
             <div className="glass-panel" style={{
                 maxWidth: "500px",
                 width: "100%",

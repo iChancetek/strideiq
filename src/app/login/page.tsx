@@ -114,8 +114,36 @@ function LoginContent() {
             alignItems: "center",
             justifyContent: "center",
             padding: "20px",
-            background: "radial-gradient(circle at top right, rgba(0, 229, 255, 0.1) 0%, rgba(5, 5, 5, 0) 70%)"
+            background: "radial-gradient(circle at top right, rgba(0, 229, 255, 0.1) 0%, rgba(5, 5, 5, 0) 70%)",
+            position: "relative"
         }}>
+            {/* Back to Home Arrow */}
+            <Link 
+                href="/" 
+                style={{ 
+                    position: "absolute", 
+                    top: "40px", 
+                    left: "40px", 
+                    display: "flex", 
+                    alignItems: "center", 
+                    gap: "10px", 
+                    color: "var(--foreground-muted)", 
+                    textDecoration: "none", 
+                    fontSize: "14px", 
+                    fontWeight: 500,
+                    transition: "all 0.2s"
+                }}
+                onMouseEnter={e => {
+                    e.currentTarget.style.color = "var(--primary)";
+                    e.currentTarget.style.transform = "translateX(-5px)";
+                }}
+                onMouseLeave={e => {
+                    e.currentTarget.style.color = "var(--foreground-muted)";
+                    e.currentTarget.style.transform = "translateX(0)";
+                }}
+            >
+                <span style={{ fontSize: "20px" }}>←</span> Back to Home
+            </Link>
             <div className="glass-panel" style={{
                 width: "100%",
                 maxWidth: "400px",
