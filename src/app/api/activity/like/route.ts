@@ -58,6 +58,29 @@ export async function POST(req: Request) {
                 return adminDb.collection("entries").doc(activityId).set({ likesCount: 1 }, { merge: true });
             });
 
+            // Create Notification
+            try {
+                const activityDoc = await adminDb.collection("entries").doc(activityId).get();
+                const activityData = activityDoc.data();
+                
+                if (activityData && activityData.userId !== myUserId) {
+                    await adminDb.collection("notifications").add({
+                        userId: activityData.userId, // Recipient
+                        actorId: myUserId,
+                        actorName: userData.displayName || userData.name || "Runner",
+                        actorPhoto: userData.photoURL || null,
+                        type: "like",
+                        activityId: activityId,
+                        activityTitle: activityData.title || activityData.type,
+                        read: false,
+                        createdAt: FieldValue.serverTimestamp(),
+                        emoji: emoji
+                    });
+                }
+            } catch (notifyErr) {
+                console.error("Failed to create notification:", notifyErr);
+            }
+
             return NextResponse.json({ success: true, action: "liked" });
         }
 

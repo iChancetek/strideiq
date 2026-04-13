@@ -120,9 +120,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <main
         style={{
           flex: 1,
-          marginLeft: "300px",
+          marginLeft: "0",
           padding: "40px",
-          width: "calc(100% - 300px)",
+          width: "100%",
           position: "relative",
           overflowY: "auto",
           minHeight: "100svh",

@@ -53,6 +53,29 @@ export async function POST(req: Request) {
             createdAt: FieldValue.serverTimestamp(),
         });
 
+        // Create Notification
+        try {
+            const activityDoc = await adminDb.collection("entries").doc(activityId).get();
+            const activityData = activityDoc.data();
+            
+            if (activityData && activityData.userId !== myUserId) {
+                await adminDb.collection("notifications").add({
+                    userId: activityData.userId, // Recipient
+                    actorId: myUserId,
+                    actorName: userData.displayName || userData.name || "Runner",
+                    actorPhoto: userData.photoURL || null,
+                    type: "comment",
+                    activityId: activityId,
+                    activityTitle: activityData.title || activityData.type,
+                    read: false,
+                    createdAt: FieldValue.serverTimestamp(),
+                    content: text.length > 50 ? text.substring(0, 47) + "..." : text
+                });
+            }
+        } catch (notifyErr) {
+            console.error("Failed to create notification:", notifyErr);
+        }
+
         return NextResponse.json({ success: true, commentId: docRef.id });
 
     } catch (error: any) {
