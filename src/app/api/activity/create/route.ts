@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { createActivitySchema } from "@/lib/validators/activity";
 import { updateUserStats } from "@/lib/server/activity-service";
-import { adminDb } from "@/lib/firebase/admin";
-import { getAuth } from "firebase-admin/auth";
+import { adminDb, adminAuth } from "@/lib/firebase/admin";
 import { headers } from "next/headers";
 import { Timestamp } from "firebase-admin/firestore";
 
@@ -13,7 +12,7 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const decodedToken = await getAuth().verifyIdToken(idToken);
+        const decodedToken = await adminAuth.verifyIdToken(idToken);
         const userId = decodedToken.uid;
 
         const body = await req.json();
