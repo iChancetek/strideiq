@@ -43,6 +43,7 @@ export interface Activity {
         createdAt: string;
     }[];
     likesCount?: number;
+    goal?: number;
 }
 
 export function useActivities() {

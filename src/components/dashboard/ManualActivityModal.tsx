@@ -15,6 +15,19 @@ export default function ManualActivityModal({ isOpen, onClose }: Props) {
     const { addActivity } = useActivities();
     const [loading, setLoading] = useState(false);
 
+    const [title, setTitle] = useState("");
+    const [type, setType] = useState<"Run" | "Walk" | "Bike" | "Hike" | "Meditation">("Run");
+    const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
+    const [time, setTime] = useState("12:00");
+    const [distance, setDistance] = useState("0");
+    const [hours, setHours] = useState("0");
+    const [minutes, setMinutes] = useState("0");
+    const [seconds, setSeconds] = useState("0");
+    const [notes, setNotes] = useState("");
+    const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [user] = useAuthState(auth);
+
     const [calories, setCalories] = useState("0");
     const [steps, setSteps] = useState("0");
     const [elevation, setElevation] = useState("0");

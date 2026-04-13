@@ -4,6 +4,7 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import StatCard from "@/components/dashboard/StatCard";
 import AICoach from "@/components/dashboard/AICoach";
 import DailyAffirmation from "@/components/dashboard/DailyAffirmation";
+import ManualActivityModal from "@/components/dashboard/ManualActivityModal";
 import { useActivities, Activity } from "@/hooks/useActivities";
 import { useTrainingPlan } from "@/hooks/useTrainingPlan";
 import { useRouter } from "next/navigation";
@@ -18,6 +19,7 @@ export default function Dashboard() {
     const router = useRouter();
     const [user] = useAuthState(auth);
     const [userStats, setUserStats] = useState<any>(null);
+    const [isManualModalOpen, setIsManualModalOpen] = useState(false);
 
     // Fetch User Stats (Badges/Records) via Authenticated API
     useEffect(() => {
@@ -303,6 +305,7 @@ export default function Dashboard() {
                     }
                 }
             `}</style>
+            <ManualActivityModal isOpen={isManualModalOpen} onClose={() => setIsManualModalOpen(false)} />
         </DashboardLayout>
     );
 }
