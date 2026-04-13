@@ -20,10 +20,16 @@ export const AuthContextProvider = ({ children }: { children: ReactNode }) => {
         const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
             setUser(user);
             setLoading(false);
+            
+            // Sync session presence to cookie for SSR recognition
+            if (user) {
+                document.cookie = "strideiq_session=active; path=/; max-age=31536000; SameSite=Lax";
+            } else {
+                document.cookie = "strideiq_session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+            }
         });
 
-        // Handle session revocation
-        // onIdTokenChanged triggers when the user is signed in, signed out, or the token is refreshed.
+        // Handle session revocation & token sync
         const unsubscribeToken = onIdTokenChanged(auth, async (user) => {
             if (user) {
                 try {

@@ -1,5 +1,10 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider, setPersistence, browserLocalPersistence } from "firebase/auth";
+import { 
+    getAuth, 
+    initializeAuth, 
+    browserLocalPersistence, 
+    GoogleAuthProvider 
+} from "firebase/auth";
 import { initializeFirestore, memoryLocalCache } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
@@ -16,11 +21,14 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
-const auth = getAuth(app);
-
-// Ensure user stays logged in until explicit sign-out
+// Initialize Auth with persistence strictly capped for client-side
+let auth: any;
 if (typeof window !== "undefined") {
-  setPersistence(auth, browserLocalPersistence).catch(console.error);
+    auth = !getApps().length || !getAuth(app)
+        ? initializeAuth(app, { persistence: browserLocalPersistence })
+        : getAuth(app);
+} else {
+    auth = getAuth(app);
 }
 
 // Initialize Firestore with default memory cache (prevents silent IndexedDB hangs on iOS PWA)
