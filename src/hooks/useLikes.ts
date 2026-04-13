@@ -7,6 +7,7 @@ interface LikedBy {
     userId: string;
     userName: string;
     userPhoto?: string;
+    emoji?: string;
 }
 
 export function useLikes(activityOwnerId: string, activityId: string) {
