@@ -27,14 +27,24 @@ export async function POST(req: Request) {
         const bucket = getStorage().bucket();
         const fileRef = bucket.file(fileName);
 
+        // Save the file
         await fileRef.save(buffer, {
             metadata: {
-                contentType: file.type,
+                contentType: file.type || "application/octet-stream",
             },
         });
 
-        await fileRef.makePublic();
-        const publicUrl = fileRef.publicUrl();
+        // Resilience: makePublic() fails on projects with Uniform Bucket-Level Access (UBLA)
+        try {
+            await fileRef.makePublic();
+        } catch (e) {
+            console.warn("[Upload] Could not set public ACL (UBLA may be enabled):", e);
+        }
+
+        // Construct a public URL. 
+        // For standard Firebase projects, the public URL format is:
+        // https://firebasestorage.googleapis.com/v0/b/<bucket>/o/<path>?alt=media
+        const publicUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(fileName)}?alt=media`;
 
         return NextResponse.json({ url: publicUrl });
 

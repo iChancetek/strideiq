@@ -12,6 +12,7 @@ const isDev = process.env.NODE_ENV === "development";
 
 const nextConfig: NextConfig = {
   /* config options here */
+  output: "standalone",
   // Silence Turbopack/Webpack conflict errors if they persist
   // @ts-ignore
   turbopack: {},
