@@ -4,9 +4,10 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/context/AuthContext";
 import { useSettings } from "@/context/SettingsContext";
 import { useState } from "react";
-import { storage } from "@/lib/firebase/config";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { db } from "@/lib/firebase/config";
+import { doc, updateDoc } from "firebase/firestore";
 import { updateProfile } from "firebase/auth";
+import { uploadFile } from "@/lib/storage";
 import { t, LANGUAGE_OPTIONS, isRTL, Language } from "@/lib/translations";
 
 export default function SettingsPage() {
@@ -30,14 +31,27 @@ export default function SettingsPage() {
         if (file.size > 2 * 1024 * 1024) { alert(t(lang, "photoTooLarge")); return; }
         setUploading(true);
         try {
-            const storageRef = ref(storage, `profile_photos/${user.uid}`);
-            await uploadBytes(storageRef, file);
-            const downloadURL = await getDownloadURL(storageRef);
-            await updateProfile(user, { photoURL: downloadURL });
+            const path = `${user.uid}`;
+            const { url, error, errorCode } = await uploadFile('profile_photos', path, file);
+            
+            if (error || !url) {
+                console.error("Storage Error:", errorCode, error);
+                alert(`${t(lang, "photoUploadFailed")} (${errorCode || 'Error'})`);
+                return;
+            }
+
+            await updateProfile(user, { photoURL: url });
+            
+            // Sync to Firestore
+            await updateDoc(doc(db, "users", user.uid), {
+                photoURL: url,
+                updatedAt: new Date().toISOString()
+            });
+
             alert(t(lang, "photoUpdated"));
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error uploading photo:", error);
-            alert(t(lang, "photoUploadFailed"));
+            alert(t(lang, "photoUploadFailed") + " " + (error?.message || ""));
         } finally {
             setUploading(false);
         }

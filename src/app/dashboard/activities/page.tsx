@@ -3,6 +3,7 @@
 import { useActivities, Activity } from "@/hooks/useActivities";
 import { useAuth } from "@/context/AuthContext";
 import ActivityFeedCard from "@/components/dashboard/ActivityFeedCard";
+import ActivityCharts from "@/components/dashboard/ActivityCharts";
 import Link from "next/link";
 import { useState, useMemo } from "react";
 import ManualActivityModal from "@/components/dashboard/ManualActivityModal";
@@ -14,15 +15,60 @@ export default function ActivitiesPage() {
     const { activities, loading } = useActivities();
     const [isManualModalOpen, setIsManualModalOpen] = useState(false);
     const [activePeriod, setActivePeriod] = useState<Period>("weekly");
+    const [activeYear, setActiveYear] = useState(new Date().getFullYear());
 
-    // Sort activities by date (newest first)
-    const sortedActivities = useMemo(() => {
-        return [...activities].sort((a, b) => b.date.getTime() - a.date.getTime());
-    }, [activities]);
+    const periods: { key: Period; label: string }[] = [
+        { key: "daily", label: "Daily" },
+        { key: "weekly", label: "Weekly" },
+        { key: "monthly", label: "Monthly" },
+        { key: "yearly", label: "Yearly" },
+    ];
+
+    // Filter activities based on the selected period and year
+    const filteredActivities = useMemo(() => {
+        const now = new Date();
+        const start = new Date();
+        start.setHours(0, 0, 0, 0);
+
+        if (activePeriod === "daily") {
+            // No changes needed, start is today 00:00
+        } else if (activePeriod === "weekly") {
+            // Start of week (Sunday)
+            const day = now.getDay();
+            start.setDate(now.getDate() - day);
+        } else if (activePeriod === "monthly") {
+            // Start of month
+            start.setDate(1);
+        } else if (activePeriod === "yearly") {
+            // Entire selected year
+            const startOfYear = new Date(activeYear, 0, 1);
+            const endOfYear = new Date(activeYear, 11, 31, 23, 59, 59);
+            return activities
+                .filter(a => a.date >= startOfYear && a.date <= endOfYear)
+                .sort((a, b) => b.date.getTime() - a.date.getTime());
+        }
+
+        return activities
+            .filter(a => a.date >= start)
+            .sort((a, b) => b.date.getTime() - a.date.getTime());
+    }, [activities, activePeriod, activeYear]);
 
     const stats = useMemo(() => {
-        return getStatsForPeriod(activities, activePeriod);
-    }, [activities, activePeriod]);
+        return {
+            count: filteredActivities.length,
+            distance: filteredActivities.reduce((sum, a) => sum + (Number(a.distance) || 0), 0),
+            duration: filteredActivities.reduce((sum, a) => sum + (Number(a.duration) || 0), 0),
+            calories: filteredActivities.reduce((sum, a) => sum + (Number(a.calories) || 0), 0),
+            steps: filteredActivities.reduce((sum, a) => sum + (Number(a.steps) || 0), 0),
+        };
+    }, [filteredActivities]);
+
+    const availableYears = useMemo(() => {
+        const years = new Set<number>();
+        years.add(new Date().getFullYear());
+        activities.forEach(a => years.add(a.date.getFullYear()));
+        return Array.from(years).sort((a, b) => b - a);
+    }, [activities]);
 
     if (loading) {
         return (
@@ -35,18 +81,10 @@ export default function ActivitiesPage() {
                     borderTopColor: "transparent",
                     animation: "spin 0.8s linear infinite",
                 }} />
-                <span style={{ color: "var(--foreground-muted)", fontSize: "14px" }}>Loading your feed...</span>
                 <style jsx>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
             </div>
         );
     }
-
-    const periods: { key: Period; label: string }[] = [
-        { key: "daily", label: "Daily" },
-        { key: "weekly", label: "Weekly" },
-        { key: "monthly", label: "Monthly" },
-        { key: "yearly", label: "Yearly" },
-    ];
 
     return (
         <div style={{ maxWidth: "640px", margin: "0 auto", paddingBottom: "40px" }}>
@@ -113,8 +151,27 @@ export default function ActivitiesPage() {
                 marginBottom: "24px",
             }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-                    <div style={{ fontSize: "13px", color: "var(--foreground-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>
-                        {activePeriod === "daily" ? "Today" : `This ${activePeriod.replace("ly", "")}`}
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                        <div style={{ fontSize: "13px", color: "var(--foreground-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>
+                            {activePeriod === "daily" ? "Today" : activePeriod === "yearly" ? `Year ${activeYear}` : `This ${activePeriod.replace("ly", "")}`}
+                        </div>
+                        {activePeriod === "yearly" && (
+                            <select 
+                                value={activeYear} 
+                                onChange={(e) => setActiveYear(Number(e.target.value))}
+                                style={{
+                                    background: "rgba(255,255,255,0.05)",
+                                    border: "1px solid rgba(255,255,255,0.1)",
+                                    borderRadius: "6px",
+                                    color: "var(--foreground)",
+                                    fontSize: "12px",
+                                    padding: "2px 8px",
+                                    outline: "none"
+                                }}
+                            >
+                                {availableYears.map(y => <option key={y} value={y}>{y}</option>)}
+                            </select>
+                        )}
                     </div>
                     <div style={{ display: "flex", background: "rgba(0,0,0,0.2)", padding: "4px", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.05)" }}>
                         {periods.map(p => (
@@ -139,63 +196,59 @@ export default function ActivitiesPage() {
                     </div>
                 </div>
 
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "10px" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "10px", marginBottom: "20px" }}>
                     <div>
-                        <div style={{ fontSize: "24px", fontWeight: 800 }}>{stats.count}</div>
-                        <div style={{ fontSize: "11px", color: "var(--foreground-muted)" }}>Activities</div>
+                        <div style={{ fontSize: "20px", fontWeight: 800 }}>{stats.count}</div>
+                        <div style={{ fontSize: "10px", color: "var(--foreground-muted)" }}>Activities</div>
                     </div>
                     <div>
-                        <div style={{ fontSize: "24px", fontWeight: 800, color: "var(--primary)" }}>{stats.distance.toFixed(1)}</div>
-                        <div style={{ fontSize: "11px", color: "var(--foreground-muted)" }}>Miles</div>
+                        <div style={{ fontSize: "20px", fontWeight: 800, color: "var(--primary)" }}>{stats.distance.toFixed(1)}</div>
+                        <div style={{ fontSize: "10px", color: "var(--foreground-muted)" }}>Miles</div>
                     </div>
                     <div>
-                        <div style={{ fontSize: "24px", fontWeight: 800 }}>{formatDuration(stats.duration)}</div>
-                        <div style={{ fontSize: "11px", color: "var(--foreground-muted)" }}>Time</div>
+                        <div style={{ fontSize: "20px", fontWeight: 800 }}>{formatDuration(stats.duration)}</div>
+                        <div style={{ fontSize: "10px", color: "var(--foreground-muted)" }}>Time</div>
                     </div>
                     <div>
-                        <div style={{ fontSize: "24px", fontWeight: 800 }}>{stats.calories.toLocaleString()}</div>
-                        <div style={{ fontSize: "11px", color: "var(--foreground-muted)" }}>Calories</div>
+                        <div style={{ fontSize: "20px", fontWeight: 800 }}>{stats.calories.toLocaleString()}</div>
+                        <div style={{ fontSize: "10px", color: "var(--foreground-muted)" }}>Calories</div>
+                    </div>
+                    <div>
+                        <div style={{ fontSize: "20px", fontWeight: 800 }}>{stats.steps.toLocaleString()}</div>
+                        <div style={{ fontSize: "10px", color: "var(--foreground-muted)" }}>Steps</div>
                     </div>
                 </div>
+
+                {/* Integration of Charts */}
+                <ActivityCharts activities={filteredActivities} period={activePeriod} activeYear={activeYear} />
             </div>
 
             {/* Feed */}
-            {sortedActivities.length === 0 ? (
-                <div className="glass-panel" style={{
-                    padding: "60px 20px",
-                    textAlign: "center",
-                    borderRadius: "var(--radius-lg, 16px)",
-                }}>
-                    <div style={{ fontSize: "48px", marginBottom: "16px" }}>🏃</div>
-                    <h3 style={{ fontSize: "20px", fontWeight: 700, marginBottom: "8px" }}>No activities yet</h3>
-                    <p style={{ color: "var(--foreground-muted)", fontSize: "14px", marginBottom: "20px" }}>
-                        Start your first activity and it&apos;ll appear here!
-                    </p>
-                    <Link
-                        href="/dashboard/run"
-                        className="btn-primary"
-                        style={{
-                            padding: "12px 28px",
-                            borderRadius: "var(--radius-full, 24px)",
-                            textDecoration: "none",
-                            fontSize: "14px",
-                            fontWeight: 600,
-                        }}
-                    >
-                        Start Activity
-                    </Link>
-                </div>
-            ) : (
-                sortedActivities.map((activity) => (
-                    <ActivityFeedCard
-                        key={activity.id}
-                        activity={activity}
-                        ownerName={user?.displayName || "Anonymous"}
-                        ownerPhoto={user?.photoURL || undefined}
-                        ownerId={user?.uid || ""}
-                    />
-                ))
-            )}
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                {filteredActivities.length === 0 ? (
+                    <div className="glass-panel" style={{
+                        padding: "60px 20px",
+                        textAlign: "center",
+                        borderRadius: "var(--radius-lg, 16px)",
+                    }}>
+                        <div style={{ fontSize: "48px", marginBottom: "16px" }}>🏃</div>
+                        <h3 style={{ fontSize: "20px", fontWeight: 700, marginBottom: "8px" }}>No activities for this period</h3>
+                        <p style={{ color: "var(--foreground-muted)", fontSize: "14px", marginBottom: "20px" }}>
+                            Try selecting a different period or log a new activity!
+                        </p>
+                    </div>
+                ) : (
+                    filteredActivities.map((activity) => (
+                        <ActivityFeedCard
+                            key={activity.id}
+                            activity={activity}
+                            ownerName={user?.displayName || "Anonymous"}
+                            ownerPhoto={user?.photoURL || undefined}
+                            ownerId={user?.uid || ""}
+                        />
+                    ))
+                )}
+            </div>
 
             <ManualActivityModal
                 isOpen={isManualModalOpen}
@@ -203,35 +256,6 @@ export default function ActivitiesPage() {
             />
         </div>
     );
-}
-
-function getStatsForPeriod(activities: Activity[], period: Period) {
-    const now = new Date();
-    const startTime = new Date();
-
-    switch (period) {
-        case "daily":
-            startTime.setHours(0, 0, 0, 0);
-            break;
-        case "weekly":
-            startTime.setDate(now.getDate() - 7);
-            break;
-        case "monthly":
-            startTime.setDate(now.getDate() - 30);
-            break;
-        case "yearly":
-            startTime.setDate(now.getDate() - 365);
-            break;
-    }
-
-    const filtered = activities.filter(a => a.date >= startTime);
-
-    return {
-        count: filtered.length,
-        distance: filtered.reduce((sum, a) => sum + (Number(a.distance) || 0), 0),
-        duration: filtered.reduce((sum, a) => sum + (Number(a.duration) || 0), 0),
-        calories: filtered.reduce((sum, a) => sum + (Number(a.calories) || 0), 0),
-    };
 }
 
 function formatDuration(totalSeconds: number): string {

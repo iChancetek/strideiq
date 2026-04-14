@@ -120,6 +120,12 @@ export default function ActivityFeedCard({ activity, ownerName, ownerPhoto, owne
                             <div style={{ fontSize: "18px", fontWeight: 700 }}>{activity.calories}</div>
                         </div>
                     )}
+                    {activity.steps !== undefined && activity.steps > 0 && (
+                        <div>
+                            <div style={{ fontSize: "11px", color: "var(--foreground-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>{t(lang, "steps")}</div>
+                            <div style={{ fontSize: "18px", fontWeight: 700 }}>{activity.steps.toLocaleString()}</div>
+                        </div>
+                    )}
                 </div>
             </div>
 
