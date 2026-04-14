@@ -29,6 +29,7 @@ type TranslationKeys = {
     meditation: string;
     fasting: string;
     journal: string;
+    trash: string;
 
     // Dashboard
     welcomeBack: string;
@@ -47,6 +48,15 @@ type TranslationKeys = {
     calories: string;
     sessionComplete: string;
     tooShort: string;
+
+    // Trash / Recovery
+    recentlyDeleted: string;
+    restore: string;
+    permanentDelete: string;
+    daysRemaining: string;
+    trashEmpty: string;
+    deleteForever: string;
+    recoveryWindow: string;
 
     // Activity types
     run: string;
@@ -204,6 +214,7 @@ const translations: Record<Language, TranslationKeys> = {
         meditation: "Meditation",
         fasting: "Fasting",
         journal: "Journal",
+        trash: "Trash",
 
         // Session Tracker
         startSession: "START",
@@ -238,6 +249,14 @@ const translations: Record<Language, TranslationKeys> = {
         calories: "Calories",
         sessionComplete: "Session Complete",
         tooShort: "Session too short to save.",
+
+        recentlyDeleted: "Recently Deleted",
+        restore: "Restore",
+        permanentDelete: "Permanent Delete",
+        daysRemaining: "days left",
+        trashEmpty: "Your trash is empty",
+        deleteForever: "Delete Forever",
+        recoveryWindow: "Items are kept for 30 days before permanent removal.",
         nameYourActivity: "Name your activity...",
         howDidItFeel: "How did it feel? Add a description...",
         addPhotosVideos: "Add Photos / Videos",
@@ -358,6 +377,7 @@ const translations: Record<Language, TranslationKeys> = {
         meditation: "Meditación",
         fasting: "Ayuno",
         journal: "Diario",
+        trash: "Papelera",
 
         // Session Tracker
         startSession: "INICIAR",
@@ -392,6 +412,14 @@ const translations: Record<Language, TranslationKeys> = {
         calories: "Calorías",
         sessionComplete: "Sesión Completa",
         tooShort: "Sesión muy corta para guardar.",
+
+        recentlyDeleted: "Eliminados Recientemente",
+        restore: "Restaurar",
+        permanentDelete: "Eliminar Permanentemente",
+        daysRemaining: "días restantes",
+        trashEmpty: "Tu papelera está vacía",
+        deleteForever: "Eliminar para siempre",
+        recoveryWindow: "Los artículos se conservan por 30 días.",
         nameYourActivity: "Nombra tu actividad...",
         howDidItFeel: "¿Cómo te sentiste? Agrega una descripción...",
         addPhotosVideos: "Agregar Fotos / Videos",
@@ -512,6 +540,7 @@ const translations: Record<Language, TranslationKeys> = {
         meditation: "Méditation",
         fasting: "Jeûne",
         journal: "Journal",
+        trash: "Corbeille",
 
         // Session Tracker
         startSession: "DÉMARRER",
@@ -546,6 +575,14 @@ const translations: Record<Language, TranslationKeys> = {
         calories: "Calories",
         sessionComplete: "Session Terminée",
         tooShort: "Session trop courte pour être enregistrée.",
+
+        recentlyDeleted: "Supprimés Récemment",
+        restore: "Restaurer",
+        permanentDelete: "Supprimer Définitivement",
+        daysRemaining: "jours restants",
+        trashEmpty: "Votre corbeille est vide",
+        deleteForever: "Supprimer pour toujours",
+        recoveryWindow: "Les éléments sont conservés pendant 30 jours.",
         nameYourActivity: "Nommez votre activité...",
         howDidItFeel: "Comment c'était ? Ajoutez une description...",
         addPhotosVideos: "Ajouter Photos / Vidéos",
@@ -666,6 +703,7 @@ const translations: Record<Language, TranslationKeys> = {
         meditation: "冥想",
         fasting: "断食",
         journal: "日记",
+        trash: "回收站",
 
         // Session Tracker
         startSession: "开始",
@@ -700,6 +738,14 @@ const translations: Record<Language, TranslationKeys> = {
         calories: "卡路里",
         sessionComplete: "运动完成",
         tooShort: "运动时间太短，无法保存。",
+
+        recentlyDeleted: "最近删除",
+        restore: "恢复",
+        permanentDelete: "彻底删除",
+        daysRemaining: "天剩余",
+        trashEmpty: "回收站是空的",
+        deleteForever: "永远删除",
+        recoveryWindow: "项目将保留 30 天。",
         nameYourActivity: "给活动命名...",
         howDidItFeel: "感觉如何？添加描述...",
         addPhotosVideos: "添加照片/视频",

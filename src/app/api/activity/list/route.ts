@@ -23,11 +23,13 @@ export async function GET(req: Request) {
             .get();
             
         // Sorting manually since firestore needs composite index if we combine where and orderBy
-        let activities = snapshot.docs.map((doc: QueryDocumentSnapshot) => ({
-            id: doc.id,
-            ...doc.data(),
-            date: doc.data().date?.toDate ? doc.data().date.toDate() : doc.data().date
-        }));
+        let activities = snapshot.docs
+            .map((doc: QueryDocumentSnapshot) => ({
+                id: doc.id,
+                ...doc.data(),
+                date: doc.data().date?.toDate ? doc.data().date.toDate() : doc.data().date
+            }))
+            .filter((a: any) => a.isDeleted !== true);
         
         activities.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         

@@ -20,17 +20,19 @@ export async function GET(req: Request) {
             .limit(50)
             .get();
 
-        const logs = snapshot.docs.map(doc => {
-            const data = doc.data();
-            return {
-                id: doc.id,
-                ...data,
-                // Ensure date string for frontend
-                endTime: data.endTime || (data.date?.toDate ? data.date.toDate().toISOString() : data.date),
-                startTime: data.startTime || "",
-                durationMinutes: data.duration || 0, // frontend expects durationMinutes
-            };
-        });
+        const logs = snapshot.docs
+            .map(doc => {
+                const data = doc.data();
+                return {
+                    id: doc.id,
+                    ...data,
+                    // Ensure date string for frontend
+                    endTime: data.endTime || (data.date?.toDate ? data.date.toDate().toISOString() : data.date),
+                    startTime: data.startTime || "",
+                    durationMinutes: data.duration || 0, // frontend expects durationMinutes
+                };
+            })
+            .filter((log: any) => log.isDeleted !== true);
 
         return NextResponse.json({ logs });
 

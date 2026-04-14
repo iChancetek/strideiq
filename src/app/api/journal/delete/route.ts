@@ -1,4 +1,5 @@
 import { adminDb } from "@/lib/firebase/admin";
+import { FieldValue } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
@@ -21,8 +22,11 @@ export async function DELETE(req: Request) {
             return NextResponse.json({ error: "Missing ID" }, { status: 400 });
         }
 
-        // Delete from top-level 'entries' collection
-        await adminDb.collection("entries").doc(id).delete();
+        // Soft-delete from top-level 'entries' collection
+        await adminDb.collection("entries").doc(id).update({
+            isDeleted: true,
+            deletedAt: FieldValue.serverTimestamp()
+        });
 
         return NextResponse.json({ success: true });
 

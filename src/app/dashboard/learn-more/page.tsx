@@ -66,6 +66,20 @@ const features = [
         description: "Log your thoughts and mood. AI agents help correlate your mental state with your physical output.",
         modules: "Daily Entry • AI Assistant • Insights"
     },
+    {
+        title: "Trash & Recovery",
+        emoji: "🗑️",
+        color: "var(--error)",
+        description: "Accidentally deleted something? Recover activities, journals, and fasting logs within a 30-day window.",
+        modules: "30-Day Window • Restore • Permanent Purge"
+    },
+    {
+        title: "Activity Analytics",
+        emoji: "📊",
+        color: "var(--primary)",
+        description: "Visualize your progress with interactive bar charts. Track distance and steps across varying timeframes.",
+        modules: "Bar Charts • Step Tracking • Comparative Data"
+    },
 ];
 
 export default function LearnMorePage() {

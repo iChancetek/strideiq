@@ -109,6 +109,7 @@ export default function Sidebar({ onLogout }: SidebarProps) {
                             { name: t(lang, "meditation"), href: "/dashboard/meditation", icon: "🧘" },
                             { name: t(lang, "fasting"), href: "/dashboard/fasting", icon: "⏳" },
                             { name: t(lang, "journal"), href: "/dashboard/journal", icon: "📓" },
+                            { name: t(lang, "trash"), href: "/dashboard/trash", icon: "🗑️" },
                             { name: t(lang, "settings"), href: "/dashboard/settings", icon: "⚙️" },
                             { name: t(lang, "guide"), href: "/dashboard/learn-more", icon: "📚" },
                         ].map((item) => {

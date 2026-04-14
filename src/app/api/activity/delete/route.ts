@@ -38,8 +38,11 @@ export async function DELETE(req: Request) {
             return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
 
-        // Delete the standardized entry document
-        await entryRef.delete();
+        // Perform soft-delete
+        await entryRef.update({ 
+            isDeleted: true, 
+            deletedAt: FieldValue.serverTimestamp() 
+        });
 
         // ────────────────────────────────────────────────────────────
         // Decrement aggregated stats (Maintenance)

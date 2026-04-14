@@ -45,6 +45,7 @@ export async function GET(req: Request) {
                 return { id: doc.id, ...data, createdAt, updatedAt: data.updatedAt || createdAt };
             })
             .filter((entry: any) => entry.type === "journal" || entry.type === "Reflection" || entry.type === "Journal" || (!entry.type && entry.content))
+            .filter((entry: any) => entry.isDeleted !== true)
             .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
         return NextResponse.json({ entries });
