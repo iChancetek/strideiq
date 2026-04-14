@@ -47,7 +47,8 @@ export default function ActivityDetailPage() {
     const [editDurationSec, setEditDurationSec] = useState("");
     const [editCalories, setEditCalories] = useState("");
     const [editNotes, setEditNotes] = useState("");
-    const [editType, setEditType] = useState<"Run" | "Walk" | "Bike" | "Hike" | "HIIT" | "Fasting" | "Meditation">("Run");
+    const [editType, setEditType] = useState<"Run" | "Walk" | "Bike" | "Hike" | "HIIT" | "Fasting" | "Meditation" | "Journal">("Run");
+
     const [editStartTime, setEditStartTime] = useState("");
     const [editEndTime, setEditEndTime] = useState("");
     const [editDate, setEditDate] = useState("");
@@ -179,10 +180,11 @@ export default function ActivityDetailPage() {
                 calories: parseInt(editCalories) || activity.calories,
                 notes: editNotes,
                 type: editType,
-                startTime: editStartTime ? new Date(editStartTime).toISOString() : undefined,
-                endTime: editEndTime ? new Date(editEndTime).toISOString() : undefined,
-                date: new Date(editDate).toISOString(),
-            });
+                startTime: editStartTime ? new Date(editStartTime) : undefined,
+                endTime: editEndTime ? new Date(editEndTime) : undefined,
+                date: new Date(editDate),
+            } as any); // Type cast as any since backend route will handle the conversion back to string/iso
+
             setEditing(false);
         } catch (e: any) {
             alert("Failed to save: " + (e.message || "Unknown error"));

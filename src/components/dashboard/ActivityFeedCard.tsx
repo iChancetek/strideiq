@@ -44,7 +44,8 @@ export default function ActivityFeedCard({ activity, ownerName, ownerPhoto, owne
                      activity.mode === "bike" ? "🚴" : 
                      activity.mode === "meditation" ? "🧘" : 
                      activity.mode === "fasting" ? "⏱️" : 
-                     activity.mode === "journal" ? "📓" : "⏱️";
+                     activity.mode === "Journal" ? "📓" : "⏱️";
+
     const activityTitle = activity.title || `${t(lang, activity.type.toLowerCase() as any) || activity.type} • ${activity.date.toLocaleDateString()}`;
     const timeAgo = getTimeAgo(activity.date, lang); // Pass lang
 
@@ -156,7 +157,8 @@ export default function ActivityFeedCard({ activity, ownerName, ownerPhoto, owne
             </div>
 
             {/* Metabolic Intelligence Row */}
-            {activity.type !== "journal" && (
+            {activity.type !== "Journal" && (
+
                 <div style={{ margin: "0 20px 20px" }}>
                     {activity.type === "Fasting" ? (
                         <div style={{ 
@@ -266,8 +268,8 @@ export default function ActivityFeedCard({ activity, ownerName, ownerPhoto, owne
             {(activity.notes || activity.content) && (
                 <div style={{ padding: "0 20px 12px" }}>
                     <p style={{ 
-                        fontSize: activity.type === "journal" ? "16px" : "14px", 
-                        color: activity.type === "journal" ? "var(--foreground)" : "var(--foreground-muted)", 
+                        fontSize: activity.type === "Journal" ? "16px" : "14px", 
+                        color: activity.type === "Journal" ? "var(--foreground)" : "var(--foreground-muted)", 
                         lineHeight: "1.6",
                         whiteSpace: "pre-wrap"
                     }}>

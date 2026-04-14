@@ -50,7 +50,8 @@ const AchievementBadge: React.FC<AchievementBadgeProps> = ({
     }}>
       {/* Shield SVG */}
       <div style={{ position: 'relative', width: '60px', height: '70px', marginBottom: '8px' }}>
-        <svg viewBox="0 0 100 120" style={{ width: '100%', height: '100%', dropShadow: '0 4px 10px rgba(0,0,0,0.5)' }}>
+        <svg viewBox="0 0 100 120" style={{ width: '100%', height: '100%', filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.5))' }}>
+
           <path 
             d="M50 0 L100 20 L100 80 L50 120 L0 80 L0 20 Z" 
             fill={badgeColor}

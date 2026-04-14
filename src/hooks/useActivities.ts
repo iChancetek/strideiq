@@ -6,14 +6,15 @@ import { useAuthState } from "react-firebase-hooks/auth";
 
 export interface Activity {
     id: string;
-    type: "Run" | "Walk" | "Bike" | "Hike" | "HIIT" | "Meditation" | "Fasting" | "journal";
+    type: "Run" | "Walk" | "Bike" | "Hike" | "HIIT" | "Meditation" | "Fasting" | "Journal";
     distance: number; // in miles
     duration: number; // in seconds
     pace: string;
     date: Date;
     calories?: number;
     notes?: string;
-    mode?: "run" | "walk" | "bike" | "hike" | "meditation" | "fasting" | "journal";
+    mode?: "run" | "walk" | "bike" | "hike" | "meditation" | "fasting" | "Journal";
+
     environment?: "outdoor" | "indoor";
     elevation?: number;
     mileSplits?: number[];
