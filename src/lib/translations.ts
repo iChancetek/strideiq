@@ -899,6 +899,7 @@ const translations: Record<Language, TranslationKeys> = {
         speed: "السرعة",
         steps: "الخطوات",
         calories: "السعرات",
+        sessionComplete: "اكتملت الجلسة",
         tooShort: "الجلسة قصيرة جدًا للحفظ.",
 
         recentlyDeleted: "المحذوفة مؤخراً",
