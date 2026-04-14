@@ -205,7 +205,7 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
         setIsSaving(true);
         try {
             const response = await authenticatedFetch("/api/journal/delete", {
-                method: "POST",
+                method: "DELETE",
                 body: JSON.stringify({ id: initialData.id })
             });
 

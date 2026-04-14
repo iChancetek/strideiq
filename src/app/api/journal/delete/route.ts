@@ -22,8 +22,20 @@ export async function DELETE(req: Request) {
             return NextResponse.json({ error: "Missing ID" }, { status: 400 });
         }
 
+        const docRef = adminDb.collection("entries").doc(id);
+        const docSnap = await docRef.get();
+
+        if (!docSnap.exists) {
+            return NextResponse.json({ error: "Entry not found" }, { status: 404 });
+        }
+
+        const entry = docSnap.data()!;
+        if (entry.userId !== userId) {
+            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
+
         // Soft-delete from top-level 'entries' collection
-        await adminDb.collection("entries").doc(id).update({
+        await docRef.update({
             isDeleted: true,
             deletedAt: FieldValue.serverTimestamp()
         });
