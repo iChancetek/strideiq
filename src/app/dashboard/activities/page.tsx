@@ -7,6 +7,7 @@ import ActivityCharts from "@/components/dashboard/ActivityCharts";
 import Link from "next/link";
 import { useState, useMemo } from "react";
 import ManualActivityModal from "@/components/dashboard/ManualActivityModal";
+import { formatDuration } from "@/lib/utils";
 
 type Period = "daily" | "weekly" | "monthly" | "yearly";
 
@@ -258,9 +259,4 @@ export default function ActivitiesPage() {
     );
 }
 
-function formatDuration(totalSeconds: number): string {
-    const h = Math.floor(totalSeconds / 3600);
-    const m = Math.floor((totalSeconds % 3600) / 60);
-    if (h > 0) return `${h}h ${m}m`;
-    return `${m}m`;
-}
+
