@@ -866,6 +866,7 @@ const translations: Record<Language, TranslationKeys> = {
         meditation: "تأمل",
         fasting: "صيام",
         journal: "مذكرات",
+        trash: "سلة المهملات",
 
         // Session Tracker
         startSession: "ابدا",
@@ -898,8 +899,15 @@ const translations: Record<Language, TranslationKeys> = {
         speed: "السرعة",
         steps: "الخطوات",
         calories: "السعرات",
-        sessionComplete: "اكتملت الجلسة",
         tooShort: "الجلسة قصيرة جدًا للحفظ.",
+
+        recentlyDeleted: "المحذوفة مؤخراً",
+        restore: "استعادة",
+        permanentDelete: "حذف نهائي",
+        daysRemaining: "أيام متبقية",
+        trashEmpty: "سلة المهملات فارغة",
+        deleteForever: "حذف للأبد",
+        recoveryWindow: "يتم الاحتفاظ بالعناصر لمدة 30 يومًا قبل الحذف النهائي.",
         nameYourActivity: "سم نشاطك...",
         howDidItFeel: "كيف كان شعورك؟ أضف وصفًا...",
         addPhotosVideos: "إضافة صور / فيديو",
