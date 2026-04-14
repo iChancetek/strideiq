@@ -107,10 +107,10 @@ export default function Dashboard() {
 
             {/* Stats Grid */}
             <div className="dash-stats-grid">
-                <StatCard title="Weekly Distance" value={stats.weeklyDistance.toFixed(1)} unit="mi" trend="neutral" />
-                <StatCard title="Weekly Steps" value={stats.weeklySteps.toLocaleString()} unit="steps" trend="neutral" />
-                <StatCard title="Active Calories" value={Math.round(stats.totalCalories).toLocaleString()} unit="kcal" trend="neutral" />
-                <StatCard title="Streak" value={stats.streak} unit="days" trend="up" trendLabel="Keep it up!" />
+                <StatCard title="Weekly Distance" value={stats.weeklyDistance.toFixed(1)} unit="mi" trend="neutral" href="/dashboard/activities" />
+                <StatCard title="Weekly Steps" value={stats.weeklySteps.toLocaleString()} unit="steps" trend="neutral" href="/dashboard/activities" />
+                <StatCard title="Active Calories" value={Math.round(stats.totalCalories).toLocaleString()} unit="kcal" trend="neutral" href="/dashboard/activities" />
+                <StatCard title="Streak" value={stats.streak} unit="days" trend="up" trendLabel="Keep it up!" href="/dashboard/achievements" />
             </div>
 
             <div className="dash-main-grid">
@@ -163,32 +163,73 @@ export default function Dashboard() {
                             <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                                 {activities.slice(0, 4).map(activity => {
                                     const isDistanceActivity = ["Run", "Walk", "Bike", "Hike"].includes(activity.type);
-                                    const icon = activity.type === "Fasting" ? "⏳" : activity.type === "Meditation" ? "🧘" : "🏃";
+                                    const icon = activity.type === "Fasting" ? "⏳" : 
+                                                 activity.type === "Meditation" ? "🧘" : 
+                                                 activity.type === "Journal" ? "📓" : "🏃";
+
                                     
                                     return (
-                                        <div key={activity.id} style={{
-                                            padding: "15px",
-                                            background: "rgba(255,255,255,0.03)",
-                                            borderRadius: "var(--radius-sm)",
-                                            display: "flex",
-                                            justifyContent: "space-between",
-                                            alignItems: "center",
-                                            border: "1px solid rgba(255,255,255,0.05)"
-                                        }}>
+                                        <div 
+                                            key={activity.id} 
+                                            onClick={() => {
+                                                if (isDistanceActivity) router.push(`/dashboard/activities/${activity.id}`);
+                                                else if (activity.type === "Fasting") router.push("/dashboard/fasting");
+                                                else if (activity.type === "Meditation") router.push("/dashboard/meditation");
+                                                else if (activity.type === "Journal") router.push("/dashboard/journal");
+                                            }}
+                                            style={{
+                                                padding: "15px",
+                                                background: "rgba(255,255,255,0.03)",
+                                                borderRadius: "var(--radius-sm)",
+                                                display: "flex",
+                                                justifyContent: "space-between",
+                                                alignItems: "center",
+                                                border: "1px solid rgba(255,255,255,0.05)",
+                                                cursor: "pointer",
+                                                transition: "all 0.2s ease"
+                                            }}
+                                            onMouseEnter={e => {
+                                                e.currentTarget.style.background = "rgba(255,255,255,0.06)";
+                                                e.currentTarget.style.transform = "translateX(4px)";
+                                            }}
+                                            onMouseLeave={e => {
+                                                e.currentTarget.style.background = "rgba(255,255,255,0.03)";
+                                                e.currentTarget.style.transform = "translateX(0)";
+                                            }}
+                                        >
+
                                             <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                                                 <div style={{ background: "rgba(255,255,255,0.1)", padding: "8px", borderRadius: "50%", width: "40px", height: "40px", display: "flex", alignItems: "center", justifyContent: "center" }}>{icon}</div>
                                                 <div>
                                                     <div style={{ fontWeight: 600, fontSize: "14px" }}>{activity.type}</div>
-                                                    <div style={{ fontSize: "12px", color: "var(--foreground-muted)" }}>{activity.date.toLocaleDateString()}</div>
+                                                    <div style={{ fontSize: "12px", color: "var(--foreground-muted)" }}>
+                                                        {activity.date instanceof Date && !isNaN(activity.date.getTime()) 
+                                                            ? activity.date.toLocaleDateString() 
+                                                            : "Recent"}
+                                                    </div>
+
                                                 </div>
                                             </div>
                                             <div style={{ textAlign: "right" }}>
                                                 <div style={{ fontWeight: 600, fontSize: "14px" }}>
-                                                    {isDistanceActivity ? `${activity.distance} mi` : activity.type === "Fasting" ? `${activity.goal || 16}h Goal` : `${Math.round(activity.duration / 60)} min`}
+                                                    {isDistanceActivity 
+                                                        ? `${activity.distance || 0} mi` 
+                                                        : activity.type === "Fasting" 
+                                                            ? `${activity.goal || 16}h Goal` 
+                                                            : activity.type === "Journal"
+                                                                ? "Entry"
+                                                                : `${Math.round((activity.duration || 0) / 60)} min`}
                                                 </div>
                                                 <div style={{ fontSize: "12px", color: "var(--foreground-muted)" }}>
-                                                    {isDistanceActivity ? `${activity.pace} /mi` : activity.type === "Fasting" ? "Fasting session" : "Mindset recovery"}
+                                                    {isDistanceActivity 
+                                                        ? `${activity.pace || "0:00"} /mi` 
+                                                        : activity.type === "Fasting" 
+                                                            ? "Fasting session" 
+                                                            : activity.type === "Journal"
+                                                                ? "Reflection"
+                                                                : "Mindset recovery"}
                                                 </div>
+
                                             </div>
                                         </div>
                                     );

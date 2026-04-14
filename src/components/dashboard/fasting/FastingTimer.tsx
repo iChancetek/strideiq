@@ -4,6 +4,11 @@ import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { uploadMediaFiles } from "@/lib/storage";
 import { getActiveSession, saveActiveSession, clearActiveSession } from "@/lib/utils/idb";
+import { getFastingStage, FASTING_STAGES } from "@/lib/utils/fastingStages";
+import { playIQVoice } from "@/lib/utils/audio";
+import { Settings, CheckCircle2, MoreHorizontal } from "lucide-react";
+
+
 
 const GOAL_OPTIONS = [
     { hours: 12, label: "12h", description: "Light" },
@@ -29,6 +34,15 @@ export default function FastingTimer() {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [analysis, setAnalysis] = useState<any>(null);
     const [analyzing, setAnalyzing] = useState(false);
+
+    // Deep Dive Intelligence
+    const [isDeepDiving, setIsDeepDiving] = useState(false);
+    const [deepDiveContent, setDeepDiveContent] = useState<string | null>(null);
+    const [showDeepDive, setShowDeepDive] = useState(false);
+    const [isMuted, setIsMuted] = useState(false);
+    const [showGoalAdjust, setShowGoalAdjust] = useState(false);
+
+
 
     // Sync with Firestore / IndexedDB
     useEffect(() => {
@@ -102,6 +116,76 @@ export default function FastingTimer() {
             document.removeEventListener("visibilitychange", handleVisibility);
         };
     }, [isFasting, startTime]);
+
+    const finishFasting = async () => {
+        setIsFasting(false);
+        setDeepDiveContent(null);
+        setShowDeepDive(false);
+        if (window.speechSynthesis) window.speechSynthesis.cancel();
+    };
+
+    const runDeepDive = async (stageName: string) => {
+        if (isDeepDiving) return;
+        setIsDeepDiving(true);
+        setShowDeepDive(true);
+        setDeepDiveContent(null);
+
+        try {
+            const prompt = `Provide an exhaustive scientific deep dive into the ${stageName} stage of fasting. Explain the metabolic shifts, Lipostasis, Autophagy triggers, and HGH regulation. Use detailed biological terms.`;
+            const response = await fetch("/api/ai/chancellor", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ message: prompt }),
+            });
+            const data = await response.json();
+            if (data.response) {
+                setDeepDiveContent(data.response);
+                if (!isMuted) {
+                    await playIQVoice(data.response, isMuted);
+                }
+            }
+        } catch (e) {
+            console.error("Deep Dive Error:", e);
+        } finally {
+            setIsDeepDiving(false);
+        }
+    };
+
+    const updateGoalMidFast = async (newHours: number) => {
+        setGoalHours(newHours);
+        if (!user) return;
+        
+        try {
+            const token = await user.getIdToken();
+            await fetch("/api/fasting/status", {
+                method: "POST",
+                headers: { 
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    action: "start", // "start" with existing session updates the goal in our backend
+                    goalHours: newHours
+                }),
+            });
+            
+            // Sync local IDB
+            const local = await getActiveSession('fasting');
+            if (local) {
+                await saveActiveSession({ ...local, goal: newHours });
+            }
+        } catch (e) {
+            console.error("Failed to sync goal update", e);
+        }
+    };
+
+    const toggleMute = () => {
+        setIsMuted(!isMuted);
+        if (typeof window !== "undefined" && window.speechSynthesis) {
+            window.speechSynthesis.cancel();
+        }
+    };
+
 
     const toggleFasting = async () => {
         if (authLoading || saving) return;
@@ -215,13 +299,10 @@ export default function FastingTimer() {
 
     // Phase label based on elapsed hours
     const elapsedHours = elapsed / 1000 / 3600;
-    const phase =
-        !isFasting ? "Not Started"
-            : elapsedHours < 4 ? "🔄 Digestion"
-                : elapsedHours < 8 ? "🏃 Fat Access"
-                    : elapsedHours < 12 ? "🔥 Fat Burning"
-                        : elapsedHours < 16 ? "💪 Ketosis Begins"
-                            : "⚡ Deep Ketosis";
+    const currentStage = getFastingStage(elapsedHours);
+    const nextStage = FASTING_STAGES.find(s => s.hours > elapsedHours);
+    const phase = !isFasting ? "Not Started" : currentStage.name;
+
 
     if (loading) {
         return (
@@ -267,15 +348,25 @@ export default function FastingTimer() {
                     <circle
                         cx="110" cy="110" r="96"
                         fill="none"
-                        stroke="var(--primary)"
+                        stroke={isFasting ? currentStage.color : "var(--primary)"}
                         strokeWidth="12"
                         strokeLinecap="round"
                         strokeDasharray={`${2 * Math.PI * 96}`}
                         strokeDashoffset={`${2 * Math.PI * 96 * (1 - progress / 100)}`}
                         transform="rotate(-90 110 110)"
-                        style={{ transition: "stroke-dashoffset 1s linear" }}
+                        style={{ transition: "stroke-all 1s ease" }}
                     />
+                    {/* Tick markers for stages */}
+                    {FASTING_STAGES.filter(s => s.hours > 0 && s.hours <= goalHours).map(s => {
+                        const angle = (s.hours / goalHours) * 360 - 90;
+                        const x = 110 + 96 * Math.cos((angle * Math.PI) / 180);
+                        const y = 110 + 96 * Math.sin((angle * Math.PI) / 180);
+                        return (
+                            <circle key={s.hours} cx={x} cy={y} r="3" fill="#fff" opacity="0.5" />
+                        );
+                    })}
                 </svg>
+
                 {/* Inner content */}
                 <div style={{
                     position: "absolute",
@@ -293,16 +384,100 @@ export default function FastingTimer() {
                         {isFasting ? formatTime(elapsed) : "0:00:00"}
                     </div>
                     {isFasting && (
-                        <div style={{ fontSize: "12px", color: "var(--primary)", fontWeight: 600 }}>
+                        <div style={{ fontSize: "12px", color: isFasting ? currentStage.color : "var(--primary)", fontWeight: 600 }}>
                             {progress.toFixed(1)}% of {goalHours}h
                         </div>
                     )}
                 </div>
             </div>
 
-            {/* Goal Hour Selector — only when not fasting */}
-            {!isFasting && (
-                <div style={{ width: "100%" }}>
+
+            {/* Physiological Intelligence Panel */}
+            {isFasting && (
+                <div style={{
+                    width: "100%",
+                    background: "rgba(255,255,255,0.03)",
+                    border: "1px solid rgba(255,255,255,0.05)",
+                    borderRadius: "20px",
+                    padding: "20px",
+                    animation: "slideUp 0.5s ease"
+                }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px" }}>
+                        <div style={{ width: "12px", height: "12px", borderRadius: "50%", background: currentStage.color, boxShadow: `0 0 10px ${currentStage.color}` }} />
+                        <h4 style={{ margin: 0, textTransform: "uppercase", letterSpacing: "1px", fontSize: "14px", color: currentStage.color }}>{currentStage.name}</h4>
+                    </div>
+                    <p style={{ fontSize: "14px", lineHeight: "1.6", color: "var(--foreground)", margin: "0 0 16px" }}>
+                        {currentStage.longDescription}
+                    </p>
+                    
+                    <button 
+                        onClick={() => runDeepDive(currentStage.name)}
+                        className="btn-ghost"
+                        disabled={isDeepDiving}
+                        style={{ 
+                            width: "100%", 
+                            justifyContent: "center", 
+                            fontSize: "12px", 
+                            padding: "10px", 
+                            marginBottom: "16px",
+                            border: "1px solid var(--primary-glow)",
+                            background: "rgba(204, 255, 0, 0.05)",
+                            opacity: isDeepDiving ? 0.7 : 1
+                        }}
+                    >
+                        {isDeepDiving ? "🧬 Retrieving Intelligence..." : "🔬 Deep Dive with IQ"}
+                    </button>
+
+                    {/* Integrated Deep Dive Content */}
+                    {showDeepDive && (
+                        <div style={{ 
+                            marginBottom: "20px", 
+                            padding: "16px", 
+                            background: "rgba(0,0,0,0.2)", 
+                            borderRadius: "14px",
+                            border: "1px solid rgba(255,255,255,0.05)",
+                            animation: "fadeIn 0.5s ease"
+                        }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+                                <span style={{ fontSize: "11px", color: "var(--primary)", fontWeight: 800, letterSpacing: "1px" }}>ELITE METABOLIC REPORT</span>
+                                <div style={{ display: "flex", gap: "10px" }}>
+                                    <button onClick={toggleMute} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "16px" }}>
+                                        {isMuted ? "🔇" : "🔊"}
+                                    </button>
+                                    <button onClick={() => setShowDeepDive(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--foreground-muted)" }}>
+                                        ✕
+                                    </button>
+                                </div>
+                            </div>
+                            {isDeepDiving ? (
+                                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                                    <div className="skeleton" style={{ height: "12px", width: "100%" }} />
+                                    <div className="skeleton" style={{ height: "12px", width: "90%" }} />
+                                    <div className="skeleton" style={{ height: "12px", width: "100%" }} />
+                                </div>
+                            ) : (
+                                <div style={{ fontSize: "13px", lineHeight: "1.7", color: "var(--foreground-muted)", whiteSpace: "pre-wrap" }}>
+                                    {deepDiveContent}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {nextStage && (
+
+
+                        <div style={{ borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: "12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <span style={{ fontSize: "12px", color: "var(--foreground-muted)" }}>NEXT STAGE: {nextStage.name}</span>
+                            <span style={{ fontSize: "12px", color: "var(--primary)" }}>in {Math.max(0, (nextStage.hours - elapsedHours)).toFixed(1)}h</span>
+                        </div>
+                    )}
+                </div>
+            )}
+
+
+            {/* Goal Selector */}
+            {(!isFasting || showGoalAdjust) && (
+                <div style={{ width: "100%", marginBottom: "30px", animation: "slideDown 0.3s ease" }}>
                     <div style={{
                         fontSize: "12px",
                         color: "var(--foreground-muted)",
@@ -311,7 +486,7 @@ export default function FastingTimer() {
                         textTransform: "uppercase",
                         letterSpacing: "1px",
                     }}>
-                        Choose Fasting Window
+                        {isFasting ? "Adjust Your Goal" : "Choose Fasting Window"}
                     </div>
                     <div style={{
                         display: "grid",
@@ -323,7 +498,14 @@ export default function FastingTimer() {
                             return (
                                 <button
                                     key={opt.hours}
-                                    onClick={() => setGoalHours(opt.hours)}
+                                    onClick={() => {
+                                        if (isFasting) {
+                                            updateGoalMidFast(opt.hours);
+                                            setShowGoalAdjust(false);
+                                        } else {
+                                            setGoalHours(opt.hours);
+                                        }
+                                    }}
                                     style={{
                                         display: "flex",
                                         flexDirection: "column",
@@ -353,6 +535,28 @@ export default function FastingTimer() {
                     </div>
                 </div>
             )}
+
+            {isFasting && !showGoalAdjust && (
+                <button 
+                    onClick={() => setShowGoalAdjust(true)}
+                    style={{ 
+                        margin: "-10px 0 20px", 
+                        background: "none", 
+                        border: "none", 
+                        color: "var(--foreground-muted)", 
+                        fontSize: "11px", 
+                        display: "flex", 
+                        alignItems: "center", 
+                        gap: "6px", 
+                        cursor: "pointer",
+                        opacity: 0.6
+                    }}
+                >
+                    <Settings size={12} />
+                    ADJUST GOAL ({goalHours}h)
+                </button>
+            )}
+
 
             {/* CTA Button */}
             <button

@@ -6,7 +6,8 @@ import { useSettings } from "@/context/SettingsContext";
 import {
   Sun, Moon, Zap, Mic2, CloudSun, Music2, Activity, Home as HomeIcon, ArrowRight, ChevronDown
 } from "lucide-react";
-import ChancellorAssistant from "@/components/ChancellorAssistant";
+import IQAssistant from "@/components/IQAssistant";
+
 
 type Agent = {
   icon: React.ReactNode;
@@ -22,19 +23,21 @@ const agents: Agent[] = [
     icon: <Activity size={28} />,
     color: "var(--primary)",
     glowColor: "var(--primary-glow)",
-    title: "Movement Intelligence",
+    title: "Metabolic Intelligence",
     description:
-      "Detects stop/start movement using GPS + accelerometer analysis. Auto-pauses when truly stopped, prevents false pauses on hills.",
+      "Real-time physiological tracking of Autophagy, Ketosis, and Fat Oxidation. Understand exactly what's happening to your body at every hour.",
     delay: "anim-fade-up-delay-1",
+
   },
   {
     icon: <Mic2 size={28} />,
     color: "var(--secondary)",
     glowColor: "var(--secondary-glow)",
-    title: "Adaptive Coaching",
+    title: "IQ Verbal Assistant",
     description:
-      "Voice announcements at every mile with split times, pace trends, and motivational encouragement that evolves based on your performance.",
+      "A hands-free conversational coach that talks back. Command 'IQ, start my fast' or 'Pause run' and get instant verbal confirmation.",
     delay: "anim-fade-up-delay-2",
+
   },
   {
     icon: <CloudSun size={28} />,
@@ -536,7 +539,8 @@ export default function Home() {
           Intelligent Movement. Agentic Performance.
         </p>
       </footer>
-      <ChancellorAssistant />
+      <IQAssistant />
+
     </main>
   );
 }

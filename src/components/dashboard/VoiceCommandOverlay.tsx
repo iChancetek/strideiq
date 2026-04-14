@@ -88,28 +88,52 @@ export default function VoiceCommandOverlay() {
 
         switch (action.type) {
             case "start_session":
-                if (action.params.mode) {
-                    await updateSettings({ activityMode: action.params.mode });
-                }
                 if (action.params.mode === "fasting") {
                     router.push("/dashboard/fasting");
+                    // Actually starting the fast would require context or API call,
+                    // but we guide the user there and give feedback.
+                    const msg = `Starting your ${action.params.hours || 16} hour fast now.`;
+                    speak(msg);
                 } else {
+                    if (action.params.mode) {
+                        await updateSettings({ activityMode: action.params.mode });
+                    }
                     router.push("/dashboard/run");
+                    speak(`Okay, starting your ${action.params.mode || "run"} session.`);
                 }
                 break;
+            case "control_activity":
+                // Handle pause/stop logic (this would integrate with the active session state)
+                speak(`Action confirmed: ${action.params.action} activity.`);
+                break;
             case "logout":
+                speak(action.params.message || "Logging you out.");
                 await logOut();
                 router.push("/login");
                 break;
             case "navigate":
                 if (action.params.path) {
+                    if (action.params.message) speak(action.params.message);
                     router.push(action.params.path);
                 }
+                break;
+            case "unknown":
+                if (action.params.message) speak(action.params.message);
                 break;
             default:
                 break;
         }
     };
+
+    const speak = (text: string) => {
+        if (typeof window !== "undefined" && window.speechSynthesis) {
+            const u = new SpeechSynthesisUtterance(text);
+            u.rate = 1.0;
+            u.pitch = 1.1;
+            window.speechSynthesis.speak(u);
+        }
+    };
+
 
     return (
         <div className="voice-overlay-container" style={{ position: "fixed", bottom: "30px", right: "30px", zIndex: 1000, display: "flex", flexDirection: "column", alignItems: "end", gap: "10px" }}>

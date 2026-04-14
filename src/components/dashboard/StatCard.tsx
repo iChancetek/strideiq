@@ -1,26 +1,39 @@
+import { useRouter } from "next/navigation";
+
 export default function StatCard({
     title,
     value,
     unit,
     trend,
-    trendLabel
+    trendLabel,
+    href
 }: {
     title: string;
     value: string | number;
     unit?: string;
     trend?: "up" | "down" | "neutral";
     trendLabel?: string;
+    href?: string;
 }) {
+    const router = useRouter();
     const trendColor = trend === "up" ? "var(--success)" : trend === "down" ? "var(--error)" : "var(--foreground-muted)";
 
     return (
-        <div className="glass-panel" style={{
-            padding: "24px",
-            borderRadius: "var(--radius-md)",
-            display: "flex",
-            flexDirection: "column",
-            gap: "8px"
-        }}>
+        <div 
+            className="glass-panel" 
+            onClick={() => href && router.push(href)}
+            style={{
+                padding: "24px",
+                borderRadius: "var(--radius-md)",
+                display: "flex",
+                flexDirection: "column",
+                gap: "8px",
+                cursor: href ? "pointer" : "default",
+                transition: "transform 0.2s, background 0.2s",
+            }}
+            onMouseEnter={(e) => href && (e.currentTarget.style.transform = "translateY(-4px)")}
+            onMouseLeave={(e) => href && (e.currentTarget.style.transform = "translateY(0)")}
+        >
             <h3 style={{ fontSize: "14px", color: "var(--foreground-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
                 {title}
             </h3>

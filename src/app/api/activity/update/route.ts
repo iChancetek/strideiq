@@ -12,6 +12,9 @@ const updateActivitySchema = z.object({
     calories: z.number().min(0).optional(),
     notes: z.string().optional(),
     type: z.enum(["Run", "Walk", "Bike", "Hike", "Treadmill", "HIIT", "Meditation", "Fasting"]).optional(),
+    startTime: z.string().optional(),
+    endTime: z.string().optional(),
+    date: z.string().optional(),
     media: z.array(z.object({
         type: z.enum(["image", "video"]),
         url: z.string(),
@@ -53,20 +56,31 @@ export async function PUT(req: Request) {
         const finalDuration = updates.duration ?? data.duration;
         let pace = data.pace;
 
-        if (finalDistance > 0 && (updates.distance !== undefined || updates.duration !== undefined)) {
+        // Only calculate pace for movement-based activities with positive distance
+        const movementTypes = ["Run", "Walk", "Bike", "Hike", "Treadmill", "HIIT"];
+        const currentType = updates.type || data.type;
+
+        if (movementTypes.includes(currentType) && finalDistance > 0 && (updates.distance !== undefined || updates.duration !== undefined)) {
             const paceSecTotal = finalDuration / finalDistance;
             const mins = Math.floor(paceSecTotal / 60);
             const secs = Math.floor(paceSecTotal % 60);
             pace = `${mins}:${secs.toString().padStart(2, "0")}`;
         }
 
-        await entryRef.update({
+        // Prepare final update object, removing any undefined values
+        const finalUpdates: any = {
             ...updates,
-            pace,
             updatedAt: new Date().toISOString()
-        });
+        };
+
+        if (pace !== undefined) {
+            finalUpdates.pace = pace;
+        }
+
+        await entryRef.update(finalUpdates);
 
         return NextResponse.json({ success: true });
+
     } catch (error: any) {
         console.error("Activity Update Error:", error);
         return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });

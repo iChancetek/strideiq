@@ -1,170 +1,152 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useAuth } from "@/context/AuthContext";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import AchievementBadge from "@/components/dashboard/AchievementBadge";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { authenticatedFetch } from "@/lib/api-client";
-
-// --- Badge Configuration ---
-const BADGE_CONFIG: Record<string, { label: string; emoji: string; color: string; description: string }> = {
-    "25_miles": { label: "25 Miles", emoji: "🥉", color: "#CCFF00", description: "Ran a total of 25 miles" },
-    "50_miles": { label: "50 Miles", emoji: "🥈", color: "#00E5FF", description: "Ran a total of 50 miles" },
-    "100_miles": { label: "100 Miles", emoji: "🥇", color: "#FF0055", description: "Ran a total of 100 miles" },
-    "250_miles": { label: "250 Miles", emoji: "🏆", color: "#CCFF00", description: "Ran a total of 250 miles" },
-    "500_miles": { label: "500 Miles", emoji: "🏆", color: "#00E5FF", description: "Ran a total of 500 miles" },
-    "1000_miles": { label: "1K Club", emoji: "👑", color: "#FF0055", description: "Ran a total of 1,000 miles" },
-};
+import { ChevronRight } from "lucide-react";
 
 export default function AchievementsPage() {
-    const { user } = useAuth();
-    const [userStats, setUserStats] = useState<any>(null);
+    const [data, setData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const router = useRouter();
 
     useEffect(() => {
-        if (user) {
-            const fetchStats = async () => {
-                try {
-                    const res = await authenticatedFetch("/api/user/stats");
-                    if (res.ok) {
-                        const data = await res.json();
-                        setUserStats(data);
-                    }
-                } catch (e) {
-                    console.error("Error fetching stats from Postgres:", e);
-                } finally {
-                    setLoading(false);
+        const fetchData = async () => {
+            try {
+                const res = await authenticatedFetch("/api/achievements");
+                if (res.ok) {
+                    const json = await res.json();
+                    setData(json);
                 }
-            };
-            fetchStats();
-        }
-    }, [user]);
+            } catch (e) {
+                console.error("Error fetching achievements:", e);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchData();
+    }, []);
 
-    const badges = userStats?.badges || [];
-    const earnedSet = new Set(badges.map((b: any) => b.id));
-    const records = userStats?.records || {};
+    if (loading) {
+        return (
+            <DashboardLayout>
+                <div style={{ padding: "40px", textAlign: "center", color: "var(--foreground-muted)" }}>
+                    Loading Achievements...
+                </div>
+            </DashboardLayout>
+        );
+    }
+
+    const { pbs, totals, streakCount, monthlyMiles } = data || {};
+
+    const formatTime = (seconds?: number) => {
+        if (!seconds) return "--:--";
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        const s = Math.floor(seconds % 60);
+        if (h > 0) return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        return `${m}:${s.toString().padStart(2, '0')}`;
+    };
 
     return (
         <DashboardLayout>
-            <header style={{ marginBottom: "30px" }}>
-                <h1 style={{ fontSize: "32px", marginBottom: "5px" }}>Achievements</h1>
-                <p style={{ color: "var(--foreground-muted)" }}>Your milestones, records, and earned badges.</p>
-            </header>
+            <div style={{ maxWidth: "800px", margin: "0 auto", paddingBottom: "60px" }}>
+                {/* Header */}
+                <header style={{ display: "flex", alignItems: "center", gap: "15px", marginBottom: "30px" }}>
+                    <button onClick={() => router.back()} style={{ background: "none", border: "none", color: "var(--foreground)", fontSize: "24px", cursor: "pointer" }}>←</button>
+                    <h1 style={{ fontSize: "24px", fontWeight: 900, textTransform: "uppercase", letterSpacing: "1px" }}>Achievements</h1>
+                </header>
 
-            {loading ? (
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: "20px" }}>
-                    <div className="glass-panel" style={{ padding: "40px", borderRadius: "var(--radius-lg)", minHeight: "300px" }} />
-                    <div className="glass-panel" style={{ padding: "40px", borderRadius: "var(--radius-lg)", minHeight: "300px" }} />
-                </div>
-            ) : (
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: "20px", alignItems: "start" }}>
+                {/* Levels Hook */}
+                <section style={{ marginBottom: "40px" }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                        {["Run", "Walk", "Bike", "Hike"].map(cat => {
+                            const miles = totals?.[cat] || 0;
+                            // Level logic (Nike style)
+                            let level = "Yellow";
+                            let variant: any = "yellow";
+                            if (miles > 3105) { level = "Purple"; variant = "purple"; }
+                            else if (miles > 1552) { level = "Blue"; variant = "blue"; }
+                            else if (miles > 621) { level = "Green"; variant = "green"; }
+                            else if (miles > 155) { level = "Orange"; variant = "orange"; }
 
-                    {/* Left Column: Personal Records */}
-                    <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-                        <section className="glass-panel" style={{ padding: "25px", borderRadius: "var(--radius-lg)" }}>
-                            <h3 style={{ margin: 0, marginBottom: "20px", fontSize: "14px", color: "var(--foreground-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                                Personal Records
-                            </h3>
-
-                            <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-                                {/* Fastest Mile */}
-                                <div>
-                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
-                                        <span style={{ fontSize: "12px", textTransform: "uppercase", letterSpacing: "1px", color: "var(--foreground-muted)" }}>Fastest Mile</span>
-                                        <span style={{ fontSize: "14px" }}>⏱️</span>
+                            return (
+                                <Link key={cat} href={`/dashboard/achievements/levels?type=${cat}`} style={{ 
+                                    textDecoration: "none", 
+                                    background: "rgba(255,255,255,0.03)", 
+                                    padding: "20px",
+                                    borderRadius: "16px",
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    alignItems: "center",
+                                    border: "1px solid rgba(255,255,255,0.05)"
+                                }}>
+                                    <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+                                        <div style={{ width: "40px", height: "45px" }}>
+                                            <AchievementBadge type="level" variant={variant} label="" count={cat === "Run" ? "RUN" : cat[0]} />
+                                        </div>
+                                        <div>
+                                          <div style={{ fontWeight: 800, fontSize: "18px" }}>{cat} Levels</div>
+                                          <div style={{ color: "var(--foreground-muted)", fontSize: "14px" }}>{miles.toFixed(2)} Total Miles</div>
+                                        </div>
                                     </div>
-                                    <div style={{ fontSize: "28px", fontWeight: 700, fontFamily: "var(--font-heading)" }}>
-                                        {records.fastestMile ? records.fastestMile.display : "--:--"}
-                                    </div>
-                                </div>
-
-                                {/* Longest Run */}
-                                <div>
-                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
-                                        <span style={{ fontSize: "12px", textTransform: "uppercase", letterSpacing: "1px", color: "var(--foreground-muted)" }}>Longest Run</span>
-                                        <span style={{ fontSize: "14px" }}>📏</span>
-                                    </div>
-                                    <div style={{ fontSize: "28px", fontWeight: 700, fontFamily: "var(--font-heading)" }}>
-                                        {records.longestRun ? records.longestRun.display : "0.0 mi"}
-                                    </div>
-                                </div>
-                            </div>
-                        </section>
-
-                        {/* Motivational Quote */}
-                        <div className="glass-panel" style={{
-                            padding: "25px",
-                            borderRadius: "var(--radius-lg)",
-                            textAlign: "center",
-                            background: "linear-gradient(135deg, rgba(204, 255, 0, 0.05), rgba(0, 0, 0, 0))"
-                        }}>
-                            <p style={{ fontSize: "16px", fontStyle: "italic", fontFamily: "var(--font-heading)", lineHeight: 1.4 }}>
-                                "Efficiency is the essence of survival."
-                            </p>
-                            <p style={{ fontSize: "11px", color: "var(--foreground-muted)", marginTop: "8px", textTransform: "uppercase", letterSpacing: "1px" }}>
-                                — Your AI Coach
-                            </p>
-                        </div>
+                                    <ChevronRight color="var(--foreground-muted)" />
+                                </Link>
+                            );
+                        })}
                     </div>
+                </section>
 
-                    {/* Right Column: Trophy Case */}
-                    <section className="glass-panel" style={{ padding: "25px", borderRadius: "var(--radius-lg)" }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-                            <h3 style={{ margin: 0, fontSize: "14px", color: "var(--foreground-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                                Trophy Case
-                            </h3>
-                            <span>🏆</span>
-                        </div>
+                {/* Personal Bests */}
+                <section style={{ marginBottom: "50px" }}>
+                    <h2 style={{ fontSize: "18px", fontWeight: 900, marginBottom: "20px", textTransform: "uppercase" }}>Personal Bests</h2>
+                    <div style={{ 
+                        display: "grid", 
+                        gridTemplateColumns: "repeat(auto-fill, minmax(110px, 1fr))", 
+                        gap: "20px" 
+                    }}>
+                        <AchievementBadge type="personal_best" variant={pbs?.fastest_1mi ? "volt" : "locked"} label="Fastest 1 Mi" sublabel={formatTime(pbs?.fastest_1mi?.duration)} count="1MI" locked={!pbs?.fastest_1mi} />
+                        <AchievementBadge type="personal_best" variant={pbs?.fastest_5k ? "volt" : "locked"} label="Fastest 5K" sublabel={formatTime(pbs?.fastest_5k?.duration)} count="5K" locked={!pbs?.fastest_5k} />
+                        <AchievementBadge type="personal_best" variant={pbs?.fastest_10k ? "volt" : "locked"} label="Fastest 10K" sublabel={formatTime(pbs?.fastest_10k?.duration)} count="10K" locked={!pbs?.fastest_10k} />
+                        <AchievementBadge type="personal_best" variant={pbs?.fastest_half_marathon ? "volt" : "locked"} label="Fastest Half" sublabel={formatTime(pbs?.fastest_half_marathon?.duration)} count="13.1" locked={!pbs?.fastest_half_marathon} />
+                        <AchievementBadge type="personal_best" variant={pbs?.fastest_marathon ? "volt" : "locked"} label="Fastest Full" sublabel={formatTime(pbs?.fastest_marathon?.duration)} count="26.2" locked={!pbs?.fastest_marathon} />
+                        <AchievementBadge type="personal_best" variant={pbs?.farthest_run > 0 ? "volt" : "locked"} label="Farthest Run" sublabel={`${pbs?.farthest_run?.toFixed(2)} mi`} count="MAX" locked={pbs?.farthest_run === 0} />
+                    </div>
+                </section>
 
-                        <div style={{
-                            display: "grid",
-                            gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
-                            gap: "15px"
-                        }}>
-                            {Object.entries(BADGE_CONFIG).map(([id, config]) => {
-                                const isEarned = earnedSet.has(id);
+                {/* Streaks */}
+                <section style={{ marginBottom: "50px" }}>
+                   <h2 style={{ fontSize: "18px", fontWeight: 900, marginBottom: "20px", textTransform: "uppercase" }}>Streaks</h2>
+                   <div style={{ 
+                        display: "grid", 
+                        gridTemplateColumns: "repeat(auto-fill, minmax(110px, 1fr))", 
+                        gap: "20px" 
+                    }}>
+                        <AchievementBadge type="streak" variant={streakCount >= 7 ? "volt" : "locked"} label="7 Day Streak" count="7" locked={streakCount < 7} />
+                        <AchievementBadge type="streak" variant={streakCount >= 30 ? "volt" : "locked"} label="30 Day Streak" count="30" locked={streakCount < 30} />
+                        <AchievementBadge type="streak" variant={streakCount >= 100 ? "volt" : "locked"} label="100 Day Streak" count="100" locked={streakCount < 100} />
+                        <AchievementBadge type="streak" variant={streakCount >= 365 ? "volt" : "locked"} label="1 Year Streak" count="365" locked={streakCount < 365} />
+                    </div>
+                </section>
 
-                                return (
-                                    <div
-                                        key={id}
-                                        style={{
-                                            padding: "20px 15px",
-                                            borderRadius: "var(--radius-md)",
-                                            background: isEarned ? "rgba(255,255,255,0.03)" : "transparent",
-                                            border: isEarned ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(255,255,255,0.05)",
-                                            display: "flex",
-                                            flexDirection: "column",
-                                            alignItems: "center",
-                                            textAlign: "center",
-                                            opacity: isEarned ? 1 : 0.3,
-                                            transition: "all 0.3s ease",
-                                            cursor: "default"
-                                        }}
-                                    >
-                                        <span style={{ fontSize: "28px", marginBottom: "10px" }}>
-                                            {isEarned ? config.emoji : "🔒"}
-                                        </span>
-                                        <div style={{
-                                            fontSize: "14px",
-                                            fontWeight: 600,
-                                            marginBottom: "4px",
-                                            color: isEarned ? "var(--foreground)" : "var(--foreground-muted)"
-                                        }}>
-                                            {config.label}
-                                        </div>
-                                        <div style={{
-                                            fontSize: "11px",
-                                            color: "var(--foreground-muted)",
-                                            lineHeight: 1.3
-                                        }}>
-                                            {config.description}
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </section>
-                </div>
-            )}
+                 {/* Monthly Miles */}
+                 <section>
+                    <h2 style={{ fontSize: "18px", fontWeight: 900, marginBottom: "20px", textTransform: "uppercase" }}>Monthly Milestones</h2>
+                    <div style={{ 
+                        display: "grid", 
+                        gridTemplateColumns: "repeat(auto-fill, minmax(110px, 1fr))", 
+                        gap: "20px" 
+                    }}>
+                        {/* Current month check for fun */}
+                        <AchievementBadge type="milestone" variant="bronze" label="Bronze Month" sublabel="15+ Miles" count="15" />
+                        <AchievementBadge type="milestone" variant="silver" label="Silver Month" sublabel="25+ Miles" count="25" />
+                        <AchievementBadge type="milestone" variant="gold" label="Gold Month" sublabel="50+ Miles" count="50" />
+                    </div>
+                </section>
+            </div>
         </DashboardLayout>
     );
 }

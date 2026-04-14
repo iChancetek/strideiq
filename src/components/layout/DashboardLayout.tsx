@@ -7,7 +7,10 @@ import Link from "next/link";
 import { useEffect, useRef } from "react";
 import { logOut } from "@/lib/firebase/auth";
 import VoiceCommandOverlay from "@/components/dashboard/VoiceCommandOverlay";
+import IQAssistant from "@/components/IQAssistant";
+
 import { ChevronLeft } from "lucide-react";
+
 import { useSettings } from "@/context/SettingsContext";
 import { t } from "@/lib/translations";
 
@@ -168,7 +171,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         {children}
         <VoiceCommandOverlay />
+        <IQAssistant />
       </main>
+
 
       <style jsx global>{`
         /* ── Mobile portrait layout (PWA-first) ───────────────────────────── */

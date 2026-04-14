@@ -8,11 +8,13 @@ interface Message {
     content: string;
 }
 
-export default function ChancellorAssistant() {
+export default function IQAssistant() {
+
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState<Message[]>([
-        { role: "assistant", content: "Hello! I'm Chancellor. How can I help you with StrideIQ Elite today?" }
+        { role: "assistant", content: "Hello! I'm IQ, your elite fitness intelligence. I can help you track metabolic stages, analyze your workouts, or execute voice commands. How can I assist your performance today?" }
     ]);
+
     const [inputValue, setInputValue] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [isRecording, setIsRecording] = useState(false);
@@ -27,6 +29,23 @@ export default function ChancellorAssistant() {
     useEffect(() => {
         scrollToBottom();
     }, [messages]);
+
+    // Handle Global Deep Dive Events
+    useEffect(() => {
+        const handleDeepDive = (e: any) => {
+            const { prompt, autoSend } = e.detail;
+            setIsOpen(true);
+            if (autoSend) {
+                handleSendMessage(prompt);
+            } else {
+                setInputValue(prompt);
+            }
+        };
+
+        window.addEventListener("strideiq:deep-dive", handleDeepDive);
+        return () => window.removeEventListener("strideiq:deep-dive", handleDeepDive);
+    }, [messages]);
+
 
     const handleSendMessage = async (text: string) => {
         if (!text.trim()) return;
@@ -130,9 +149,10 @@ export default function ChancellorAssistant() {
                                 <Bot size={18} color="#000" />
                             </div>
                             <div>
-                                <h4 style={{ margin: 0, fontSize: "16px", fontWeight: 600 }}>Chancellor</h4>
-                                <span style={{ fontSize: "10px", color: "var(--primary)", fontWeight: 600, letterSpacing: "1px" }}>ELITE AI</span>
+                                <h4 style={{ margin: 0, fontSize: "16px", fontWeight: 600 }}>IQ Assistant</h4>
+                                <span style={{ fontSize: "10px", color: "var(--primary)", fontWeight: 600, letterSpacing: "1px" }}>METABOLIC INTELLIGENCE</span>
                             </div>
+
                         </div>
                         <button onClick={() => setIsOpen(false)} style={{ background: "transparent", border: "none", color: "var(--foreground-muted)", cursor: "pointer" }}>
                             <X size={20} />
@@ -190,7 +210,8 @@ export default function ChancellorAssistant() {
                             value={inputValue}
                             onChange={(e) => setInputValue(e.target.value)}
                             onKeyDown={(e) => e.key === "Enter" && handleSendMessage(inputValue)}
-                            placeholder="Ask Chancellor..."
+                            placeholder="Ask IQ or use Voice..."
+
                             style={{ 
                                 flex: 1, 
                                 background: "rgba(255,255,255,0.05)", 

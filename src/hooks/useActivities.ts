@@ -6,14 +6,14 @@ import { useAuthState } from "react-firebase-hooks/auth";
 
 export interface Activity {
     id: string;
-    type: "Run" | "Walk" | "Bike" | "Hike" | "HIIT" | "Meditation" | "Fasting";
+    type: "Run" | "Walk" | "Bike" | "Hike" | "HIIT" | "Meditation" | "Fasting" | "journal";
     distance: number; // in miles
     duration: number; // in seconds
     pace: string;
     date: Date;
     calories?: number;
     notes?: string;
-    mode?: "run" | "walk" | "bike" | "hike" | "meditation" | "fasting";
+    mode?: "run" | "walk" | "bike" | "hike" | "meditation" | "fasting" | "journal";
     environment?: "outdoor" | "indoor";
     elevation?: number;
     mileSplits?: number[];
@@ -32,6 +32,8 @@ export interface Activity {
         analyzedAt: string;
     };
     fastingSessionId?: string;
+    startTime?: string;
+    endTime?: string;
     title?: string;
     isPublic?: boolean;
     path?: [number, number][];
@@ -44,6 +46,7 @@ export interface Activity {
     }[];
     likesCount?: number;
     goal?: number;
+    content?: string;
 }
 
 export function useActivities() {
@@ -70,13 +73,25 @@ export function useActivities() {
                 if (!res.ok) throw new Error("Failed to fetch");
                 const data = await res.json();
                 
-                const parsed = data.activities.map((a: any) => ({
-                    ...a,
-                    date: new Date(a.date)
-                }));
+                const parsed = data.activities.map((a: any) => {
+                    const toDate = (val: any) => {
+                        if (!val) return undefined;
+                        // Handle Firestore Timestamp objects (_seconds, _nanoseconds)
+                        if (val._seconds) return new Date(val._seconds * 1000);
+                        return new Date(val);
+                    };
+
+                    return {
+                        ...a,
+                        date: toDate(a.date) || new Date(),
+                        startTime: toDate(a.startTime),
+                        endTime: toDate(a.endTime),
+                    };
+                });
                 
                 setActivities(parsed);
                 setLoading(false);
+
             } catch (err) {
                 console.error("Error fetching activities:", err);
                 setError("Failed to load activities.");

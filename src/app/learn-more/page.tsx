@@ -60,15 +60,16 @@ export default function LearnMorePage() {
                     <FeatureCard icon="📈" title="Progress Analytics" desc="Visual insights into your training load, consistency, and performance trends." />
                 </Section>
 
-                {/* 3. Wellness & Recovery */}
+                {/* 3. Wellness & Metabolic IQ */}
                 <Section
-                    title="Wellness & Recovery"
-                    desc="Balance your effort with deep recovery tools managed by wellness agents."
+                    title="Wellness & Metabolic IQ"
+                    desc="Elite-tier physiological tracking powered by our metabolic intelligence engine."
                 >
-                    <FeatureCard icon="🧘" title="Meditation" desc="Guided sessions for Deep Focus, Sleep Aid, and Post-Run Recovery." />
-                    <FeatureCard icon="⏳" title="Fasting Tracker" desc="Seamless 16:8 and custom fasting timers with cloud synchronization." />
-                    <FeatureCard icon="📓" title="Cognitive Journal" desc="AI-assisted journaling with grammar fix, tone adjustment, and media support." />
+                    <FeatureCard icon="⏳" title="Fasting Stage Tracking" desc="Real-time tracking of Insulin levels, Ketosis, and Autophagy cycles as you fast." />
+                    <FeatureCard icon="🧬" title="Physiological Insights" desc="Understand what's happening to your body (cellular cleanup, HGH boost) at every hour." />
+                    <FeatureCard icon="🔥" title="Metabolic Analysis" desc="Automatic fat oxidation and cardiovascular stress estimation for all workouts." />
                 </Section>
+
 
                 {/* 4. Social Community */}
                 <Section
@@ -80,15 +81,16 @@ export default function LearnMorePage() {
                     <FeatureCard icon="💬" title="Social Feed" desc="Share photos/videos and comment on activities in real-time." />
                 </Section>
 
-                {/* 5. Multimodal Intelligence */}
+                {/* 5. IQ Voice Assistant */}
                 <Section
-                    title="Multimodal Intelligence"
-                    desc="GPT-5.2 powered perception for elite form and health analysis."
+                    title="IQ Voice Assistant"
+                    desc="Hands-free elite coaching with our conversational verbal assistant."
                 >
-                    <FeatureCard icon="👁️" title="Visual Form Analysis" desc="Upload workout videos for frame-by-frame posture and biomechanical feedback." />
-                    <FeatureCard icon="📸" title="Metabolic Logs" desc="AI recognizes food and supplements from photos to estimate caloric and macro load." />
-                    <FeatureCard icon="🧠" title="Context Awareness" desc="Agents perceive if you are training indoors or outdoors and adjust tracking modes." />
+                    <FeatureCard icon="🎙️" title="Verbal Feedback" desc="IQ talks back to you, confirming your commands and providing status updates out loud." />
+                    <FeatureCard icon="🤖" title="Intelligent Intents" desc="Command 'Start 18h fast' or 'Pause run' and stay focused on your performance." />
+                    <FeatureCard icon="🧠" title="Cognitive Control" desc="Open journals, search stats, or log hydration using only your voice." />
                 </Section>
+
 
                 {/* 6. Environmental Awareness */}
                 <Section

@@ -18,7 +18,6 @@ export async function GET(req: Request) {
 
         const snapshot = await adminDb.collection("entries")
             .where("userId", "==", userId)
-            .where("type", "!=", "journal") // Exclude journals from activity feed
             .limit(limitVal)
             .get();
             

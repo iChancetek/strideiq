@@ -8,6 +8,9 @@ import Link from "next/link";
 import CommentsSection from "./activity/CommentsSection"; // Keep original import
 import { useSettings } from "@/context/SettingsContext";
 import { t } from "@/lib/translations";
+import { getWorkoutMetabolicInsight } from "@/lib/utils/workoutIntelligence";
+import { getFastingStage } from "@/lib/utils/fastingStages";
+
 
 interface Props {
     activity: Activity;
@@ -40,7 +43,8 @@ export default function ActivityFeedCard({ activity, ownerName, ownerPhoto, owne
                      activity.mode === "hike" ? "🥾" : 
                      activity.mode === "bike" ? "🚴" : 
                      activity.mode === "meditation" ? "🧘" : 
-                     activity.mode === "fasting" ? "⏱️" : "⏱️";
+                     activity.mode === "fasting" ? "⏱️" : 
+                     activity.mode === "journal" ? "📓" : "⏱️";
     const activityTitle = activity.title || `${t(lang, activity.type.toLowerCase() as any) || activity.type} • ${activity.date.toLocaleDateString()}`;
     const timeAgo = getTimeAgo(activity.date, lang); // Pass lang
 
@@ -51,12 +55,20 @@ export default function ActivityFeedCard({ activity, ownerName, ownerPhoto, owne
             marginBottom: "20px",
         }}>
             {/* Header — User info */}
-            <div style={{
-                padding: "16px 20px",
-                display: "flex",
-                alignItems: "center",
-                gap: "12px",
-            }}>
+            <div 
+                onClick={() => {
+                    if (user?.uid === ownerId) {
+                        window.location.href = `/dashboard/activities/${activity.id}`;
+                    }
+                }}
+                style={{
+                    padding: "16px 20px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "12px",
+                    cursor: user?.uid === ownerId ? "pointer" : "default"
+                }}
+            >
                 <div style={{
                     width: "40px",
                     height: "40px",
@@ -76,7 +88,20 @@ export default function ActivityFeedCard({ activity, ownerName, ownerPhoto, owne
                     )}
                 </div>
                 <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 600, fontSize: "15px" }}>{ownerName}</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <div style={{ fontWeight: 600, fontSize: "15px" }}>{ownerName}</div>
+                        {user?.uid === ownerId && (
+                            <span style={{ 
+                                fontSize: "10px", 
+                                background: "rgba(204, 255, 0, 0.1)", 
+                                color: "var(--primary)", 
+                                padding: "2px 6px", 
+                                borderRadius: "4px",
+                                fontWeight: 800,
+                                textTransform: "uppercase"
+                            }}>Edit</span>
+                        )}
+                    </div>
                     <div style={{ fontSize: "12px", color: "var(--foreground-muted)", display: "flex", alignItems: "center", gap: "6px" }}>
                         <span>{timeAgo}</span>
                         <span>•</span>
@@ -87,6 +112,7 @@ export default function ActivityFeedCard({ activity, ownerName, ownerPhoto, owne
                     •••
                 </Link>
             </div>
+
 
             {/* Activity Title + Stats */}
             <div style={{ padding: "0 20px 12px" }}>
@@ -128,6 +154,57 @@ export default function ActivityFeedCard({ activity, ownerName, ownerPhoto, owne
                     )}
                 </div>
             </div>
+
+            {/* Metabolic Intelligence Row */}
+            {activity.type !== "journal" && (
+                <div style={{ margin: "0 20px 20px" }}>
+                    {activity.type === "Fasting" ? (
+                        <div style={{ 
+                            padding: "12px 16px", 
+                            background: "rgba(255,255,255,0.02)", 
+                            borderRadius: "14px", 
+                            border: "1px solid rgba(255,255,255,0.05)",
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: "8px"
+                        }}>
+                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                <span style={{ fontSize: "11px", color: "var(--foreground-muted)", textTransform: "uppercase" }}>STARTED</span>
+                                <span style={{ fontSize: "13px", fontWeight: 600 }}>{activity.startTime ? new Date(activity.startTime).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : activity.date.toLocaleString()}</span>
+                             </div>
+                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                <span style={{ fontSize: "11px", color: "var(--foreground-muted)", textTransform: "uppercase" }}>FINISHED</span>
+                                <span style={{ fontSize: "13px", fontWeight: 600 }}>{activity.endTime ? new Date(activity.endTime).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "Ongoing"}</span>
+                             </div>
+                        </div>
+                    ) : (
+                        (() => {
+                            const insight = getWorkoutMetabolicInsight(activity.type, activity.pace || "0:00", activity.duration);
+                            return (
+                                <div style={{ 
+                                    padding: "14px", 
+                                    background: `linear-gradient(135deg, ${insight.color}0a, ${insight.color}15)`, 
+                                    borderRadius: "14px", 
+                                    border: `1px solid ${insight.color}33`,
+                                    display: "flex",
+                                    gap: "12px",
+                                    alignItems: "center"
+                                }}>
+                                    <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: insight.color, boxShadow: `0 0 8px ${insight.color}` }} />
+                                    <div style={{ flex: 1 }}>
+                                        <div style={{ display: "flex", gap: "8px", alignItems: "baseline", marginBottom: "2px" }}>
+                                            <span style={{ fontSize: "12px", fontWeight: 800, color: insight.color, textTransform: "uppercase" }}>{insight.label}</span>
+                                            <span style={{ fontSize: "14px", fontWeight: 600 }}>{insight.value}</span>
+                                        </div>
+                                        <div style={{ fontSize: "12px", color: "var(--foreground-muted)", lineHeight: 1.4 }}>{insight.description}</div>
+                                    </div>
+                                </div>
+                            );
+                        })()
+                    )}
+                </div>
+            )}
+
 
             {/* AI Coaching Analysis */}
             {activity.aiAnalysis && (
@@ -185,11 +262,16 @@ export default function ActivityFeedCard({ activity, ownerName, ownerPhoto, owne
                 </div>
             )}
 
-            {/* Notes */}
-            {activity.notes && (
+            {/* Notes / Content */}
+            {(activity.notes || activity.content) && (
                 <div style={{ padding: "0 20px 12px" }}>
-                    <p style={{ fontSize: "14px", color: "var(--foreground-muted)", lineHeight: "1.5" }}>
-                        {activity.notes}
+                    <p style={{ 
+                        fontSize: activity.type === "journal" ? "16px" : "14px", 
+                        color: activity.type === "journal" ? "var(--foreground)" : "var(--foreground-muted)", 
+                        lineHeight: "1.6",
+                        whiteSpace: "pre-wrap"
+                    }}>
+                        {activity.content || activity.notes}
                     </p>
                 </div>
             )}

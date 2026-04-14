@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useNotifications } from "@/hooks/useNotifications";
@@ -20,6 +20,22 @@ export default function Sidebar({ onLogout }: SidebarProps) {
     const pathname = usePathname();
     const [isOpen, setIsOpen] = useState(false);
     const [isHovered, setIsHovered] = useState(false);
+    const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+    const handleMouseEnter = () => {
+        if (hoverTimeoutRef.current) {
+            clearTimeout(hoverTimeoutRef.current);
+            hoverTimeoutRef.current = null;
+        }
+        setIsHovered(true);
+    };
+
+    const handleMouseLeave = () => {
+        hoverTimeoutRef.current = setTimeout(() => {
+            setIsHovered(false);
+            hoverTimeoutRef.current = null;
+        }, 300); // 300ms delay to keep sidebar open if mouse slips
+    };
     const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
     useEffect(() => {
@@ -45,17 +61,18 @@ export default function Sidebar({ onLogout }: SidebarProps) {
             {/* Desktop Hover Trigger Zone (Invisible bar at far left) */}
             <div 
                 className="sidebar-trigger"
-                onMouseEnter={() => setIsHovered(true)}
+                onMouseEnter={handleMouseEnter}
                 style={{
                     position: "fixed",
                     top: 0,
                     left: 0,
                     bottom: 0,
-                    width: "20px",
-                    zIndex: 49, // Just below sidebar
+                    width: "30px", // Increased trigger width
+                    zIndex: 999, // Just below sidebar
                     display: "block"
                 }}
             />
+
 
             <button
                 className="mobile-toggle btn-primary"
@@ -67,8 +84,8 @@ export default function Sidebar({ onLogout }: SidebarProps) {
 
             <aside 
                 className={`glass-panel sidebar ${isOpen ? 'open' : ''} ${isHovered ? 'hovered' : ''}`}
-                onMouseEnter={() => setIsHovered(true)}
-                onMouseLeave={() => setIsHovered(false)}
+                onMouseEnter={handleMouseEnter}
+                onMouseLeave={handleMouseLeave}
                 style={{
                     width: "260px",
                     position: "fixed",
@@ -80,7 +97,7 @@ export default function Sidebar({ onLogout }: SidebarProps) {
                     display: "flex",
                     flexDirection: "column",
                     padding: "24px",
-                    zIndex: 50,
+                    zIndex: 1000,
                     transition: "transform 0.4s cubic-bezier(0.19, 1, 0.22, 1), box-shadow 0.4s ease",
                     overflow: "hidden"
                 }}

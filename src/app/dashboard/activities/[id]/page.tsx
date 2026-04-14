@@ -10,7 +10,11 @@ import dynamic from "next/dynamic";
 import { Share2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useSettings } from "@/context/SettingsContext";
 import CommentsSection from "@/components/dashboard/activity/CommentsSection";
+import "leaflet/dist/leaflet.css";
+
+
 
 const MapContainer = dynamic(() => import("react-leaflet").then(mod => mod.MapContainer), { ssr: false });
 const TileLayer = dynamic(() => import("react-leaflet").then(mod => mod.TileLayer), { ssr: false });
@@ -23,6 +27,8 @@ export default function ActivityDetailPage() {
     const router = useRouter();
     const { user } = useAuth();
     const { isAdmin } = useUserRole();
+    const { settings } = useSettings();
+
     const { activities, loading, updateActivity, deleteActivity } = useActivities();
     const [editing, setEditing] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -30,29 +36,59 @@ export default function ActivityDetailPage() {
     const [confirmDelete, setConfirmDelete] = useState(false);
     const [showShareModal, setShowShareModal] = useState(false);
     const [uploadingMedia, setUploadingMedia] = useState(false);
+    const [mounted, setMounted] = useState(false);
+
 
     // Edit form state
     const [editDistance, setEditDistance] = useState("");
+    const [editDurationHr, setEditDurationHr] = useState("");
     const [editDurationMin, setEditDurationMin] = useState("");
+
     const [editDurationSec, setEditDurationSec] = useState("");
     const [editCalories, setEditCalories] = useState("");
     const [editNotes, setEditNotes] = useState("");
     const [editType, setEditType] = useState<"Run" | "Walk" | "Bike" | "Hike" | "HIIT" | "Fasting" | "Meditation">("Run");
+    const [editStartTime, setEditStartTime] = useState("");
+    const [editEndTime, setEditEndTime] = useState("");
+    const [editDate, setEditDate] = useState("");
+
 
     const activity = activities.find(a => a.id === id);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
 
     // Populate edit fields when activity loads or edit mode is entered
     useEffect(() => {
         if (activity && editing) {
             setEditDistance(String(activity.distance));
             const durSec = activity.duration || 0;
-            setEditDurationMin(String(Math.floor(durSec / 60)));
+            setEditDurationHr(String(Math.floor(durSec / 3600)));
+            setEditDurationMin(String(Math.floor((durSec % 3600) / 60)));
             setEditDurationSec(String(Math.floor(durSec % 60)));
+
             setEditCalories(String(activity.calories || 0));
             setEditNotes(activity.notes || "");
             setEditType(activity.type);
+            
+            // Format for datetime-local input (YYYY-MM-DDTHH:MM)
+            const fmt = (d: any) => {
+                if (!d) return "";
+                const dateObj = new Date(d);
+                if (isNaN(dateObj.getTime())) return "";
+                return dateObj.toISOString().slice(0, 16);
+            };
+            setEditStartTime(fmt(activity.startTime || activity.date));
+            setEditEndTime(activity.endTime ? fmt(activity.endTime) : "");
+            
+            const mainDate = new Date(activity.date);
+            setEditDate(!isNaN(mainDate.getTime()) ? mainDate.toISOString().split('T')[0] : "");
+
         }
     }, [activity, editing]);
+
 
     const formatDuration = (totalSeconds: number) => {
         const h = Math.floor(totalSeconds / 3600);
@@ -127,13 +163,25 @@ export default function ActivityDetailPage() {
         if (!activity) return;
         setSaving(true);
         try {
-            const durationSeconds = (parseInt(editDurationMin) || 0) * 60 + (parseInt(editDurationSec) || 0);
+            let durationSeconds = (parseInt(editDurationHr) || 0) * 3600 + (parseInt(editDurationMin) || 0) * 60 + (parseInt(editDurationSec) || 0);
+            
+            // If timestamps were edited, recalculate duration
+
+            if (editStartTime && editEndTime) {
+                const start = new Date(editStartTime);
+                const end = new Date(editEndTime);
+                durationSeconds = Math.max(0, (end.getTime() - start.getTime()) / 1000);
+            }
+
             await updateActivity(activity.id, {
                 distance: parseFloat(editDistance) || activity.distance,
                 duration: durationSeconds,
                 calories: parseInt(editCalories) || activity.calories,
                 notes: editNotes,
                 type: editType,
+                startTime: editStartTime ? new Date(editStartTime).toISOString() : undefined,
+                endTime: editEndTime ? new Date(editEndTime).toISOString() : undefined,
+                date: new Date(editDate).toISOString(),
             });
             setEditing(false);
         } catch (e: any) {
@@ -142,6 +190,7 @@ export default function ActivityDetailPage() {
             setSaving(false);
         }
     };
+
 
     const handleDelete = async () => {
         if (!activity) return;
@@ -242,32 +291,33 @@ export default function ActivityDetailPage() {
                 </header>
 
                 {/* Map */}
-                <div className="glass-panel" style={{ height: "300px", borderRadius: "var(--radius-lg)", overflow: "hidden", position: "relative", marginBottom: "20px" }}>
-                    <MapContainer center={center} zoom={13} style={{ height: "100%", width: "100%" }}>
-                        <TileLayer
-                            url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-                            attribution='&copy; <a href="https://carto.com/">CARTO</a>'
-                        />
-                        {hasMapData ? (
-                            <>
-                                <Polyline positions={activity.path!} color="var(--primary)" weight={4} />
-                                <Marker position={activity.path![0]}>
-                                    <Popup>Start</Popup>
-                                </Marker>
-                                <Marker position={activity.path![activity.path!.length - 1]}>
-                                    <Popup>Finish</Popup>
-                                </Marker>
-                            </>
+                {(hasMapData && settings.showMap) && (
+                    <div className="glass-panel" style={{ height: "300px", borderRadius: "var(--radius-lg)", overflow: "hidden", position: "relative", marginBottom: "20px" }}>
+                        {mounted ? (
+                            <MapContainer center={center} zoom={13} style={{ height: "100%", width: "100%" }}>
+                                <TileLayer
+                                    url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                                    attribution='&copy; <a href="https://carto.com/">CARTO</a>'
+                                />
+                                <>
+                                    <Polyline positions={activity.path!} color="var(--primary)" weight={4} />
+                                    <Marker position={activity.path![0]}>
+                                        <Popup>Start</Popup>
+                                    </Marker>
+                                    <Marker position={activity.path![activity.path!.length - 1]}>
+                                        <Popup>Finish</Popup>
+                                    </Marker>
+                                </>
+                            </MapContainer>
                         ) : (
-                            <div style={{
-                                position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center",
-                                background: "rgba(0,0,0,0.5)", color: "white", zIndex: 1000
-                            }}>
-                                Map data not available for this activity.
+                            <div style={{ height: "100%", width: "100%", background: "rgba(0,0,0,0.1)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                <span style={{ fontSize: "12px", color: "var(--foreground-muted)" }}>Initializing Map...</span>
                             </div>
                         )}
-                    </MapContainer>
-                </div>
+                    </div>
+                )}
+
+
 
                 {/* Edit Mode */}
                 {editing ? (
@@ -283,7 +333,10 @@ export default function ActivityDetailPage() {
                                     <option value="Bike">Bike</option>
                                     <option value="Hike">Hike</option>
                                     <option value="HIIT">HIIT</option>
+                                    <option value="Fasting">Intermittent Fasting</option>
+                                    <option value="Meditation">Meditation</option>
                                 </select>
+
                             </div>
                             <div>
                                 <label style={{ display: "block", marginBottom: "6px", fontSize: "13px", color: "var(--foreground-muted)" }}>Distance (mi)</label>
@@ -291,20 +344,33 @@ export default function ActivityDetailPage() {
                             </div>
                         </div>
 
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "16px" }}>
+                            <div>
+                                <label style={{ display: "block", marginBottom: "6px", fontSize: "13px", color: "var(--foreground-muted)" }}>Start Date/Time</label>
+                                <input type="datetime-local" value={editStartTime} onChange={(e) => setEditStartTime(e.target.value)} style={inputStyle} />
+                            </div>
+                            <div>
+                                <label style={{ display: "block", marginBottom: "6px", fontSize: "13px", color: "var(--foreground-muted)" }}>End Date/Time</label>
+                                <input type="datetime-local" value={editEndTime} onChange={(e) => setEditEndTime(e.target.value)} style={inputStyle} />
+                            </div>
+                        </div>
+
                         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "16px", marginBottom: "16px" }}>
                             <div>
-                                <label style={{ display: "block", marginBottom: "6px", fontSize: "13px", color: "var(--foreground-muted)" }}>Duration (min)</label>
+                                <label style={{ display: "block", marginBottom: "6px", fontSize: "13px", color: "var(--foreground-muted)" }}>Hours</label>
+                                <input type="number" value={editDurationHr} onChange={(e) => setEditDurationHr(e.target.value)} style={inputStyle} placeholder="0" />
+                            </div>
+                            <div>
+                                <label style={{ display: "block", marginBottom: "6px", fontSize: "13px", color: "var(--foreground-muted)" }}>Minutes</label>
                                 <input type="number" value={editDurationMin} onChange={(e) => setEditDurationMin(e.target.value)} style={inputStyle} placeholder="0" />
                             </div>
                             <div>
-                                <label style={{ display: "block", marginBottom: "6px", fontSize: "13px", color: "var(--foreground-muted)" }}>Duration (sec)</label>
+                                <label style={{ display: "block", marginBottom: "6px", fontSize: "13px", color: "var(--foreground-muted)" }}>Seconds</label>
                                 <input type="number" value={editDurationSec} onChange={(e) => setEditDurationSec(e.target.value)} style={inputStyle} placeholder="0" />
                             </div>
-                            <div>
-                                <label style={{ display: "block", marginBottom: "6px", fontSize: "13px", color: "var(--foreground-muted)" }}>Calories</label>
-                                <input type="number" value={editCalories} onChange={(e) => setEditCalories(e.target.value)} style={inputStyle} />
-                            </div>
                         </div>
+
+
 
                         <div style={{ marginBottom: "20px" }}>
                             <label style={{ display: "block", marginBottom: "6px", fontSize: "13px", color: "var(--foreground-muted)" }}>Notes</label>
