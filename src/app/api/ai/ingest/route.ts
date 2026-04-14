@@ -2,13 +2,7 @@ import { NextResponse } from "next/server";
 import { Pinecone } from "@pinecone-database/pinecone";
 import OpenAI from "openai";
 
-const pc = new Pinecone({
-    apiKey: process.env.PINECONE_API_KEY || "placeholder",
-});
-
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-});
+export const dynamic = "force-dynamic";
 
 const INDEX_NAME = "strideiq-9hr81y6";
 
@@ -45,6 +39,14 @@ const PLATFORM_DATA = [
 
 export async function GET() {
     try {
+        const pc = new Pinecone({
+            apiKey: process.env.PINECONE_API_KEY || "placeholder",
+        });
+
+        const openai = new OpenAI({
+            apiKey: process.env.OPENAI_API_KEY,
+        });
+
         console.log(`[Ingest] Starting ingestion for index: ${INDEX_NAME}`);
         const index = pc.index(INDEX_NAME);
 

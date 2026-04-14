@@ -11,7 +11,8 @@ if (!admin.apps.length) {
         console.log(`[Firebase Admin] Initializing for project: ${projectId}`);
 
         if (!projectId) {
-            throw new Error("NEXT_PUBLIC_FIREBASE_PROJECT_ID is not set");
+            console.warn("[Firebase Admin] NEXT_PUBLIC_FIREBASE_PROJECT_ID is not set. Initialization skipped (expected during build).");
+            return;
         }
 
         if (key) {

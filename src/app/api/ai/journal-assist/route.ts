@@ -1,4 +1,5 @@
 import { OpenAI } from "openai";
+export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { getAuth } from "firebase-admin/auth";

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+export const dynamic = "force-dynamic";
 import OpenAI from "openai";
 import { PERSONAS, PersonaId } from "@/lib/ai/personas";
 
