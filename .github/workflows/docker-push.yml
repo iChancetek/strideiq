@@ -30,7 +30,7 @@ jobs:
           context: .
           push: true
           tags: |
-            iChanceTEK/strideiq:latest
-            iChanceTEK/strideiq:${{ github.sha }}
-          cache-from: type=registry,ref=iChanceTEK/strideiq:buildcache
-          cache-to: type=registry,ref=iChanceTEK/strideiq:buildcache,mode=max
+            docker.io/ichancetek/strideiq:latest
+            docker.io/ichancetek/strideiq:${{ github.sha }}
+          cache-from: type=registry,ref=docker.io/ichancetek/strideiq:buildcache
+          cache-to: type=registry,ref=docker.io/ichancetek/strideiq:buildcache,mode=max
