@@ -32,8 +32,8 @@ export default function ActivityFeedCard({ activity, ownerName, ownerPhoto, owne
 
     const EMOJIS = ["👍", "👍🏻", "👍🏼", "👍🏽", "👍🏾", "👍🏿"];
 
-    const handleSpeak = (e: React.MouseEvent) => {
-        e.stopPropagation();
+    const handleSpeak = (e?: React.MouseEvent) => {
+        if (e) e.stopPropagation();
         const text = `${ownerName} completed a ${activity.type}. ${activity.distance} units in ${formatDuration(activity.duration)}. Notes: ${activity.notes || "No notes provided."}`;
         speak(text);
     };
