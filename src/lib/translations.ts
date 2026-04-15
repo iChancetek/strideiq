@@ -195,6 +195,7 @@ type TranslationKeys = {
     confirmDelete: string;
     confirmDiscard: string;
     saveBeforeLeaving: string;
+    translate: string;
 
     // Landing Page
     heroTitle: string;
@@ -375,6 +376,7 @@ const translations: Record<Language, TranslationKeys> = {
         fixGrammar: "Fix Grammar",
         expand: "Expand",
         simplify: "Simplify",
+        translate: "Translate",
         positive: "Positive",
         addImage: "Add Image",
         aiRefining: "AI is refining your thoughts...",
@@ -562,6 +564,7 @@ const translations: Record<Language, TranslationKeys> = {
         fixGrammar: "Corregir Gramática",
         expand: "Expandir",
         simplify: "Simplificar",
+        translate: "Traducir",
         positive: "Positivo",
         addImage: "Sube Imagen",
         aiRefining: "La IA está refinando tus pensamientos...",
@@ -749,6 +752,7 @@ const translations: Record<Language, TranslationKeys> = {
         fixGrammar: "Corriger Grammaire",
         expand: "Développer",
         simplify: "Simplifier",
+        translate: "Traduire",
         positive: "Positif",
         addImage: "Ajouter Image",
         aiRefining: "L'IA affine vos pensées...",
@@ -936,6 +940,7 @@ const translations: Record<Language, TranslationKeys> = {
         fixGrammar: "修正语法",
         expand: "扩展",
         simplify: "简化",
+        translate: "翻译",
         positive: "积极",
         addImage: "添加图片",
         aiRefining: "AI正在优化你的想法...",
@@ -1123,6 +1128,7 @@ const translations: Record<Language, TranslationKeys> = {
         fixGrammar: "تصحيح القواعد",
         expand: "توسيع",
         simplify: "تبسيط",
+        translate: "ترجمة",
         positive: "إيجابي",
         addImage: "إضافة صورة",
         aiRefining: "الذكاء الاصطناعي يحسن أفكارك...",
