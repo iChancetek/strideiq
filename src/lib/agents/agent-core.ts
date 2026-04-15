@@ -28,7 +28,7 @@ export class AgentCore {
     private listeners: AgentEventListener[] = [];
     private mileSplits: MileSplit[] = [];
     private lastMileCompleted = 0;
-    private mileStartTime = 0;
+    private lastMileActiveTime = 0;
     private sessionStartTime = 0;
     private totalDistanceMiles = 0;
     private weather: WeatherData | null = null;
@@ -88,7 +88,7 @@ export class AgentCore {
      */
     async onSessionStart(lat: number, lng: number): Promise<void> {
         this.sessionStartTime = Date.now();
-        this.mileStartTime = Date.now();
+        this.lastMileActiveTime = 0;
         this.totalDistanceMiles = 0;
         this.mileSplits = [];
         this.lastMileCompleted = 0;
@@ -131,7 +131,10 @@ export class AgentCore {
         const currentMile = Math.floor(currentDistanceMiles);
         if (currentMile > this.lastMileCompleted && currentMile >= 1) {
             const now = Date.now();
-            const splitSeconds = (now - this.mileStartTime) / 1000;
+            const totalPaused = this.movementAgent.getTotalPausedSeconds();
+            const currentActiveTime = (now - this.sessionStartTime) / 1000 - totalPaused;
+            
+            const splitSeconds = currentActiveTime - this.lastMileActiveTime;
             const totalElapsed = (now - this.sessionStartTime) / 1000;
 
             const split: MileSplit = {
@@ -140,7 +143,7 @@ export class AgentCore {
                 totalElapsedSeconds: totalElapsed,
             };
             this.mileSplits.push(split);
-            this.mileStartTime = now;
+            this.lastMileActiveTime = currentActiveTime;
             this.lastMileCompleted = currentMile;
 
             const coachEvents = this.coachingAgent.onMileCompleted(

@@ -26,7 +26,7 @@ L.Icon.Default.mergeOptions({
 // ─── GPS Constants (Nike/Strava standard thresholds) ─────────────────────────
 const GPS_ACCURACY_THRESHOLD = 20;    // metres — reject readings worse than this
 const MIN_DISTANCE_THRESHOLD = 0.003; // km (~3 m) — ignore micro-jitter
-const MAX_SPEED_KMH = 72;            // ~45 mph — reject teleportation glitches
+const MAX_SPEED_KMH = 60;            // ~37 mph — reject teleportation glitches
 const SMOOTHING_FACTOR = 0.35;        // exponential moving average weight for new readings
 
 // ─── Step estimation constants (steps per MILE) ──────────────────────────────
@@ -762,7 +762,7 @@ export default function SessionTracker() {
                         </div>
                     )}
 
-                    <div style={{ position: "absolute", bottom: 30, left: "50%", transform: "translateX(-50%)", display: "flex", gap: "16px", alignItems: "center" }}>
+                    <div style={{ position: "absolute", bottom: 40, left: "50%", transform: "translateX(-50%)", display: "flex", gap: "16px", alignItems: "center", zIndex: 505 }}>
                         {!isTracking ? (
                             <button onClick={triggerCountdown} className="btn-primary" style={{ padding: "16px 48px", fontSize: "18px", borderRadius: "var(--radius-full)" }}>
                                 {t(lang, "startSession")} {t(lang, mode.toLowerCase() as any)?.toUpperCase() || mode.toUpperCase()}
@@ -919,7 +919,7 @@ export default function SessionTracker() {
             </MapContainer>
 
             {/* Controls */}
-            <div style={{ position: "absolute", bottom: 30, left: "50%", transform: "translateX(-50%)", zIndex: 400, display: "flex", gap: "16px", alignItems: "center" }}>
+            <div style={{ position: "absolute", bottom: 40, left: "50%", transform: "translateX(-50%)", zIndex: 505, display: "flex", gap: "16px", alignItems: "center" }}>
                 {!isTracking ? (
                     <button onClick={triggerCountdown} className="btn-primary" style={{ padding: "16px 48px", fontSize: "18px", borderRadius: "var(--radius-full)" }}>
                         {t(lang, "startSession")} {t(lang, mode.toLowerCase() as any)?.toUpperCase() || mode.toUpperCase()}

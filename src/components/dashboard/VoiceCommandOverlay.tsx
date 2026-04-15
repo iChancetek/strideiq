@@ -142,7 +142,7 @@ export default function VoiceCommandOverlay() {
 
 
     return (
-        <div className="voice-overlay-container" style={{ position: "fixed", bottom: "30px", right: "30px", zIndex: 1000, display: "flex", flexDirection: "column", alignItems: "end", gap: "10px" }}>
+        <div className="voice-overlay-container" style={{ position: "fixed", bottom: "30px", right: "30px", zIndex: 1100, display: "flex", flexDirection: "column", alignItems: "end", gap: "10px" }}>
 
             {/* Transcript Bubble */}
             {(transcript || isProcessing) && (
@@ -207,7 +207,9 @@ export default function VoiceCommandOverlay() {
                 @media (max-width: 768px) {
                     .voice-overlay-container {
                         bottom: 110px !important; 
-                        right: 20px !important;
+                        left: 20px !important;
+                        right: auto !important;
+                        align-items: start !important;
                     }
                 }
             `}</style>

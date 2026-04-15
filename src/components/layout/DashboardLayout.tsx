@@ -172,10 +172,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {children}
 
         {settings.showFloatingControls && (
-          <>
-            <VoiceCommandOverlay />
-            <IQAssistant />
-          </>
+          <div style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 1000 }}>
+            <div style={{ pointerEvents: "auto" }}>
+              <VoiceCommandOverlay />
+            </div>
+            <div style={{ pointerEvents: "auto" }}>
+              <IQAssistant />
+            </div>
+          </div>
         )}
       </main>
 
@@ -199,7 +203,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           .back-button-wrapper {
             position: sticky;
             top: 10px;
-            z-index: 40;
+            z-index: 600;
             margin-bottom: 16px;
           }
 

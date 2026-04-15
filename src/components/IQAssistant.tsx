@@ -125,7 +125,7 @@ export default function IQAssistant() {
     };
 
     return (
-        <div style={{ position: "fixed", bottom: "24px", right: "24px", zIndex: 1000, fontFamily: "inherit" }}>
+        <div style={{ position: "fixed", bottom: "100px", right: "20px", zIndex: 1000, fontFamily: "inherit" }}>
             {/* Chat Window */}
             {isOpen && (
                 <div className="glass-panel" style={{
