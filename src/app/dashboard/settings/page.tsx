@@ -306,12 +306,6 @@ export default function SettingsPage() {
                     </div>
                 </div>
 
-                    </div>
-                    <div style={{ fontSize: "12px", color: settings.privateProfile ? "var(--secondary)" : "var(--primary)", fontWeight: 600, marginTop: "8px" }}>
-                        {settings.privateProfile ? `🔒 ${t(lang, "manualApproval")}` : `🔓 ${t(lang, "automaticApproval")}`}
-                    </div>
-                </div>
-
                 {/* Dashboard Cleanup — NEW */}
                 <div className="glass-panel" style={{ padding: "20px", borderRadius: "16px", marginBottom: "20px" }}>
                     <h3 style={{ marginBottom: "15px", borderBottom: "1px solid rgba(255,255,255,0.1)", paddingBottom: "10px" }}>Dashboard Display</h3>
