@@ -110,6 +110,34 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
         }
     };
 
+    const handleAI = async (action: "grammar" | "expand" | "concise") => {
+        if (!content) return;
+        setIsProcessingAI(true);
+        try {
+            const promptMap = {
+                grammar: "Fix any grammar and spelling mistakes in the following journal entry. Keep the original tone.",
+                expand: "Expand on the following journal entry, making it more descriptive and detailed while preserving the user's intent.",
+                concise: "Make the following journal entry more concise and punchy without losing key information."
+            };
+            
+            const prompt = `${promptMap[action]}\n\n${content}`;
+            
+            const res = await fetch("/api/ai/chancellor", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ message: prompt })
+            });
+            const data = await res.json();
+            if (data.response) {
+                setContent(data.response);
+            }
+        } catch (e) {
+            console.error(`AI ${action} failed`, e);
+        } finally {
+            setIsProcessingAI(false);
+        }
+    };
+
     const handleSpeak = () => {
         speak(`${title}. ${content}`);
     };
