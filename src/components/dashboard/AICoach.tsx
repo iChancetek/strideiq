@@ -144,7 +144,7 @@ export default function AICoach() {
     const [input, setInput] = useState("");
     const {
         isPlaying,
-        speak: speakVoice,
+        speak,
         stopSpeaking,
         isRecording,
         isTranscribing,
@@ -163,7 +163,7 @@ export default function AICoach() {
     // Text-to-Speech wrapper
     const handleSpeak = (text: string) => {
         if (!voiceMode) return;
-        speakVoice(text);
+        speak(text);
     };
 
     const toggleListening = async () => {
