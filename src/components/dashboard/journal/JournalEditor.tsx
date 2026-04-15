@@ -8,6 +8,10 @@ import { useSettings } from "@/context/SettingsContext"; // Import settings
 import { t } from "@/lib/translations"; // Import translations
 import { saveLocalJournal, deleteLocalJournal } from "@/lib/utils/idb";
 import { authenticatedFetch } from "@/lib/api-client";
+import SpeechControls from "../SpeechControls";
+import { useVoice } from "@/hooks/useVoice";
+import { Volume2, Mic, Share2 } from "lucide-react";
+import ShareActivityModal from "../ShareActivityModal";
 
 interface JournalEditorProps {
     initialData?: {
@@ -27,12 +31,16 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
     const router = useRouter();
     const { settings } = useSettings(); // Get settings for language
     const lang = settings.language;
+    
+    // Voice
+    const { isRecording, isTranscribing, isPlaying, speak, stopSpeaking, startRecording, stopRecording } = useVoice();
 
     const [title, setTitle] = useState(initialData?.title || "");
     const [content, setContent] = useState(initialData?.content || "");
     const [isSaving, setIsSaving] = useState(false);
     const [isProcessingAI, setIsProcessingAI] = useState(false);
     const [uploading, setUploading] = useState(false);
+    const [showShareModal, setShowShareModal] = useState(false);
     const [mediaItems, setMediaItems] = useState<{ url: string, type: string }[]>(() => {
         const initial: { url: string, type: string }[] = [];
         if (Array.isArray(initialData?.imageUrls)) {
@@ -64,37 +72,16 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
         setIsDirty(isTitleChanged || isContentChanged || isMediaChanged);
     }, [title, content, mediaItems, initialData]);
 
-    const handleAI = async (command: string, tone?: string) => {
-        if (!content.trim()) return;
-        setIsProcessingAI(true);
-        try {
-            const res = await authenticatedFetch("/api/ai/journal-assist", {
-                method: "POST",
-                body: JSON.stringify({ text: content, command, tone })
-            });
-            const data = await res.json();
-            if (data.result && user) {
-                const newContent = data.result;
-                setContent(newContent);
-
-                const entryId = initialData?.id || crypto.randomUUID();
-                await saveLocalJournal({
-                    id: entryId,
-                    title: title || "",
-                    content: newContent,
-                    type: "journal",
-                    media: mediaItems.length > 0 ? mediaItems : [],
-                    userId: user.uid,
-                    updatedAt: new Date().toISOString(),
-                    synced: false
-                });
-            }
-        } catch (e) {
-            console.error(e);
-            alert(t(lang, "error")); // Localized alert
-        } finally {
-            setIsProcessingAI(false);
+    const handleTranscription = async (field: 'title' | 'content') => {
+        const text = await stopRecording();
+        if (text) {
+            if (field === 'title') setTitle(prev => prev + (prev ? " " : "") + text);
+            else setContent(prev => prev + (prev ? " " : "") + text);
         }
+    };
+
+    const handleSpeak = () => {
+        speak(`${title}. ${content}`);
     };
 
     const handleSaveWithImages = async (e?: React.MouseEvent) => {
@@ -255,22 +242,42 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
                 </button>
                 <div style={{ display: "flex", gap: "8px" }}>
                     {!isNew && (
-                        <button
-                            onClick={handleDelete}
-                            disabled={isSaving}
-                            style={{
-                                padding: "8px 16px",
-                                background: "rgba(239, 68, 68, 0.1)", // Red-500/10
-                                color: "#ef4444",
-                                border: "none",
-                                borderRadius: "6px",
-                                fontSize: "14px",
-                                fontWeight: 500,
-                                cursor: isSaving ? "not-allowed" : "pointer",
-                            }}
-                        >
-                            {t(lang, "delete")}
-                        </button>
+                        <>
+                            <button
+                                onClick={() => setShowShareModal(true)}
+                                style={{
+                                    padding: "8px 16px",
+                                    background: "rgba(255, 255, 255, 0.05)",
+                                    color: "var(--foreground)",
+                                    border: "1px solid rgba(255,255,255,0.1)",
+                                    borderRadius: "20px",
+                                    fontSize: "14px",
+                                    fontWeight: 500,
+                                    cursor: "pointer",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "6px"
+                                }}
+                            >
+                                <Share2 size={16} /> Share
+                            </button>
+                            <button
+                                onClick={handleDelete}
+                                disabled={isSaving}
+                                style={{
+                                    padding: "8px 16px",
+                                    background: "rgba(239, 68, 68, 0.1)", // Red-500/10
+                                    color: "#ef4444",
+                                    border: "none",
+                                    borderRadius: "6px",
+                                    fontSize: "14px",
+                                    fontWeight: 500,
+                                    cursor: isSaving ? "not-allowed" : "pointer",
+                                }}
+                            >
+                                {t(lang, "delete")}
+                            </button>
+                        </>
                     )}
                     <button
                         type="button"
@@ -309,22 +316,34 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
                 border: "1px solid rgba(255,255,255,0.05)",
                 backdropFilter: "blur(10px)",
             }}>
-                <input
-                    type="text"
-                    placeholder={t(lang, "journalTitlePlaceholder")}
-                    style={{
-                        background: "transparent",
-                        border: "none",
-                        fontSize: "24px",
-                        fontWeight: 700,
-                        marginBottom: "16px",
-                        color: "var(--foreground)",
-                        outline: "none",
-                        width: "100%",
-                    }}
-                    value={title}
-                    onChange={e => setTitle(e.target.value)}
-                />
+                <div style={{ position: "relative", marginBottom: "16px" }}>
+                    <input
+                        type="text"
+                        placeholder={t(lang, "journalTitlePlaceholder")}
+                        style={{
+                            background: "transparent",
+                            border: "none",
+                            fontSize: "24px",
+                            fontWeight: 700,
+                            paddingRight: "80px",
+                            color: "var(--foreground)",
+                            outline: "none",
+                            width: "100%",
+                        }}
+                        value={title}
+                        onChange={e => setTitle(e.target.value)}
+                    />
+                    <div style={{ position: "absolute", right: 0, top: "50%", transform: "translateY(-50%)" }}>
+                        <SpeechControls 
+                            onStartRecording={startRecording}
+                            onStopRecording={() => handleTranscription('title')}
+                            isRecording={isRecording}
+                            isTranscribing={isTranscribing}
+                            showSpeaker={false}
+                            size={16}
+                        />
+                    </div>
+                </div>
 
                 {/* AI & Media Toolbar */}
                 <div style={{
@@ -355,12 +374,17 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
                     }}>
                         ✂️ {t(lang, "simplify")}
                     </button>
-                    <button onClick={() => handleAI("tone", "positive")} disabled={isProcessingAI} style={{
-                        display: "flex", alignItems: "center", gap: "4px", fontSize: "12px", whiteSpace: "nowrap",
-                        padding: "6px 12px", borderRadius: "16px", background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.1)", color: "var(--foreground)", cursor: "pointer"
-                    }}>
-                        😊 {t(lang, "positive")}
-                    </button>
+
+                    <div style={{ height: "16px", width: "1px", background: "rgba(255,255,255,0.2)", margin: "0 8px" }} />
+
+                    <SpeechControls 
+                        onSpeak={handleSpeak}
+                        onStopSpeaking={stopSpeaking}
+                        isPlaying={isPlaying}
+                        showMic={false}
+                        size={14}
+                        label={isPlaying ? "Stop" : "Listen"}
+                    />
 
                     <div style={{ height: "16px", width: "1px", background: "rgba(255,255,255,0.2)", margin: "0 8px" }} />
 
@@ -392,24 +416,36 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
                     </label>
                 </div>
 
-                <textarea
-                    style={{
-                        flex: 1,
-                        background: "transparent",
-                        resize: "none",
-                        outline: "none",
-                        fontSize: "16px",
-                        lineHeight: "1.6",
-                        color: "var(--foreground)",
-                        border: "none",
-                        marginBottom: "16px",
-                        width: "100%",
-                        minHeight: "250px", // Ensure it doesn't collapse
-                    }}
-                    placeholder={t(lang, "journalContentPlaceholder")}
-                    value={content}
-                    onChange={e => setContent(e.target.value)}
-                />
+                <div style={{ position: "relative", flex: 1 }}>
+                    <textarea
+                        style={{
+                            width: "100%",
+                            height: "100%",
+                            background: "transparent",
+                            resize: "none",
+                            outline: "none",
+                            fontSize: "16px",
+                            lineHeight: "1.6",
+                            color: "var(--foreground)",
+                            border: "none",
+                            marginBottom: "16px",
+                            minHeight: "250px",
+                        }}
+                        placeholder={t(lang, "journalContentPlaceholder")}
+                        value={content}
+                        onChange={e => setContent(e.target.value)}
+                    />
+                    <div style={{ position: "absolute", bottom: "16px", right: "8px" }}>
+                        <SpeechControls 
+                            onStartRecording={startRecording}
+                            onStopRecording={() => handleTranscription('content')}
+                            isRecording={isRecording}
+                            isTranscribing={isTranscribing}
+                            showSpeaker={false}
+                            size={18}
+                        />
+                    </div>
+                </div>
 
                 {/* Media Grid */}
                 {mediaItems.length > 0 && (
@@ -495,6 +531,19 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
                         <span style={{ fontSize: "14px" }}>Enhancing entry with AI...</span>
                     </div>
                 </div>
+            )}
+
+            {showShareModal && (
+                <ShareActivityModal 
+                    isOpen={showShareModal}
+                    onClose={() => setShowShareModal(false)}
+                    activityData={{
+                        type: 'journal',
+                        title: title || "My Journal Entry",
+                        description: content || "Reflecting on my journey...",
+                        id: initialData?.id
+                    }}
+                />
             )}
         </div>
     );

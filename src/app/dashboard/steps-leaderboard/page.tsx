@@ -4,6 +4,9 @@ import { useState, useEffect } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "@/lib/firebase/config";
+import SpeechControls from "@/components/dashboard/SpeechControls";
+import { useVoice } from "@/hooks/useVoice";
+import { Volume2 } from "lucide-react";
 
 interface StepsEntry {
     userId: string;
@@ -19,6 +22,7 @@ export default function StepsLeaderboardPage() {
     const [tab, setTab] = useState<"global" | "friends">("global");
     const [entries, setEntries] = useState<StepsEntry[]>([]);
     const [loading, setLoading] = useState(true);
+    const { isPlaying, speak, stopSpeaking } = useVoice();
 
     useEffect(() => {
         fetchLeaderboard();
@@ -53,10 +57,33 @@ export default function StepsLeaderboardPage() {
         return steps.toLocaleString();
     };
 
+    const handleListen = () => {
+        if (entries.length === 0) {
+            speak("The steps leaderboard is currently empty.");
+            return;
+        }
+
+        const topThree = entries.slice(0, 3).map(e => `Rank ${e.rank}, ${e.displayName}, with ${e.totalSteps.toLocaleString()} steps`).join(". ");
+        const myEntry = user ? entries.find(e => e.userId === user.uid) : null;
+        const myStatus = myEntry ? `Your current personal ranking is number ${myEntry.rank} with ${myEntry.totalSteps.toLocaleString()} steps.` : "";
+        
+        speak(`Steps leaderboard challenge for ${new Date().toLocaleString("default", { month: "long" })}. The top step leaders are: ${topThree}. ${myStatus}`);
+    };
+
     return (
         <DashboardLayout>
             <div style={{ maxWidth: "800px", margin: "0 auto", padding: "20px" }}>
-                <header style={{ marginBottom: "30px", textAlign: "center" }}>
+                <header style={{ marginBottom: "30px", textAlign: "center", position: "relative" }}>
+                    <div style={{ position: "absolute", top: 0, right: 0 }}>
+                        <SpeechControls 
+                            onSpeak={handleListen}
+                            onStopSpeaking={stopSpeaking}
+                            isPlaying={isPlaying}
+                            showMic={false}
+                            size={16}
+                            label={isPlaying ? "Stop" : "Listen"}
+                        />
+                    </div>
                     <h1 style={{ fontSize: "32px", fontWeight: "bold", marginBottom: "10px" }}>
                         🥇 Steps <span className="text-gradient">Leaderboard</span>
                     </h1>

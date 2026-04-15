@@ -5,6 +5,8 @@ import { useActivities } from "@/hooks/useActivities";
 import { uploadMediaFiles } from "@/lib/storage";
 import { auth } from "@/lib/firebase/config";
 import { useAuthState } from "react-firebase-hooks/auth";
+import SpeechControls from "./SpeechControls";
+import { useVoice } from "@/hooks/useVoice";
 
 interface Props {
     isOpen: boolean;
@@ -28,6 +30,9 @@ export default function ManualActivityModal({ isOpen, onClose }: Props) {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [user] = useAuthState(auth);
 
+    // Voice
+    const { isRecording, isTranscribing, startRecording, stopRecording } = useVoice();
+
     const [calories, setCalories] = useState("0");
     const [steps, setSteps] = useState("0");
     const [elevation, setElevation] = useState("0");
@@ -45,6 +50,11 @@ export default function ManualActivityModal({ isOpen, onClose }: Props) {
         const paceM = Math.floor(paceSecPerMile / 60);
         const paceS = Math.floor(paceSecPerMile % 60);
         return `${paceM}'${paceS < 10 ? "0" : ""}${paceS}"/mi`;
+    };
+
+    const handleTranscription = async () => {
+        const text = await stopRecording();
+        if (text) setNotes(prev => prev + (prev ? " " : "") + text);
     };
 
     if (!isOpen) return null;
@@ -217,9 +227,19 @@ export default function ManualActivityModal({ isOpen, onClose }: Props) {
                         <label style={labelStyle}>Activity Title</label>
                         <input type="text" value={title} onChange={e => setTitle(e.target.value)} style={inputStyle} disabled={loading} placeholder="e.g. Morning Jog" />
                     </div>
-                    <div>
+                    <div style={{ position: "relative" }}>
                         <label style={labelStyle}>Notes</label>
-                        <textarea value={notes} onChange={e => setNotes(e.target.value)} style={{ ...inputStyle, minHeight: "80px", resize: "vertical" }} disabled={loading} placeholder="How did it feel?" />
+                        <textarea value={notes} onChange={e => setNotes(e.target.value)} style={{ ...inputStyle, minHeight: "100px", resize: "vertical", paddingRight: "50px" }} disabled={loading} placeholder="How did it feel?" />
+                        <div style={{ position: "absolute", bottom: "10px", right: "10px" }}>
+                            <SpeechControls 
+                                onStartRecording={startRecording}
+                                onStopRecording={handleTranscription}
+                                isRecording={isRecording}
+                                isTranscribing={isTranscribing}
+                                showSpeaker={false}
+                                size={14}
+                            />
+                        </div>
                     </div>
 
                     {/* Media Upload */}

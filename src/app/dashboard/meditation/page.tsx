@@ -4,7 +4,10 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useActivities } from "@/hooks/useActivities";
-import { Loader2, History, MessageSquare, Info, Trash2 } from "lucide-react";
+import { Loader2, History, Info, Trash2, Share2, Edit2 } from "lucide-react";
+import SpeechControls from "@/components/dashboard/SpeechControls";
+import ShareActivityModal from "@/components/dashboard/ShareActivityModal";
+import { useVoice } from "@/hooks/useVoice";
 import { getActiveSession, saveActiveSession, clearActiveSession } from "@/lib/utils/idb";
 
 const TRACKS = [
@@ -26,6 +29,14 @@ export default function MeditationPage() {
     const [showNotes, setShowNotes] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [loading, setLoading] = useState(true);
+
+    // Modal States
+    const [showPostSession, setShowPostSession] = useState(false);
+    const [selectedHistoryItem, setSelectedHistoryItem] = useState<any>(null);
+    const [showShareModal, setShowShareModal] = useState(false);
+
+    // Voice
+    const { isRecording, isTranscribing, isPlaying, speak, stopSpeaking, startRecording, stopRecording } = useVoice();
 
     // Audio State
     const [volume, setVolume] = useState(0.5);
@@ -133,26 +144,30 @@ export default function MeditationPage() {
         return () => clearInterval(interval);
     }, [isActive, startTime, durationMinutes]);
 
-    const saveActivityRecord = useCallback(async () => {
+    const saveActivityRecord = useCallback(async (customNotes?: string) => {
         if (!user) return;
         setIsSaving(true);
         try {
             const duration = durationMinutes * 60;
+            const finalNotes = customNotes || notes || `Meditated with ${selectedTrack.label} for ${durationMinutes} minutes.`;
+            
             await addActivity({
                 type: 'Meditation',
                 distance: 0,
                 duration,
                 calories: 0,
                 date: new Date(),
-                notes: notes || `Meditated with ${selectedTrack.label} for ${durationMinutes} minutes.`,
+                notes: finalNotes,
                 mode: 'meditation',
                 environment: 'indoor',
             });
             await clearActiveSession('meditation');
             setNotes("");
             setShowNotes(false);
+            setShowPostSession(false);
         } catch (e) {
             console.error("Failed to save meditation session", e);
+            alert("Failed to save session.");
         } finally {
             setIsSaving(false);
         }
@@ -166,10 +181,9 @@ export default function MeditationPage() {
                 audioRef.current.pause();
                 audioRef.current.currentTime = 0;
             }
-            saveActivityRecord();
-            alert("Session Complete. Namaste. 🙏");
+            setShowPostSession(true);
         }
-    }, [secondsLeft, isActive, saveActivityRecord]);
+    }, [secondsLeft, isActive]);
 
     const startSession = async () => {
         const startTs = Date.now();
@@ -419,7 +433,22 @@ export default function MeditationPage() {
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                         {activities.filter(a => a.type === "Meditation").slice(0, 10).map(m => (
-                            <div key={m.id} className="glass-panel" style={{ padding: "16px", borderRadius: "12px", display: "flex", justifyContent: "space-between", alignItems: "center", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)" }}>
+                            <div 
+                                key={m.id} 
+                                className="glass-panel" 
+                                onClick={() => setSelectedHistoryItem(m)}
+                                style={{ 
+                                    padding: "16px", 
+                                    borderRadius: "12px", 
+                                    display: "flex", 
+                                    justifyContent: "space-between", 
+                                    alignItems: "center", 
+                                    background: "rgba(255,255,255,0.02)", 
+                                    border: "1px solid rgba(255,255,255,0.05)",
+                                    cursor: "pointer",
+                                    transition: "background 0.2s",
+                                }}
+                            >
                                 <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                                     <div style={{
                                         width: "36px",
@@ -442,21 +471,44 @@ export default function MeditationPage() {
                                     <div style={{ color: "var(--primary)", fontWeight: 700 }}>
                                         {Math.round(m.duration / 60)} min
                                     </div>
-                                    <button 
-                                        onClick={() => {
-                                            if (confirm("Delete this meditation record?")) {
-                                                deleteActivity(m.id);
-                                            }
-                                        }}
-                                        style={{ background: "transparent", border: "none", color: "rgba(255,50,50,0.6)", cursor: "pointer", padding: "4px" }}
-                                    >
-                                        <Trash2 size={16} />
-                                    </button>
+                                    <Edit2 size={16} color="var(--foreground-muted)" />
                                 </div>
                             </div>
                         ))}
                     </div>
                 </section>
+
+                {/* Post Session Modal */}
+                {showPostSession && (
+                    <PostSessionReflection 
+                        duration={durationMinutes * 60}
+                        track={selectedTrack.label}
+                        onSave={saveActivityRecord}
+                        onDiscard={() => setShowPostSession(false)}
+                    />
+                )}
+
+                {/* History Detail Modal */}
+                {selectedHistoryItem && (
+                    <HistoryDetailModal 
+                        item={selectedHistoryItem}
+                        onClose={() => setSelectedHistoryItem(null)}
+                        onDelete={(id) => {
+                            if (confirm("Move to Trash? Recoverable for 30 days.")) {
+                                deleteActivity(id);
+                                setSelectedHistoryItem(null);
+                            }
+                        }}
+                    />
+                )}
+
+                {/* Share Modal */}
+                {showShareModal && (
+                    <ShareActivityModal 
+                        activity={selectedHistoryItem}
+                        onClose={() => setShowShareModal(false)}
+                    />
+                )}
             </div>
 
             <style jsx>{`
@@ -479,5 +531,183 @@ export default function MeditationPage() {
                 }
             `}</style>
         </DashboardLayout>
+    );
+}
+
+function PostSessionReflection({ duration, track, onSave, onDiscard }: { duration: number, track: string, onSave: (notes: string) => void, onDiscard: () => void }) {
+    const [notes, setNotes] = useState("");
+    const { isRecording, isTranscribing, startRecording, stopRecording } = useVoice();
+
+    const handleTranscription = async () => {
+        const text = await stopRecording();
+        if (text) setNotes(prev => prev + (prev ? " " : "") + text);
+    };
+
+    return (
+        <div style={{ position: "fixed", inset: 0, zIndex: 10000, background: "rgba(0,0,0,0.85)", backdropFilter: "blur(12px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}>
+            <div className="glass-panel" style={{ maxWidth: "500px", width: "100%", padding: "32px", borderRadius: "24px", textAlign: "center", background: "#111", border: "1px solid rgba(255,255,255,0.1)" }}>
+                <div style={{ fontSize: "48px", marginBottom: "16px" }}>🧘</div>
+                <h2 style={{ fontSize: "24px", fontWeight: 800, marginBottom: "8px" }}>Session Complete</h2>
+                <p style={{ color: "var(--foreground-muted)", marginBottom: "24px" }}>
+                    You meditated for {Math.round(duration / 60)} minutes with {track}. How do you feel?
+                </p>
+
+                <div style={{ position: "relative", marginBottom: "24px" }}>
+                    <textarea
+                        value={notes}
+                        onChange={e => setNotes(e.target.value)}
+                        placeholder="Reflect on your mindset... (Use the mic to dictate)"
+                        style={{ width: "100%", padding: "16px", borderRadius: "12px", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", resize: "none", outline: "none", minHeight: "120px", fontSize: "16px" }}
+                    />
+                    <div style={{ position: "absolute", bottom: "12px", right: "12px" }}>
+                        <SpeechControls 
+                            onStartRecording={startRecording}
+                            onStopRecording={handleTranscription}
+                            isRecording={isRecording}
+                            isTranscribing={isTranscribing}
+                            showSpeaker={false}
+                        />
+                    </div>
+                </div>
+
+                <div style={{ display: "flex", gap: "12px" }}>
+                    <button onClick={() => onSave(notes)} className="btn-primary" style={{ flex: 2, padding: "14px", borderRadius: "12px", justifyContent: "center" }}>
+                        Save Reflection
+                    </button>
+                    <button onClick={onDiscard} style={{ flex: 1, padding: "14px", background: "transparent", border: "1px solid rgba(255,255,255,0.1)", color: "var(--foreground-muted)", borderRadius: "12px", cursor: "pointer" }}>
+                        Discard
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function HistoryDetailModal({ item, onClose, onDelete }: { item: any, onClose: () => void, onDelete: (id: string) => void }) {
+    const { isPlaying, speak, stopSpeaking } = useVoice();
+    const { updateActivity } = useActivities();
+    
+    const [isEditing, setIsEditing] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+
+    // Form State
+    const [notes, setNotes] = useState(item.notes || "");
+    const [editDate, setEditDate] = useState(new Date(item.date).toISOString().split('T')[0]);
+    const [editMinutes, setEditMinutes] = useState(Math.round(item.duration / 60).toString());
+
+    const handleSpeak = () => {
+        speak(`Meditation session on ${new Date(item.date).toLocaleDateString()}. Duration: ${Math.round(item.duration / 60)} minutes. Notes: ${item.notes || "No notes."}`);
+    };
+
+    const handleSaveEdit = async () => {
+        setIsSaving(true);
+        try {
+            const m = parseInt(editMinutes) || 0;
+            const newDuration = m * 60;
+            const newDate = new Date(editDate);
+
+            await updateActivity(item.id, { 
+                notes,
+                duration: newDuration,
+                date: newDate
+            });
+            
+            // Local state update
+            item.notes = notes;
+            item.duration = newDuration;
+            item.date = newDate;
+            
+            setIsEditing(false);
+        } catch (e: any) {
+            alert("Update failed: " + e.message);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const inputStyle: React.CSSProperties = {
+        width: "100%",
+        padding: "10px",
+        borderRadius: "8px",
+        background: "rgba(0,0,0,0.3)",
+        border: "1px solid rgba(255,255,255,0.15)",
+        color: "#fff",
+        fontSize: "14px",
+        outline: "none"
+    };
+
+    return (
+        <div style={{ position: "fixed", inset: 0, zIndex: 10000, background: "rgba(0,0,0,0.85)", backdropFilter: "blur(12px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}>
+            <div className="glass-panel" style={{ maxWidth: "500px", width: "100%", padding: "32px", borderRadius: "24px", background: "#111", border: "1px solid rgba(255,255,255,0.1)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "24px" }}>
+                    <div>
+                        <div style={{ fontSize: "12px", color: "var(--primary)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", marginBottom: "4px" }}>Session Details</div>
+                        <h2 style={{ fontSize: "24px", fontWeight: 800 }}>
+                            {isEditing ? "Edit Session" : new Date(item.date).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
+                        </h2>
+                    </div>
+                    <button onClick={onClose} style={{ background: "transparent", border: "none", color: "#fff", fontSize: "24px", cursor: "pointer" }}>&times;</button>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: isEditing ? "1fr" : "1fr 1fr", gap: "16px", marginBottom: "24px" }}>
+                    {isEditing ? (
+                        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                            <div>
+                                <label style={{ display: "block", fontSize: "11px", color: "var(--foreground-muted)", marginBottom: "6px" }}>SESSION DATE</label>
+                                <input type="date" value={editDate} onChange={e => setEditDate(e.target.value)} style={inputStyle} />
+                            </div>
+                            <div>
+                                <label style={{ display: "block", fontSize: "11px", color: "var(--foreground-muted)", marginBottom: "6px" }}>DURATION (MINUTES)</label>
+                                <input type="number" value={editMinutes} onChange={e => setEditMinutes(e.target.value)} style={inputStyle} />
+                            </div>
+                        </div>
+                    ) : (
+                        <>
+                            <div style={{ padding: "16px", background: "rgba(255,255,255,0.03)", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.05)" }}>
+                                <div style={{ fontSize: "11px", color: "var(--foreground-muted)", marginBottom: "4px" }}>DURATION</div>
+                                <div style={{ fontSize: "20px", fontWeight: 700, color: "var(--primary)" }}>{Math.round(item.duration / 60)} min</div>
+                            </div>
+                            <div style={{ padding: "16px", background: "rgba(255,255,255,0.03)", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.05)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                <SpeechControls 
+                                    onSpeak={handleSpeak}
+                                    onStopSpeaking={stopSpeaking}
+                                    isPlaying={isPlaying}
+                                    showMic={false}
+                                />
+                            </div>
+                        </>
+                    )}
+                </div>
+
+                <div style={{ marginBottom: "32px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                        <div style={{ fontSize: "12px", color: "var(--foreground-muted)", fontWeight: 600 }}>REFLECTION NOTES</div>
+                        <button onClick={() => setIsEditing(!isEditing)} style={{ background: "transparent", border: "none", color: "var(--primary)", fontSize: "12px", cursor: "pointer" }}>
+                            {isEditing ? "Cancel" : "Edit"}
+                        </button>
+                    </div>
+                    {isEditing ? (
+                        <textarea 
+                            value={notes} 
+                            onChange={e => setNotes(e.target.value)}
+                            style={{ ...inputStyle, minHeight: "100px", resize: "none" }}
+                            placeholder="Reflect on your mindset..."
+                        />
+                    ) : (
+                        <p style={{ color: "#fff", lineHeight: 1.6, fontSize: "15px" }}>{item.notes || "No notes."}</p>
+                    )}
+                    {isEditing && (
+                        <button onClick={handleSaveEdit} disabled={isSaving} className="btn-primary" style={{ marginTop: "16px", width: "100%", padding: "12px", borderRadius: "12px", justifyContent: "center", opacity: isSaving ? 0.6 : 1 }}>
+                            {isSaving ? "Saving..." : "Save Updates"}
+                        </button>
+                    )}
+                </div>
+
+                <div style={{ display: "flex", gap: "12px" }}>
+                    <button onClick={() => onDelete(item.id)} style={{ flex: 1, padding: "12px", background: "rgba(255,50,50,0.1)", border: "1px solid rgba(255,50,50,0.3)", color: "#ff4444", borderRadius: "12px", cursor: "pointer", fontWeight: 600 }}>Delete</button>
+                    <button className="btn-primary" style={{ flex: 2, padding: "12px", borderRadius: "12px", justifyContent: "center" }}><Share2 size={18} style={{marginRight: "8px"}} /> Share Session</button>
+                </div>
+            </div>
+        </div>
     );
 }

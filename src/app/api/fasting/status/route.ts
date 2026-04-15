@@ -66,7 +66,7 @@ export async function POST(req: Request) {
                     type: "Fasting",
                     startTime: doc.data().startTime,
                     endTime: new Date().toISOString(),
-                    duration: Math.floor(durationSeconds / 60), // standardizing to minutes
+                    duration: durationSeconds, // standardizing to seconds
                     date: new Date(), // standardized timestamp for timeline
                     goal: doc.data().goal || 16,
                     notes: notes || "Fasting Session",

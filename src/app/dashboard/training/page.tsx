@@ -6,7 +6,9 @@ import TrainingWizard from "@/components/dashboard/TrainingWizard";
 import { TrainingPlan, Workout } from "@/lib/types/training";
 import { useAuth } from "@/context/AuthContext";
 import { authenticatedFetch } from "@/lib/api-client";
-import { Loader2, CheckCircle2, Circle, MessageSquare, Mic, MicOff, Youtube, ChevronLeft, ChevronRight, X } from "lucide-react";
+import { Loader2, CheckCircle2, Circle, MessageSquare, Youtube, ChevronLeft, ChevronRight, X, Volume2, Mic } from "lucide-react";
+import SpeechControls from "@/components/dashboard/SpeechControls";
+import { useVoice } from "@/hooks/useVoice";
 
 export default function TrainingPlanPage() {
     const { user } = useAuth();
@@ -16,11 +18,12 @@ export default function TrainingPlanPage() {
     const [updatingId, setUpdatingId] = useState<string | null>(null);
     const [showNoteModal, setShowNoteModal] = useState<{ week: number, day: number } | null>(null);
     
-    // Voice State
-    const [isRecording, setIsRecording] = useState(false);
-    const [isTranscribing, setIsTranscribing] = useState(false);
-    const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-    const chunksRef = useRef<Blob[]>([]);
+    // Unified Voice
+    const { 
+        isPlaying, speak, stopSpeaking, 
+        isRecording, isTranscribing, startRecording, stopRecording 
+    } = useVoice();
+    const [noteText, setNoteText] = useState("");
 
     const fetchPlan = useCallback(async () => {
         if (!user) return;
@@ -62,56 +65,15 @@ export default function TrainingPlanPage() {
         }
     };
 
-    const startRecording = async () => {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            const recorder = new MediaRecorder(stream);
-            mediaRecorderRef.current = recorder;
-            chunksRef.current = [];
-
-            recorder.ondataavailable = (e) => {
-                if (e.data.size > 0) chunksRef.current.push(e.data);
-            };
-
-            recorder.onstop = async () => {
-                const blob = new Blob(chunksRef.current, { type: "audio/webm" });
-                await transcribeAudio(blob);
-                stream.getTracks().forEach(track => track.stop());
-            };
-
-            recorder.start();
-            setIsRecording(true);
-        } catch (err) {
-            console.error("Microphone access denied", err);
+    const handleTranscription = async () => {
+        const text = await stopRecording();
+        if (text) {
+            setNoteText(prev => prev + (prev ? " " : "") + text);
         }
     };
 
-    const stopRecording = () => {
-        if (mediaRecorderRef.current && isRecording) {
-            mediaRecorderRef.current.stop();
-            setIsRecording(false);
-        }
-    };
-
-    const transcribeAudio = async (blob: Blob) => {
-        setIsTranscribing(true);
-        const formData = new FormData();
-        formData.append("file", blob, "note.webm");
-
-        try {
-            const res = await fetch("/api/ai/transcribe", {
-                method: "POST",
-                body: formData
-            });
-            const data = await res.json();
-            if (data.text && showNoteModal) {
-                await handleUpdateProgress(showNoteModal.week, showNoteModal.day, true, data.text);
-            }
-        } catch (e) {
-            console.error("Transcription failed", e);
-        } finally {
-            setIsTranscribing(false);
-        }
+    const handleSpeakWorkout = (workout: Workout) => {
+        speak(`${workout.day} workout. ${workout.type}. ${workout.distance || ""}. ${workout.description}`);
     };
 
     if (loading && !plan) {
@@ -174,9 +136,16 @@ export default function TrainingPlanPage() {
                                     position: "relative"
                                 }}>
                                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "16px" }}>
-                                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                                             <div style={{ background: "rgba(0,0,0,0.3)", padding: "4px 8px", borderRadius: "6px", fontSize: "11px", fontWeight: 600, color: "var(--foreground-muted)" }}>{workout.day.toUpperCase()}</div>
                                             <span style={{ fontSize: "12px", color: "var(--primary)", fontWeight: 700 }}>{workout.type}</span>
+                                            <SpeechControls 
+                                                onSpeak={() => handleSpeakWorkout(workout)}
+                                                onStopSpeaking={stopSpeaking}
+                                                isPlaying={isPlaying}
+                                                showMic={false}
+                                                size={14}
+                                            />
                                         </div>
                                         <button 
                                             onClick={() => handleUpdateProgress(currentWeekIndex, idx, !workout.completed)}
@@ -199,7 +168,10 @@ export default function TrainingPlanPage() {
                                             </a>
                                         )}
                                         <button 
-                                            onClick={() => setShowNoteModal({ week: currentWeekIndex, day: idx })}
+                                            onClick={() => {
+                                                setNoteText(workout.note || "");
+                                                setShowNoteModal({ week: currentWeekIndex, day: idx });
+                                            }}
                                             style={{ 
                                                 display: "inline-flex", alignItems: "center", gap: "6px", background: "rgba(255,255,255,0.05)", color: "#fff", padding: "8px 12px", borderRadius: "8px", fontSize: "12px", fontWeight: 600, border: "1px solid rgba(255,255,255,0.1)", cursor: "pointer"
                                             }}>
@@ -219,7 +191,7 @@ export default function TrainingPlanPage() {
                         {/* End Activity / Cancel Button */}
                         <div style={{ marginTop: "60px", textAlign: "center" }}>
                             <button 
-                                onClick={() => { if(confirm("This will permanently remove your active training plan. Continue?")) setPlan(null); }}
+                                onClick={() => { if(confirm("Move this plan to Trash? Recoverable for 30 days.")) setPlan(null); }}
                                 style={{ background: "rgba(255,50,50,0.1)", color: "#ff5555", border: "1px solid rgba(255,50,50,0.2)", padding: "12px 32px", borderRadius: "12px", fontSize: "14px", fontWeight: 600, cursor: "pointer" }}
                             >
                                 Cancel Current Plan
@@ -243,39 +215,32 @@ export default function TrainingPlanPage() {
                         <h2 style={{ fontSize: "24px", fontWeight: 800, marginBottom: "8px" }}>Post-Session Reflection</h2>
                         <p style={{ color: "var(--foreground-muted)", marginBottom: "24px", fontSize: "14px" }}>Record your thoughts or any physical indicators like soreness or pain.</p>
                         
-                        <textarea 
-                            defaultValue={plan?.weeks[showNoteModal.week].workouts[showNoteModal.day].note}
-                            id="note-textarea"
-                            placeholder="How did you feel during the run?"
-                            style={{ width: "100%", minHeight: "120px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", padding: "16px", color: "#fff", resize: "none", outline: "none", marginBottom: "20px" }}
-                        />
-
-                        <div style={{ display: "flex", gap: "10px" }}>
-                            <button 
-                                onClick={() => {
-                                    const val = (document.getElementById('note-textarea') as HTMLTextAreaElement).value;
-                                    handleUpdateProgress(showNoteModal.week, showNoteModal.day, true, val);
-                                }}
-                                className="btn-primary"
-                                style={{ flex: 1, height: "50px", borderRadius: "12px" }}
-                            >
-                                Save Note
-                            </button>
-                            <button 
-                                onMouseDown={startRecording}
-                                onMouseUp={stopRecording}
-                                onTouchStart={startRecording}
-                                onTouchEnd={stopRecording}
-                                style={{ 
-                                    width: "50px", height: "50px", borderRadius: "12px", display: "flex", alignItems: "center", justifyContent: "center",
-                                    background: isRecording ? "#ff4444" : "rgba(255,255,255,0.1)", color: "#fff", border: "none", cursor: "pointer",
-                                    boxShadow: isRecording ? "0 0 20px #ff4444" : "none", transition: "all 0.2s"
-                                }}
-                            >
-                                {isTranscribing ? <Loader2 size={24} className="animate-spin" /> : isRecording ? <MicOff size={24} /> : <Mic size={24} />}
-                            </button>
+                        <div style={{ position: "relative" }}>
+                            <textarea 
+                                value={noteText}
+                                onChange={e => setNoteText(e.target.value)}
+                                placeholder="How did you feel during the run?"
+                                style={{ width: "100%", minHeight: "120px", background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", padding: "16px", paddingRight: "50px", color: "#fff", resize: "none", outline: "none", marginBottom: "20px" }}
+                            />
+                            <div style={{ position: "absolute", bottom: "30px", right: "10px" }}>
+                                <SpeechControls 
+                                    onStartRecording={startRecording}
+                                    onStopRecording={handleTranscription}
+                                    isRecording={isRecording}
+                                    isTranscribing={isTranscribing}
+                                    showSpeaker={false}
+                                    size={18}
+                                />
+                            </div>
                         </div>
-                        {isRecording && <p style={{ fontSize: "12px", color: "#ff4444", textAlign: "center", marginTop: "10px", fontWeight: 700 }}>Recording... Release to Transcribe</p>}
+
+                        <button 
+                            onClick={() => handleUpdateProgress(showNoteModal.week, showNoteModal.day, true, noteText)}
+                            className="btn-primary"
+                            style={{ width: "100%", height: "50px", borderRadius: "12px" }}
+                        >
+                            Save Reflection
+                        </button>
                     </div>
                 </div>
             )}

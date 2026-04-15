@@ -2,6 +2,8 @@
 
 import { useState, useRef, useEffect } from "react";
 import { PERSONAS, PersonaId } from "@/lib/ai/personas";
+import { useVoice } from "@/hooks/useVoice";
+import { Mic, Volume2 } from "lucide-react";
 
 type Message = {
     role: "user" | "assistant" | "tool";
@@ -140,71 +142,35 @@ export default function AICoach() {
         { role: "assistant", content: `Hi! I'm ${activePersona.name}. How can I help you with your ${activePersona.role} today?` }
     ]);
     const [input, setInput] = useState("");
-    const [loading, setLoading] = useState(false);
-    const [isListening, setIsListening] = useState(false);
-    const [voiceMode, setVoiceMode] = useState(false);
-    const [thinkingDots, setThinkingDots] = useState(".");
-
-    const messagesEndRef = useRef<HTMLDivElement>(null);
-    const recognitionRef = useRef<any>(null);
+    const { 
+        isPlaying, 
+        speak: speakVoice, 
+        stopSpeaking, 
+        isRecording, 
+        isTranscribing, 
+        startRecording, 
+        stopRecording 
+    } = useVoice();
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     };
 
-    // Animate thinking dots
-    useEffect(() => {
-        if (!loading) return;
-        const interval = setInterval(() => {
-            setThinkingDots(prev => prev.length >= 3 ? "." : prev + ".");
-        }, 400);
-        return () => clearInterval(interval);
-    }, [loading]);
-
-    // Initialize Speech Recognition
-    useEffect(() => {
-        const { webkitSpeechRecognition, SpeechRecognition } = window as unknown as IWindow;
-        if (webkitSpeechRecognition || SpeechRecognition) {
-            const SpeechRecognitionConstructor = SpeechRecognition || webkitSpeechRecognition;
-            const recognition = new SpeechRecognitionConstructor();
-            recognition.continuous = false;
-            recognition.interimResults = false;
-            recognition.lang = "en-US";
-
-            recognition.onresult = (event: any) => {
-                const transcript = event.results[0][0].transcript;
-                setInput(transcript);
-                sendMessage(transcript);
-            };
-
-            recognition.onend = () => {
-                setIsListening(false);
-            };
-
-            recognitionRef.current = recognition;
-        }
-    }, []);
-
-    // Text-to-Speech
-    const speak = (text: string) => {
-        if (!voiceMode || !window.speechSynthesis) return;
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(text);
-        const voices = window.speechSynthesis.getVoices();
-        const preferredVoice = voices.find(v => v.name.includes("Google US English") || v.name.includes("Samantha"));
-        if (preferredVoice) utterance.voice = preferredVoice;
-        utterance.rate = 1.0;
-        utterance.pitch = 1.0;
-        window.speechSynthesis.speak(utterance);
+    // Text-to-Speech wrapper
+    const handleSpeak = (text: string) => {
+        if (!voiceMode) return;
+        speakVoice(text);
     };
 
-    const toggleListening = () => {
-        if (isListening) {
-            recognitionRef.current?.stop();
-            setIsListening(false);
+    const toggleListening = async () => {
+        if (isRecording) {
+            const text = await stopRecording();
+            if (text) {
+                setInput(text);
+                sendMessage(text);
+            }
         } else {
-            recognitionRef.current?.start();
-            setIsListening(true);
+            await startRecording();
         }
     };
 
@@ -243,17 +209,17 @@ export default function AICoach() {
             if (data.error || !res.ok) {
                 const errorMsg = data.details || "Sorry, I had trouble reaching the coaching server.";
                 setMessages(prev => [...prev, { role: "assistant", content: errorMsg }]);
-                if (voiceMode) speak(errorMsg);
+                if (voiceMode) handleSpeak(errorMsg);
             } else {
                 const reply = data.message.content;
                 setMessages(prev => [...prev, { role: "assistant", content: reply }]);
-                if (voiceMode) speak(reply);
+                if (voiceMode) handleSpeak(reply);
             }
         } catch (err) {
             console.error(err);
             const netError = "Network error. Please check your connection.";
             setMessages(prev => [...prev, { role: "assistant", content: netError }]);
-            if (voiceMode) speak(netError);
+            if (voiceMode) handleSpeak(netError);
         } finally {
             setLoading(false);
         }
@@ -419,18 +385,17 @@ export default function AICoach() {
                 <button
                     onClick={toggleListening}
                     style={{
-                        width: 40, height: 40,
+                        width: 44, height: 44,
                         borderRadius: "50%",
                         display: "flex", alignItems: "center", justifyContent: "center",
-                        background: isListening ? "var(--error)" : "rgba(255,255,255,0.05)",
-                        color: isListening ? "#fff" : "var(--foreground-muted)",
-                        border: "1px solid rgba(255,255,255,0.1)",
+                        background: isRecording ? "rgba(255, 50, 50, 0.2)" : "rgba(255,255,255,0.05)",
+                        color: isRecording ? "var(--error)" : "var(--foreground-muted)",
+                        border: isRecording ? "1px solid var(--error)" : "1px solid rgba(255,255,255,0.1)",
                         cursor: "pointer",
-                        fontSize: "16px",
                         transition: "all 0.2s ease"
                     }}
                 >
-                    🎤
+                    {isTranscribing ? <div style={{width: 16, height: 16, border: '2px solid', borderTopColor: 'transparent', borderRadius: '50%'}} className="animate-spin" /> : <Mic size={20} />}
                 </button>
 
                 <input

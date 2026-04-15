@@ -5,6 +5,9 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "@/lib/firebase/config";
 import Link from "next/link";
+import SpeechControls from "@/components/dashboard/SpeechControls";
+import { useVoice } from "@/hooks/useVoice";
+import { Volume2 } from "lucide-react";
 
 interface LeaderboardEntry {
     userId: string;
@@ -23,6 +26,7 @@ export default function LeaderboardPage() {
     const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const { isPlaying, speak, stopSpeaking } = useVoice();
 
     useEffect(() => {
         fetchLeaderboard();
@@ -67,6 +71,18 @@ export default function LeaderboardPage() {
         if (rank === 3) return "🥉";
         return `#${rank}`;
     };
+    const handleListen = () => {
+        if (entries.length === 0) {
+            speak("The leaderboard is currently empty.");
+            return;
+        }
+
+        const topThree = entries.slice(0, 3).map(e => `Rank ${e.rank}, ${e.displayName}, with ${sortBy === 'totalMiles' ? e.totalMiles.toFixed(1) + ' miles' : e.totalSteps + ' steps'}`).join(". ");
+        const myEntry = user ? entries.find(e => e.userId === user.uid) : null;
+        const myStatus = myEntry ? `You are currently ranked number ${myEntry.rank}.` : "";
+        
+        speak(`Leaderboard challenge for ${new Date().toLocaleString("default", { month: "long" })}. The top three athletes are: ${topThree}. ${myStatus}`);
+    };
 
     return (
         <DashboardLayout>
@@ -86,7 +102,17 @@ export default function LeaderboardPage() {
                     </Link>
                 </div>
 
-                <header style={{ marginBottom: "30px", textAlign: "center" }}>
+                <header style={{ marginBottom: "30px", textAlign: "center", position: "relative" }}>
+                    <div style={{ position: "absolute", top: 0, right: 0 }}>
+                        <SpeechControls 
+                            onSpeak={handleListen}
+                            onStopSpeaking={stopSpeaking}
+                            isPlaying={isPlaying}
+                            showMic={false}
+                            size={16}
+                            label={isPlaying ? "Stop" : "Listen"}
+                        />
+                    </div>
                     <h1 style={{ fontSize: "32px", fontWeight: "bold", marginBottom: "10px" }}>🏆 Leaderboard</h1>
                     <p style={{ color: "var(--foreground-muted)" }}>Monthly Challenge: {new Date().toLocaleString("default", { month: "long", year: "numeric" })}</p>
 

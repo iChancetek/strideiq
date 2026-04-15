@@ -540,7 +540,7 @@ export default function ActivityDetailPage() {
                         </button>
                     ) : (
                         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                            <span style={{ color: "#ff4444", fontSize: "14px" }}>Are you sure? This cannot be undone.</span>
+                            <span style={{ color: "#ff4444", fontSize: "14px" }}>Move to trash? (30-day recovery)</span>
                             <button
                                 onClick={handleDelete}
                                 disabled={deleting}

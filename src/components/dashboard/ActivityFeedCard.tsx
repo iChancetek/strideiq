@@ -4,13 +4,14 @@ import { Activity } from "@/hooks/useActivities";
 import { useLikes } from "@/hooks/useLikes";
 import { useAuth } from "@/context/AuthContext";
 import { useState } from "react";
+import { Share2, Shield, User } from "lucide-react";
+import SpeechControls from "@/components/dashboard/SpeechControls";
+import { useVoice } from "@/hooks/useVoice";
 import Link from "next/link";
 import CommentsSection from "./activity/CommentsSection"; // Keep original import
 import { useSettings } from "@/context/SettingsContext";
 import { t } from "@/lib/translations";
 import { getWorkoutMetabolicInsight } from "@/lib/utils/workoutIntelligence";
-import { getFastingStage } from "@/lib/utils/fastingStages";
-
 
 interface Props {
     activity: Activity;
@@ -27,8 +28,15 @@ export default function ActivityFeedCard({ activity, ownerName, ownerPhoto, owne
     const [showComments, setShowComments] = useState(false);
     const [currentMediaIdx, setCurrentMediaIdx] = useState(0);
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+    const { isPlaying, speak, stopSpeaking } = useVoice();
 
     const EMOJIS = ["👍", "👍🏻", "👍🏼", "👍🏽", "👍🏾", "👍🏿"];
+
+    const handleSpeak = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        const text = `${ownerName} completed a ${activity.type}. ${activity.distance} units in ${formatDuration(activity.duration)}. Notes: ${activity.notes || "No notes provided."}`;
+        speak(text);
+    };
 
     const formatDuration = (totalSeconds: number) => {
         const h = Math.floor(totalSeconds / 3600);
@@ -57,61 +65,71 @@ export default function ActivityFeedCard({ activity, ownerName, ownerPhoto, owne
         }}>
             {/* Header — User info */}
             <div 
-                onClick={() => {
-                    if (user?.uid === ownerId) {
-                        window.location.href = `/dashboard/activities/${activity.id}`;
-                    }
-                }}
                 style={{
                     padding: "16px 20px",
                     display: "flex",
                     alignItems: "center",
+                    justifyContent: "space-between",
                     gap: "12px",
-                    cursor: user?.uid === ownerId ? "pointer" : "default"
                 }}
             >
-                <div style={{
-                    width: "40px",
-                    height: "40px",
-                    borderRadius: "50%",
-                    background: "rgba(255,255,255,0.1)",
-                    overflow: "hidden",
-                    flexShrink: 0,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
+                <div style={{ display: "flex", alignItems: "center", gap: "12px", cursor: user?.uid === ownerId ? "pointer" : "default" }} onClick={() => {
+                    if (user?.uid === ownerId) {
+                        window.location.href = `/dashboard/activities/${activity.id}`;
+                    }
                 }}>
-                    {ownerPhoto ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={ownerPhoto} alt={ownerName} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                    ) : (
-                        <span style={{ fontSize: "18px", fontWeight: 700 }}>{ownerName[0]}</span>
-                    )}
-                </div>
-                <div style={{ flex: 1 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                        <div style={{ fontWeight: 600, fontSize: "15px" }}>{ownerName}</div>
-                        {user?.uid === ownerId && (
-                            <span style={{ 
-                                fontSize: "10px", 
-                                background: "rgba(204, 255, 0, 0.1)", 
-                                color: "var(--primary)", 
-                                padding: "2px 6px", 
-                                borderRadius: "4px",
-                                fontWeight: 800,
-                                textTransform: "uppercase"
-                            }}>Edit</span>
+                    <div style={{
+                        width: "40px",
+                        height: "40px",
+                        borderRadius: "50%",
+                        background: "rgba(255,255,255,0.1)",
+                        overflow: "hidden",
+                        flexShrink: 0,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                    }}>
+                        {ownerPhoto ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={ownerPhoto} alt={ownerName} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        ) : (
+                            <span style={{ fontSize: "18px", fontWeight: 700 }}>{ownerName[0]}</span>
                         )}
                     </div>
-                    <div style={{ fontSize: "12px", color: "var(--foreground-muted)", display: "flex", alignItems: "center", gap: "6px" }}>
-                        <span>{timeAgo}</span>
-                        <span>•</span>
-                        <span>{modeIcon}</span>
+                    <div style={{ flex: 1 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                            <div style={{ fontWeight: 600, fontSize: "15px" }}>{ownerName}</div>
+                            {user?.uid === ownerId && (
+                                <span style={{ 
+                                    fontSize: "10px", 
+                                    background: "rgba(204, 255, 0, 0.1)", 
+                                    color: "var(--primary)", 
+                                    padding: "2px 6px", 
+                                    borderRadius: "4px",
+                                    fontWeight: 800,
+                                    textTransform: "uppercase"
+                                }}>Edit</span>
+                            )}
+                        </div>
+                        <div style={{ fontSize: "12px", color: "var(--foreground-muted)", display: "flex", alignItems: "center", gap: "6px" }}>
+                            <span>{timeAgo}</span>
+                            <span>•</span>
+                            <span>{modeIcon}</span>
+                        </div>
                     </div>
                 </div>
-                <Link href={`/dashboard/activities/${activity.id}`} style={{ color: "var(--foreground-muted)", fontSize: "20px", textDecoration: "none" }}>
-                    •••
-                </Link>
+                <div style={{ display: "flex", gap: "8px" }}>
+                    <SpeechControls 
+                        onSpeak={handleSpeak}
+                        onStopSpeaking={stopSpeaking}
+                        isPlaying={isPlaying}
+                        showMic={false}
+                        size={18}
+                    />
+                    <Link href={`/dashboard/activities/${activity.id}`} style={{ color: "var(--foreground-muted)", fontSize: "20px", textDecoration: "none" }}>
+                        •••
+                    </Link>
+                </div>
             </div>
 
 

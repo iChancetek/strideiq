@@ -3,6 +3,9 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useVoice } from "@/hooks/useVoice";
+import SpeechControls from "../SpeechControls";
+import { Send } from "lucide-react";
 
 interface Comment {
     id: string;
@@ -27,6 +30,7 @@ export default function CommentsSection({ activityId, ownerId }: CommentsSection
     const [replyTo, setReplyTo] = useState<{ id: string; name: string } | null>(null);
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
+    const { isRecording, isTranscribing, startRecording, stopRecording } = useVoice();
 
     useEffect(() => {
         if (!activityId || !user) {
@@ -54,6 +58,13 @@ export default function CommentsSection({ activityId, ownerId }: CommentsSection
         fetchComments();
     }, [activityId, ownerId, user]);
 
+    const handleTranscription = async () => {
+        const text = await stopRecording();
+        if (text) {
+            setNewComment(prev => prev + (prev ? " " : "") + text);
+        }
+    };
+
     const handlePost = async () => {
         if (!newComment.trim() || !user) return;
         setSubmitting(true);
@@ -76,8 +87,6 @@ export default function CommentsSection({ activityId, ownerId }: CommentsSection
             if (!response.ok) throw new Error("Post failed");
             
             const data = await response.json();
-            // Optimistic update or just clear and re-fetch since realtime is removed
-            // I'll add the comment optimistically for better UX
             const myComment: Comment = {
                 id: data.commentId || Math.random().toString(),
                 text: newComment,
@@ -113,7 +122,6 @@ export default function CommentsSection({ activityId, ownerId }: CommentsSection
         }
     };
 
-    // Thread: top-level comments + their replies
     const topLevel = comments.filter(c => !c.parentId);
     const getReplies = (parentId: string) => comments.filter(c => c.parentId === parentId);
 
@@ -132,7 +140,6 @@ export default function CommentsSection({ activityId, ownerId }: CommentsSection
                     alignItems: "flex-start",
                     marginLeft: isReply ? "36px" : "0",
                 }}>
-                    {/* Avatar */}
                     <div style={{
                         width: isReply ? "28px" : "32px",
                         height: isReply ? "28px" : "32px",
@@ -147,12 +154,10 @@ export default function CommentsSection({ activityId, ownerId }: CommentsSection
                         fontWeight: 700,
                     }}>
                         {comment.userPhoto ? (
-                            // eslint-disable-next-line @next/next/no-img-element
                             <img src={comment.userPhoto} alt={comment.userName} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                         ) : comment.userName?.[0] || 'U'}
                     </div>
 
-                    {/* Bubble */}
                     <div style={{ flex: 1 }}>
                         <div style={{
                             background: "rgba(255,255,255,0.05)",
@@ -169,7 +174,6 @@ export default function CommentsSection({ activityId, ownerId }: CommentsSection
                             </p>
                         </div>
 
-                        {/* Meta row */}
                         <div style={{
                             display: "flex",
                             gap: "12px",
@@ -218,7 +222,6 @@ export default function CommentsSection({ activityId, ownerId }: CommentsSection
                     </div>
                 </div>
 
-                {/* Replies */}
                 {replies.length > 0 && (
                     <div style={{ marginTop: "8px" }}>
                         {replies.map(r => renderComment(r, true))}
@@ -230,7 +233,6 @@ export default function CommentsSection({ activityId, ownerId }: CommentsSection
 
     return (
         <div style={{ padding: "16px 20px" }}>
-            {/* Comment List */}
             <div style={{ maxHeight: "350px", overflowY: "auto", marginBottom: "12px" }}>
                 {topLevel.length === 0 ? (
                     <p style={{ color: "var(--foreground-muted)", fontSize: "13px", fontStyle: "italic" }}>
@@ -241,7 +243,6 @@ export default function CommentsSection({ activityId, ownerId }: CommentsSection
                 )}
             </div>
 
-            {/* Input */}
             {user && (
                 <div>
                     {replyTo && (
@@ -262,7 +263,7 @@ export default function CommentsSection({ activityId, ownerId }: CommentsSection
                             </button>
                         </div>
                     )}
-                    <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                    <div style={{ position: "relative", display: "flex", gap: "8px", alignItems: "center" }}>
                         <input
                             type="text"
                             value={newComment}
@@ -271,7 +272,7 @@ export default function CommentsSection({ activityId, ownerId }: CommentsSection
                             onKeyDown={(e) => e.key === "Enter" && handlePost()}
                             style={{
                                 flex: 1,
-                                padding: "10px 16px",
+                                padding: "10px 80px 10px 16px",
                                 borderRadius: "20px",
                                 background: "rgba(255,255,255,0.05)",
                                 border: "1px solid rgba(255,255,255,0.08)",
@@ -280,27 +281,35 @@ export default function CommentsSection({ activityId, ownerId }: CommentsSection
                                 outline: "none",
                             }}
                         />
-                        <button
-                            onClick={handlePost}
-                            disabled={submitting || !newComment.trim()}
-                            style={{
-                                width: "36px",
-                                height: "36px",
-                                borderRadius: "50%",
-                                background: !newComment.trim() ? "rgba(255,255,255,0.05)" : "var(--primary)",
-                                border: "none",
-                                color: "#fff",
-                                cursor: submitting || !newComment.trim() ? "not-allowed" : "pointer",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                fontSize: "16px",
-                                flexShrink: 0,
-                                opacity: submitting ? 0.5 : 1,
-                            }}
-                        >
-                            ➤
-                        </button>
+                        <div style={{ position: "absolute", right: "8px", display: "flex", alignItems: "center", gap: "4px" }}>
+                            <SpeechControls 
+                                onStartRecording={startRecording}
+                                onStopRecording={handleTranscription}
+                                isRecording={isRecording}
+                                isTranscribing={isTranscribing}
+                                showSpeaker={false}
+                                size={16}
+                            />
+                            <button
+                                onClick={handlePost}
+                                disabled={submitting || !newComment.trim()}
+                                style={{
+                                    width: "32px",
+                                    height: "32px",
+                                    borderRadius: "50%",
+                                    background: !newComment.trim() ? "rgba(255,255,255,0.05)" : "var(--primary)",
+                                    border: "none",
+                                    color: "#fff",
+                                    cursor: submitting || !newComment.trim() ? "not-allowed" : "pointer",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    opacity: submitting ? 0.5 : 1,
+                                }}
+                            >
+                                <Send size={14} />
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

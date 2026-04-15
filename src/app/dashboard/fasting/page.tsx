@@ -5,12 +5,18 @@ import { useAuth } from "@/context/AuthContext";
 import { useActivities } from "@/hooks/useActivities";
 import { useState, useMemo } from "react";
 import Link from "next/link";
-import { Trash2, Edit2, Loader2 } from "lucide-react";
+import { Trash2, Edit2, Loader2, Share2, Volume2, Mic, Settings } from "lucide-react";
+import SpeechControls from "@/components/dashboard/SpeechControls";
+import ShareActivityModal from "@/components/dashboard/ShareActivityModal";
+import { useVoice } from "@/hooks/useVoice";
+import { formatDuration } from "@/lib/utils";
 
 export default function FastingPage() {
     const { user } = useAuth();
     const { activities, loading, deleteActivity, updateActivity } = useActivities();
     const [isDeleting, setIsDeleting] = useState<string | null>(null);
+    const [selectedHistoryItem, setSelectedHistoryItem] = useState<any>(null);
+    const [showShareModal, setShowShareModal] = useState(false);
 
     // Filter and format fasting history
     const history = useMemo(() => {
@@ -20,7 +26,7 @@ export default function FastingPage() {
     }, [activities]);
 
     const handleDelete = async (id: string) => {
-        if (!confirm("Are you sure you want to delete this fast?")) return;
+        if (!confirm("Move to Trash? Recoverable for 30 days.")) return;
         setIsDeleting(id);
         try {
             await deleteActivity(id);
@@ -162,15 +168,21 @@ export default function FastingPage() {
                     ) : (
                         <div style={{ display: "flex", flexDirection: "column", gap: "12px", maxHeight: "400px", overflowY: "auto" }}>
                             {history.map(log => (
-                                <div key={log.id} style={{
-                                    padding: "14px 16px",
-                                    borderRadius: "12px",
-                                    background: "rgba(255,255,255,0.03)",
-                                    border: "1px solid rgba(255,255,255,0.05)",
-                                    display: "flex",
-                                    justifyContent: "space-between",
-                                    alignItems: "center",
-                                }}>
+                                <div 
+                                    key={log.id} 
+                                    onClick={() => setSelectedHistoryItem(log)}
+                                    style={{
+                                        padding: "14px 16px",
+                                        borderRadius: "12px",
+                                        background: "rgba(255,255,255,0.03)",
+                                        border: "1px solid rgba(255,255,255,0.05)",
+                                        display: "flex",
+                                        justifyContent: "space-between",
+                                        alignItems: "center",
+                                        cursor: "pointer",
+                                        transition: "background 0.2s",
+                                    }}
+                                >
                                     <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                                         <div style={{
                                             width: "36px",
@@ -199,13 +211,7 @@ export default function FastingPage() {
                                             <div style={{ fontSize: "10px", color: "var(--foreground-muted)" }}>hours</div>
                                         </div>
                                         <div style={{ display: "flex", gap: "8px" }}>
-                                            <button 
-                                                onClick={() => handleDelete(log.id)}
-                                                disabled={isDeleting === log.id}
-                                                style={{ background: "transparent", border: "none", color: "rgba(255,50,50,0.6)", cursor: "pointer", padding: "4px" }}
-                                            >
-                                                {isDeleting === log.id ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
-                                            </button>
+                                            <Edit2 size={16} color="var(--foreground-muted)" />
                                         </div>
                                     </div>
                                 </div>
@@ -213,11 +219,183 @@ export default function FastingPage() {
                         </div>
                     )}
                 </div>
+
+                {/* Detail Modal */}
+                {selectedHistoryItem && (
+                    <FastHistoryDetailModal 
+                        item={selectedHistoryItem}
+                        onClose={() => setSelectedHistoryItem(null)}
+                        onDelete={(id) => {
+                            if (confirm("Move to Trash? Recoverable for 30 days.")) {
+                                deleteActivity(id);
+                                setSelectedHistoryItem(null);
+                            }
+                        }}
+                    />
+                )}
             </div>
 
             <style jsx>{`
                 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
             `}</style>
+        </div>
+    );
+}
+
+function FastHistoryDetailModal({ item, onClose, onDelete }: { item: any, onClose: () => void, onDelete: (id: string) => void }) {
+    const { isPlaying, speak, stopSpeaking } = useVoice();
+    const { isRecording, isTranscribing, startRecording, stopRecording } = useVoice();
+    const { updateActivity } = useActivities();
+    
+    const [isEditing, setIsEditing] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+
+    // Form State
+    const [notes, setNotes] = useState(item.notes || "");
+    const [editDate, setEditDate] = useState(new Date(item.date).toISOString().split('T')[0]);
+    const [editHours, setEditHours] = useState(Math.floor(item.duration / 3600).toString());
+    const [editMinutes, setEditMinutes] = useState(Math.floor((item.duration % 3600) / 60).toString());
+
+    const handleSpeak = () => {
+        const hours = (Number(item.duration) / 3600).toFixed(1);
+        speak(`Fasting session completed on ${new Date(item.date).toLocaleDateString()}. Total duration: ${hours} hours. Metabolic stage: ${item.mode || "Custom"}. Notes: ${item.notes || "No notes recorded."}`);
+    };
+
+    const handleTranscription = async () => {
+        const text = await stopRecording();
+        if (text) setNotes(prev => prev + (prev ? " " : "") + text);
+    };
+
+    const handleSaveEdit = async () => {
+        setIsSaving(true);
+        try {
+            const h = parseInt(editHours) || 0;
+            const m = parseInt(editMinutes) || 0;
+            const newDuration = (h * 3600) + (m * 60);
+            
+            // Ensure date preserves time if possible, or just start of day
+            const newDate = new Date(editDate);
+            
+            await updateActivity(item.id, { 
+                notes,
+                duration: newDuration,
+                date: newDate
+            });
+            
+            // Local state update
+            item.notes = notes;
+            item.duration = newDuration;
+            item.date = newDate;
+            
+            setIsEditing(false);
+        } catch (e: any) {
+            alert("Update failed: " + e.message);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const inputStyle: React.CSSProperties = {
+        width: "100%",
+        padding: "10px",
+        borderRadius: "8px",
+        background: "rgba(0,0,0,0.3)",
+        border: "1px solid rgba(255,255,255,0.15)",
+        color: "#fff",
+        fontSize: "14px",
+        outline: "none"
+    };
+
+    return (
+        <div style={{ position: "fixed", inset: 0, zIndex: 10000, background: "rgba(0,0,0,0.85)", backdropFilter: "blur(12px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}>
+            <div className="glass-panel" style={{ maxWidth: "500px", width: "100%", padding: "32px", borderRadius: "24px", background: "#111", border: "1px solid rgba(255,255,255,0.1)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "24px" }}>
+                    <div>
+                        <div style={{ fontSize: "12px", color: "var(--primary)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", marginBottom: "4px" }}>Metabolic Summary</div>
+                        <h2 style={{ fontSize: "24px", fontWeight: 800 }}>
+                            {isEditing ? "Edit Fast Log" : new Date(item.date).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
+                        </h2>
+                    </div>
+                    <button onClick={onClose} style={{ background: "transparent", border: "none", color: "#fff", fontSize: "24px", cursor: "pointer" }}>&times;</button>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: isEditing ? "1fr" : "1fr 1fr", gap: "16px", marginBottom: "24px" }}>
+                    {isEditing ? (
+                        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                            <div>
+                                <label style={{ display: "block", fontSize: "11px", color: "var(--foreground-muted)", marginBottom: "6px" }}>DATE</label>
+                                <input type="date" value={editDate} onChange={e => setEditDate(e.target.value)} style={inputStyle} />
+                            </div>
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                                <div>
+                                    <label style={{ display: "block", fontSize: "11px", color: "var(--foreground-muted)", marginBottom: "6px" }}>HOURS</label>
+                                    <input type="number" value={editHours} onChange={e => setEditHours(e.target.value)} style={inputStyle} placeholder="Hours" />
+                                </div>
+                                <div>
+                                    <label style={{ display: "block", fontSize: "11px", color: "var(--foreground-muted)", marginBottom: "6px" }}>MINUTES</label>
+                                    <input type="number" value={editMinutes} onChange={e => setEditMinutes(e.target.value)} style={inputStyle} placeholder="Min" />
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        <>
+                            <div style={{ padding: "16px", background: "rgba(255,255,255,0.03)", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.05)" }}>
+                                <div style={{ fontSize: "11px", color: "var(--foreground-muted)", marginBottom: "4px" }}>DURATION</div>
+                                <div style={{ fontSize: "20px", fontWeight: 700, color: "var(--primary)" }}>{(Number(item.duration) / 3600).toFixed(1)} <span style={{fontSize: "12px", fontWeight: 400}}>hours</span></div>
+                            </div>
+                            <div style={{ padding: "16px", background: "rgba(255,255,255,0.03)", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.05)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                <SpeechControls 
+                                    onSpeak={handleSpeak}
+                                    onStopSpeaking={stopSpeaking}
+                                    isPlaying={isPlaying}
+                                    showMic={false}
+                                />
+                            </div>
+                        </>
+                    )}
+                </div>
+
+                <div style={{ marginBottom: "32px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                        <div style={{ fontSize: "12px", color: "var(--foreground-muted)", fontWeight: 600 }}>METABOLIC NOTES</div>
+                        <button onClick={() => setIsEditing(!isEditing)} style={{ background: "transparent", border: "none", color: "var(--primary)", fontSize: "12px", cursor: "pointer" }}>
+                            {isEditing ? "Cancel" : "Edit"}
+                        </button>
+                    </div>
+                    {isEditing ? (
+                        <div style={{ position: "relative" }}>
+                            <textarea 
+                                value={notes} 
+                                onChange={e => setNotes(e.target.value)}
+                                style={{ ...inputStyle, minHeight: "100px", paddingRight: "40px", resize: "none" }}
+                                placeholder="How did you feel?"
+                            />
+                            <div style={{ position: "absolute", bottom: "10px", right: "10px" }}>
+                                <SpeechControls 
+                                    onStartRecording={startRecording}
+                                    onStopRecording={handleTranscription}
+                                    isRecording={isRecording}
+                                    isTranscribing={isTranscribing}
+                                    size={14}
+                                    showSpeaker={false}
+                                />
+                            </div>
+                        </div>
+                    ) : (
+                        <p style={{ color: "#fff", lineHeight: 1.6, fontSize: "15px" }}>{item.notes || "No notes recorded for this fast."}</p>
+                    )}
+                    {isEditing && (
+                        <button onClick={handleSaveEdit} disabled={isSaving} className="btn-primary" style={{ marginTop: "16px", width: "100%", padding: "12px", borderRadius: "12px", justifyContent: "center", opacity: isSaving ? 0.6 : 1 }}>
+                            {isSaving ? "Saving..." : "Save Updates"}
+                        </button>
+                    )}
+                </div>
+
+                <div style={{ display: "flex", gap: "12px" }}>
+                    <button onClick={() => onDelete(item.id)} style={{ flex: 1, padding: "12px", background: "rgba(255,50,50,0.1)", border: "1px solid rgba(255,50,50,0.3)", color: "#ff4444", borderRadius: "12px", cursor: "pointer", fontWeight: 600 }}>Delete</button>
+                    <button className="btn-primary" style={{ flex: 2, padding: "12px", borderRadius: "12px", justifyContent: "center" }}><Share2 size={18} style={{marginRight: "8px"}} /> Share Fast</button>
+                </div>
+            </div>
         </div>
     );
 }

@@ -1,6 +1,9 @@
 "use client";
 
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import SpeechControls from "@/components/dashboard/SpeechControls";
+import { useVoice } from "@/hooks/useVoice";
+import { Mic, Volume2 } from "lucide-react";
 
 const features = [
     {
@@ -60,6 +63,13 @@ const features = [
         modules: "Timer • History • Metabolic Health"
     },
     {
+        title: "Listen & Dictate",
+        emoji: "🔊",
+        color: "var(--primary)",
+        description: "Standardized interactive capabilities. Listen to any activity, journal, or training plan out loud. Use your voice to dictate notes, comments, and entries with medical-grade precision.",
+        modules: "TTS • STT • Hands-free"
+    },
+    {
         title: "Journal & Mindset",
         emoji: "📓",
         color: "var(--secondary)",
@@ -69,9 +79,9 @@ const features = [
     {
         title: "Trash & Recovery",
         emoji: "🗑️",
-        color: "var(--error)",
-        description: "Accidentally deleted something? Recover activities, journals, and fasting logs within a 30-day window.",
-        modules: "30-Day Window • Restore • Permanent Purge"
+        color: "var(--primary)",
+        description: "Accidents happen. When you delete an item, it moves to the Trash for 30 days. You can restore it anytime during this window before it is permanently removed.",
+        modules: "30-Day Recovery • Restore • Safety Net"
     },
     {
         title: "Activity Analytics",
@@ -83,11 +93,27 @@ const features = [
 ];
 
 export default function LearnMorePage() {
+    const { isPlaying, speak, stopSpeaking } = useVoice();
+
+    const handleListenAll = () => {
+        const textToRead = features.map(f => `${f.title}: ${f.description}`).join(". ");
+        speak(`Welcome to Stride I Q Guide. ${textToRead}`);
+    };
+
     return (
         <DashboardLayout>
-            <header style={{ marginBottom: "30px" }}>
-                <h1 style={{ fontSize: "32px", marginBottom: "5px" }}>Guide</h1>
-                <p style={{ color: "var(--foreground-muted)" }}>Everything StrideIQ can do for you.</p>
+            <header style={{ marginBottom: "30px", display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+                <div>
+                    <h1 style={{ fontSize: "32px", marginBottom: "5px" }}>Guide</h1>
+                    <p style={{ color: "var(--foreground-muted)" }}>Everything StrideIQ can do for you.</p>
+                </div>
+                <SpeechControls 
+                    onSpeak={handleListenAll}
+                    onStopSpeaking={stopSpeaking}
+                    isPlaying={isPlaying}
+                    showMic={false}
+                    label={isPlaying ? "Stop Guide" : "Listen to Guide"}
+                />
             </header>
 
             {/* Voice Commands */}

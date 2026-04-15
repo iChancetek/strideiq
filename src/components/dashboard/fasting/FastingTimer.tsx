@@ -6,7 +6,9 @@ import { uploadMediaFiles } from "@/lib/storage";
 import { getActiveSession, saveActiveSession, clearActiveSession } from "@/lib/utils/idb";
 import { getFastingStage, FASTING_STAGES } from "@/lib/utils/fastingStages";
 import { playIQVoice } from "@/lib/utils/audio";
-import { Settings, CheckCircle2, MoreHorizontal } from "lucide-react";
+import { Settings, CheckCircle2, MoreHorizontal, Mic } from "lucide-react";
+import SpeechControls from "@/components/dashboard/SpeechControls";
+import { useVoice } from "@/hooks/useVoice";
 
 
 
@@ -41,6 +43,9 @@ export default function FastingTimer() {
     const [showDeepDive, setShowDeepDive] = useState(false);
     const [isMuted, setIsMuted] = useState(false);
     const [showGoalAdjust, setShowGoalAdjust] = useState(false);
+
+    // Voice
+    const { isRecording, isTranscribing, startRecording, stopRecording } = useVoice();
 
 
 
@@ -280,10 +285,16 @@ export default function FastingTimer() {
             setSelectedFiles([]);
         } catch (e) {
             console.error("Fasting stop error", e);
+            alert("Failed to stop fast.");
         } finally {
             setSaving(false);
             setAnalyzing(false);
         }
+    };
+
+    const handleTranscription = async () => {
+        const text = await stopRecording();
+        if (text) setNotes(prev => prev + (prev ? " " : "") + text);
     };
 
     const formatTime = (ms: number) => {
@@ -638,21 +649,35 @@ export default function FastingTimer() {
                         </p>
                         
                         <label style={{ display: "block", fontSize: "12px", color: "var(--foreground-muted)", marginBottom: "8px" }}>NOTES</label>
-                        <textarea 
-                            value={notes}
-                            onChange={e => setNotes(e.target.value)}
-                            placeholder="How did you feel during this fast?"
-                            style={{
-                                width: "100%",
-                                background: "rgba(255,255,255,0.05)",
-                                border: "1px solid rgba(255,255,255,0.1)",
-                                borderRadius: "8px",
-                                padding: "12px",
-                                color: "#fff",
-                                minHeight: "80px",
-                                marginBottom: "16px"
-                            }}
-                        />
+                        <div style={{ position: "relative", marginBottom: "16px" }}>
+                            <textarea 
+                                value={notes}
+                                onChange={e => setNotes(e.target.value)}
+                                placeholder="How did you feel during this fast?"
+                                style={{
+                                    width: "100%",
+                                    background: "rgba(255,255,255,0.05)",
+                                    border: "1px solid rgba(255,255,255,0.1)",
+                                    borderRadius: "12px",
+                                    padding: "12px",
+                                    paddingRight: "40px",
+                                    color: "#fff",
+                                    minHeight: "100px",
+                                    outline: "none",
+                                    fontSize: "14px",
+                                }}
+                            />
+                            <div style={{ position: "absolute", bottom: "10px", right: "10px" }}>
+                                <SpeechControls 
+                                    onStartRecording={startRecording}
+                                    onStopRecording={handleTranscription}
+                                    isRecording={isRecording}
+                                    isTranscribing={isTranscribing}
+                                    size={14}
+                                    showSpeaker={false}
+                                />
+                            </div>
+                        </div>
 
                         <label style={{ display: "block", fontSize: "12px", color: "var(--foreground-muted)", marginBottom: "8px" }}>PHOTO / MEAL</label>
                         <input 
