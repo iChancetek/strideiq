@@ -60,9 +60,9 @@ export async function POST(req: NextRequest) {
             // Non-fatal: Proceed without context if Pinecone fails, AI will use general knowledge
         }
 
-        // 3. Prompt GPT-5.2 (Robust Call)
+        // 3. Prompt GPT-5.4-Mini (Global Standard)
         const completion = await openai.chat.completions.create({
-            model: "gpt-5.2",
+            model: "gpt-5.4-mini",
             messages: [
                 {
                     role: "system",
@@ -86,7 +86,11 @@ export async function POST(req: NextRequest) {
                     
                     ${context ? `Use the following technical context to supplement your expertise:\n${context}` : "Use your expert knowledge of elite sports science and human metabolism."}
                     
-                    Tone: Premium, Scientific, Expert, Authoritative, yet Encourage.`
+                    VISION & MULTIMODALITY:
+                    As a multimodal GPT-5.4-mini powered coach, you can perceive more than just text. You can analyze photos of meals, workout gear, terrain, and activity stats to provide holistic coaching. 
+                    - When users share images or multi-media context, integrate those visual cues into your performance advice.
+                    
+                    Tone: Premium, Scientific, Expert, Authoritative, yet Encouraging.`
                 },
                 { role: "user", content: message }
             ],

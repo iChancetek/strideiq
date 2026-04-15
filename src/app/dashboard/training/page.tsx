@@ -68,7 +68,7 @@ export default function TrainingPlanPage() {
     const handleTranscription = async () => {
         const text = await stopRecording();
         if (text) {
-            setNoteText(prev => prev + (prev ? " " : "") + text);
+            setNoteText((prev: string) => prev + (prev ? " " : "") + text);
         }
     };
 

@@ -1,10 +1,42 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useCallback } from "react";
+import { useVoice } from "@/hooks/useVoice";
+import { useSettings } from "@/context/SettingsContext";
+import { t } from "@/lib/translations";
+import IQAssistant from "@/components/IQAssistant";
+import { Play, Pause, Square, MessageSquare, Volume2 } from "lucide-react";
 
 export default function LearnMorePage() {
     const [activeTab, setActiveTab] = useState("ios");
+    const { settings } = useSettings();
+    const { isPlaying, isPaused, speak, pauseSpeaking, resumeSpeaking, stopSpeaking } = useVoice();
+    const lang = settings.language;
+
+    const handleReadAloud = useCallback(() => {
+        // Collect text content
+        const heroTitle = "The World's First Agentic Fitness System";
+        const heroDesc = "StrideIQ isn't just a tracker. It's a swarm of intelligent, autonomous agents working in harmony to optimize your health.";
+        
+        const features = [
+            "Active Performance: Track every move with precision using our multi-modal activity agents.",
+            "Intelligent Training: Your personal AI coach builds and adapts plans just for you.",
+            "Wellness and Metabolic IQ: Elite-tier physiological tracking powered by our metabolic intelligence engine.",
+            "Social Community: Connect, compete, and share with a global network of athletes.",
+            "IQ Voice Assistant: Hands-free elite coaching with our conversational verbal assistant.",
+            "Environmental Awareness: Your AI team watches the conditions so you can stay safe.",
+            "Platform Experience: A premium, app-like experience with dynamic media coordination."
+        ];
+
+        const fullText = `${heroTitle}. ${heroDesc}. ${features.join(". ")}`;
+        speak(fullText);
+    }, [speak]);
+
+    const handleAskQuestion = () => {
+        // Simple way to trigger IQ Assistant context
+        alert(t(lang, "askCoach") + " (IQ Assistant is active in the bottom right corner)");
+    };
 
     return (
         <main style={{ minHeight: "100vh", paddingBottom: "80px" }}>
@@ -29,11 +61,10 @@ export default function LearnMorePage() {
                     🚀 POWERED BY AGENTIC AI
                 </div>
                 <h1 style={{ fontSize: "clamp(40px, 6vw, 64px)", lineHeight: 1.1, marginBottom: "20px" }}>
-                    The World's First <br />
-                    <span className="text-gradient">Agentic Fitness System</span>
+                    {t(lang, "heroTitle")}
                 </h1>
                 <p style={{ fontSize: "20px", color: "var(--foreground-muted)", maxWidth: "800px", margin: "0 auto", lineHeight: 1.6 }}>
-                    StrideIQ isn't just a tracker. It's a swarm of <strong>intelligent, autonomous agents</strong> working in harmony to optimize your health. From real-time coaching to predictive recovery, your AI team is always active.
+                    {t(lang, "heroSubtitle")}
                 </p>
             </section>
 
@@ -62,8 +93,8 @@ export default function LearnMorePage() {
 
                 {/* 3. Wellness & Metabolic IQ */}
                 <Section
-                    title="Wellness & Metabolic IQ"
-                    desc="Elite-tier physiological tracking powered by our metabolic intelligence engine."
+                    title={t(lang, "fastingStageTitle")}
+                    desc={t(lang, "fastingStageDesc")}
                 >
                     <FeatureCard icon="⏳" title="Fasting Stage Tracking" desc="Real-time tracking of Insulin levels, Ketosis, and Autophagy cycles as you fast." />
                     <FeatureCard icon="🧬" title="Physiological Insights" desc="Understand what's happening to your body (cellular cleanup, HGH boost) at every hour." />
@@ -176,6 +207,61 @@ export default function LearnMorePage() {
                     </div>
                 </div>
             </section>
+
+            {/* Floating TTS & Q&A Controls */}
+            <div style={{
+                position: "fixed",
+                bottom: "30px",
+                left: "50%",
+                transform: "translateX(-50%)",
+                zIndex: 1000,
+                display: "flex",
+                alignItems: "center",
+                gap: "12px",
+                padding: "12px 24px",
+                borderRadius: "var(--radius-full)",
+                background: "rgba(18, 18, 18, 0.85)",
+                backdropFilter: "blur(20px)",
+                border: "1px solid rgba(255, 255, 255, 0.15)",
+                boxShadow: "0 12px 40px rgba(0,0,0,0.5)",
+            }}>
+                <div style={{ marginRight: "8px", borderRight: "1px solid rgba(255, 255, 255, 0.1)", paddingRight: "16px", display: "flex", alignItems: "center", gap: "10px" }}>
+                    <Volume2 size={18} color="var(--primary)" />
+                    <span style={{ fontSize: "12px", fontWeight: 600, letterSpacing: "0.5px", color: "var(--foreground-muted)" }}>READ ALOUD</span>
+                </div>
+
+                {!isPlaying && !isPaused && (
+                    <button onClick={handleReadAloud} className="btn-primary" style={{ padding: "8px 16px", fontSize: "13px", height: "36px" }}>
+                        <Play size={14} fill="currentColor" /> Play
+                    </button>
+                )}
+
+                {isPlaying && (
+                    <button onClick={pauseSpeaking} className="btn-ghost" style={{ padding: "8px 16px", fontSize: "13px", height: "36px", background: "rgba(255,255,255,0.05)" }}>
+                        <Pause size={14} fill="currentColor" /> Pause
+                    </button>
+                )}
+
+                {isPaused && (
+                    <button onClick={resumeSpeaking} className="btn-primary" style={{ padding: "8px 16px", fontSize: "13px", height: "36px" }}>
+                        <Play size={14} fill="currentColor" /> Resume
+                    </button>
+                )}
+
+                {(isPlaying || isPaused) && (
+                    <button onClick={stopSpeaking} style={{ background: "rgba(255, 50, 50, 0.15)", border: "1px solid rgba(255, 50, 50, 0.3)", color: "#ff4444", borderRadius: "50%", width: "36px", height: "36px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+                        <Square size={14} fill="currentColor" />
+                    </button>
+                )}
+
+                <div style={{ width: "1px", height: "24px", background: "rgba(255, 255, 255, 0.1)", margin: "0 8px" }} />
+
+                <button onClick={handleAskQuestion} className="btn-ghost" style={{ padding: "8px 16px", fontSize: "13px", height: "36px", borderColor: "var(--secondary)", color: "var(--secondary)" }}>
+                    <MessageSquare size={14} /> Ask IQ
+                </button>
+            </div>
+
+            <IQAssistant />
         </main>
     );
 }

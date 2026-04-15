@@ -9,6 +9,7 @@ export async function POST(req: NextRequest) {
 
         const formData = await req.formData();
         const file = formData.get("file") as File;
+        const language = formData.get("language") as string || "en";
 
         if (!file) {
             return NextResponse.json({ error: "No file provided" }, { status: 400 });
@@ -17,7 +18,7 @@ export async function POST(req: NextRequest) {
         const transcription = await openai.audio.transcriptions.create({
             file: file,
             model: "whisper-1",
-            language: "en",
+            language: language,
         });
 
         return NextResponse.json({ text: transcription.text });

@@ -1,7 +1,7 @@
 /**
  * Play high-fidelity IQ Voice (Nova - Calm Female) via the TTS API.
  */
-export async function playIQVoice(text: string, isMuted: boolean = false) {
+export async function playIQVoice(text: string, isMuted: boolean = false, language: string = "en") {
     if (isMuted || !text) {
         if (typeof window !== "undefined" && window.speechSynthesis) {
             window.speechSynthesis.cancel();
@@ -18,7 +18,7 @@ export async function playIQVoice(text: string, isMuted: boolean = false) {
         const response = await fetch("/api/ai/tts", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ text }),
+            body: JSON.stringify({ text, language }),
         });
 
         if (!response.ok) throw new Error("TTS Fetch failed");

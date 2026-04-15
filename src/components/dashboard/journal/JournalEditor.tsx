@@ -75,8 +75,38 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
     const handleTranscription = async (field: 'title' | 'content') => {
         const text = await stopRecording();
         if (text) {
-            if (field === 'title') setTitle(prev => prev + (prev ? " " : "") + text);
-            else setContent(prev => prev + (prev ? " " : "") + text);
+            if (field === 'title') setTitle((prev: string) => prev + (prev ? " " : "") + text);
+            else setContent((prev: string) => prev + (prev ? " " : "") + text);
+        }
+    };
+
+    const handleTranslate = async () => {
+        if (!content && !title) return;
+        setIsProcessingAI(true);
+        try {
+            const res = await fetch("/api/ai/translate", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ 
+                    text: `Title: ${title}\n\nContent: ${content}`,
+                    targetLanguage: lang 
+                })
+            });
+            const data = await res.json();
+            if (data.translated) {
+                // Split back into title and content if possible, or just update content
+                const parts = data.translated.split("\n\nContent: ");
+                if (parts.length === 2) {
+                    setTitle(parts[0].replace("Title: ", ""));
+                    setContent(parts[1]);
+                } else {
+                    setContent(data.translated);
+                }
+            }
+        } catch (e) {
+            console.error("Translation failed", e);
+        } finally {
+            setIsProcessingAI(false);
         }
     };
 
@@ -373,6 +403,13 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
                         padding: "6px 12px", borderRadius: "16px", background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.1)", color: "var(--foreground)", cursor: "pointer"
                     }}>
                         ✂️ {t(lang, "simplify")}
+                    </button>
+
+                    <button onClick={handleTranslate} disabled={isProcessingAI} style={{
+                        display: "flex", alignItems: "center", gap: "4px", fontSize: "12px", whiteSpace: "nowrap",
+                        padding: "6px 12px", borderRadius: "16px", background: "rgba(204, 255, 0, 0.1)", border: "1px solid rgba(204, 255, 0, 0.2)", color: "var(--primary)", cursor: "pointer"
+                    }}>
+                        🪄 {t(lang, "translate")}
                     </button>
 
                     <div style={{ height: "16px", width: "1px", background: "rgba(255,255,255,0.2)", margin: "0 8px" }} />

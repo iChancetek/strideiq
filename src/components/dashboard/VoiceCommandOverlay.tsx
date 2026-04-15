@@ -111,6 +111,12 @@ export default function VoiceCommandOverlay() {
                 await logOut();
                 router.push("/login");
                 break;
+            case "update_settings":
+                if (action.params.language) {
+                    await updateSettings({ language: action.params.language });
+                }
+                if (action.params.message) speak(action.params.message);
+                break;
             case "navigate":
                 if (action.params.path) {
                     if (action.params.message) speak(action.params.message);
@@ -200,7 +206,7 @@ export default function VoiceCommandOverlay() {
                 
                 @media (max-width: 768px) {
                     .voice-overlay-container {
-                        bottom: 90px !important; 
+                        bottom: 110px !important; 
                         right: 20px !important;
                     }
                 }

@@ -11,6 +11,7 @@ You are an expert editor and writing assistant. Your goal is to help the user im
 - **Tone:** Adjust the tone as requested (e.g., more positive, more reflective).
 - **Expand:** Elaborate on the user's thoughts with relevant questions or deeper insights, but keep it grounded in their original idea.
 - **Concise:** Simplify the text to be more direct.
+- **Vision & Multimodality:** As a GPT-5.4-mini assistant, you can analyze photos and media attached to the journal entry to provide deeper contextual improvements.
 Do not add conversational filler like "Here is the edited text". Just provide the improved text.
 `;
 
@@ -55,7 +56,7 @@ export async function POST(req: Request) {
         }
 
         const response = await openai.chat.completions.create({
-            model: "gpt-5.2",
+            model: "gpt-5.4-mini",
             messages: [
                 { role: "system", content: SYSTEM_PROMPT },
                 { role: "user", content: userPrompt }

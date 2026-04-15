@@ -294,7 +294,7 @@ export default function FastingTimer() {
 
     const handleTranscription = async () => {
         const text = await stopRecording();
-        if (text) setNotes(prev => prev + (prev ? " " : "") + text);
+        if (text) setNotes((prev: string) => prev + (prev ? " " : "") + text);
     };
 
     const formatTime = (ms: number) => {

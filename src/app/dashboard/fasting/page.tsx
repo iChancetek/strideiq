@@ -263,7 +263,7 @@ function FastHistoryDetailModal({ item, onClose, onDelete }: { item: any, onClos
 
     const handleTranscription = async () => {
         const text = await stopRecording();
-        if (text) setNotes(prev => prev + (prev ? " " : "") + text);
+        if (text) setNotes((prev: string) => prev + (prev ? " " : "") + text);
     };
 
     const handleSaveEdit = async () => {

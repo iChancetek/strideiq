@@ -106,11 +106,12 @@ export async function POST(req: Request) {
         // 1. Initial Call (Tool Check)
         console.log(`[Chat] Sending request for persona: ${validPersonaId}`);
         const response1 = await openai.chat.completions.create({
-            model: "gpt-4o",
+            model: "gpt-5.4-mini",
             messages: fullMessages as any,
             tools: TOOLS as any,
             tool_choice: "auto",
             temperature: 0.7,
+            max_completion_tokens: 3000,
         });
 
         const msg1 = response1.choices[0].message;
@@ -153,9 +154,10 @@ export async function POST(req: Request) {
 
             // 3. Final Generation with Search Context
             const response2 = await openai.chat.completions.create({
-                model: "gpt-4o",
+                model: "gpt-5.4-mini",
                 messages: fullMessages as any,
                 temperature: 0.7,
+                max_completion_tokens: 3000,
             });
 
             console.log(`[Chat] Final response generated with search context.`);

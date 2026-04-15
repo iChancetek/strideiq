@@ -17,6 +17,7 @@ interface Settings {
     showMap: boolean;
     language: Language;
     privateProfile: boolean;
+    showFloatingControls: boolean;
 }
 
 interface SettingsContextType {
@@ -37,6 +38,7 @@ const defaultSettings: Settings = {
     showMap: true,
     language: "en",
     privateProfile: false,
+    showFloatingControls: true,
 };
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);

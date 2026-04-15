@@ -142,15 +142,19 @@ export default function AICoach() {
         { role: "assistant", content: `Hi! I'm ${activePersona.name}. How can I help you with your ${activePersona.role} today?` }
     ]);
     const [input, setInput] = useState("");
-    const { 
-        isPlaying, 
-        speak: speakVoice, 
-        stopSpeaking, 
-        isRecording, 
-        isTranscribing, 
-        startRecording, 
-        stopRecording 
+    const {
+        isPlaying,
+        speak: speakVoice,
+        stopSpeaking,
+        isRecording,
+        isTranscribing,
+        startRecording,
+        stopRecording
     } = useVoice();
+
+    const [voiceMode, setVoiceMode] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const messagesEndRef = useRef<HTMLDivElement>(null);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -395,7 +399,7 @@ export default function AICoach() {
                         transition: "all 0.2s ease"
                     }}
                 >
-                    {isTranscribing ? <div style={{width: 16, height: 16, border: '2px solid', borderTopColor: 'transparent', borderRadius: '50%'}} className="animate-spin" /> : <Mic size={20} />}
+                    {isTranscribing ? <div style={{ width: 16, height: 16, border: '2px solid', borderTopColor: 'transparent', borderRadius: '50%' }} className="animate-spin" /> : <Mic size={20} />}
                 </button>
 
                 <input

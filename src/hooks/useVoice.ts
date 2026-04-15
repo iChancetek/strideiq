@@ -1,41 +1,18 @@
 import { useState, useCallback, useRef } from 'react';
 import { playIQVoice } from '@/lib/utils/audio';
+import { useSettings } from '@/context/SettingsContext';
 
 export function useVoice() {
+    const { settings } = useSettings();
+    const language = settings.language;
     const [isRecording, setIsRecording] = useState(false);
     const [isTranscribing, setIsTranscribing] = useState(false);
     const [isPlaying, setIsPlaying] = useState(false);
+    const [isPaused, setIsPaused] = useState(false);
     
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const audioChunksRef = useRef<Blob[]>([]);
     const currentAudioRef = useRef<HTMLAudioElement | null>(null);
-
-    // TTS: Speak text
-    const speak = useCallback(async (text: string) => {
-        if (!text) return;
-        
-        // Stop current playback if any
-        stopSpeaking();
-        
-        setIsPlaying(true);
-        try {
-            const audio = await playIQVoice(text);
-            if (audio) {
-                currentAudioRef.current = audio;
-                audio.onended = () => setIsPlaying(false);
-                audio.onerror = () => setIsPlaying(false);
-            } else {
-                // playIQVoice might use window.speechSynthesis as fallback
-                // which doesn't return an Audio object. We'll just assume it's playing
-                // and we can't easily track local speech end without more logic.
-                // But for now, let's keep it simple.
-                // setIsPlaying(false);
-            }
-        } catch (error) {
-            console.error("Speech playback error:", error);
-            setIsPlaying(false);
-        }
-    }, []);
 
     const stopSpeaking = useCallback(() => {
         if (currentAudioRef.current) {
@@ -47,6 +24,62 @@ export function useVoice() {
             window.speechSynthesis.cancel();
         }
         setIsPlaying(false);
+        setIsPaused(false);
+    }, []);
+
+    // TTS: Speak text
+    const speak = useCallback(async (text: string) => {
+        if (!text) return;
+        
+        // Stop current playback if any
+        stopSpeaking();
+        
+        setIsPlaying(true);
+        setIsPaused(false);
+        try {
+            const audio = await playIQVoice(text, false, language);
+            if (audio) {
+                currentAudioRef.current = audio;
+                audio.onended = () => {
+                    setIsPlaying(false);
+                    setIsPaused(false);
+                };
+                audio.onerror = () => {
+                    setIsPlaying(false);
+                    setIsPaused(false);
+                };
+            }
+        } catch (error) {
+            console.error("Speech playback error:", error);
+            setIsPlaying(false);
+            setIsPaused(false);
+        }
+    }, [language, stopSpeaking]);
+
+    const pauseSpeaking = useCallback(() => {
+        if (currentAudioRef.current) {
+            currentAudioRef.current.pause();
+            setIsPlaying(false);
+            setIsPaused(true);
+        }
+        if (typeof window !== "undefined" && window.speechSynthesis) {
+            window.speechSynthesis.pause();
+            setIsPlaying(false);
+            setIsPaused(true);
+        }
+    }, []);
+
+    const resumeSpeaking = useCallback(() => {
+        if (currentAudioRef.current) {
+            currentAudioRef.current.play();
+            setIsPlaying(true);
+            setIsPaused(false);
+        }
+        if (typeof window !== "undefined" && window.speechSynthesis) {
+            window.speechSynthesis.resume();
+            setIsPlaying(true);
+            setIsPaused(false);
+        }
     }, []);
 
     // STT: Capture and Transcribe
@@ -81,6 +114,7 @@ export function useVoice() {
                 const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
                 const formData = new FormData();
                 formData.append("file", new File([audioBlob], "recording.webm"));
+                formData.append("language", language);
 
                 try {
                     const response = await fetch("/api/ai/transcribe", {
@@ -106,7 +140,10 @@ export function useVoice() {
         isRecording,
         isTranscribing,
         isPlaying,
+        isPaused,
         speak,
+        pauseSpeaking,
+        resumeSpeaking,
         stopSpeaking,
         startRecording,
         stopRecording

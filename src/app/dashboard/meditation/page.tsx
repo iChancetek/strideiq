@@ -540,7 +540,7 @@ function PostSessionReflection({ duration, track, onSave, onDiscard }: { duratio
 
     const handleTranscription = async () => {
         const text = await stopRecording();
-        if (text) setNotes(prev => prev + (prev ? " " : "") + text);
+        if (text) setNotes((prev: string) => prev + (prev ? " " : "") + text);
     };
 
     return (

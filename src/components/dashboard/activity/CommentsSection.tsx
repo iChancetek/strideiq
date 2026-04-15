@@ -61,7 +61,7 @@ export default function CommentsSection({ activityId, ownerId }: CommentsSection
     const handleTranscription = async () => {
         const text = await stopRecording();
         if (text) {
-            setNewComment(prev => prev + (prev ? " " : "") + text);
+            setNewComment((prev: string) => prev + (prev ? " " : "") + text);
         }
     };
 

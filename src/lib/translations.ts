@@ -195,6 +195,30 @@ type TranslationKeys = {
     confirmDelete: string;
     confirmDiscard: string;
     saveBeforeLeaving: string;
+
+    // Landing Page
+    heroTitle: string;
+    heroSubtitle: string;
+    tagline: string;
+    getStarted: string;
+    logIn: string;
+    byCTEK: string;
+    multimodalTitle: string;
+    multimodalDesc: string;
+    fastingStageTitle: string;
+    fastingStageDesc: string;
+    workoutIntelTitle: string;
+    workoutIntelDesc: string;
+    pricingTitle: string;
+    freePlan: string;
+    elitePlan: string;
+    pricingDesc: string;
+    readyToTrain: string;
+    joinAthletes: string;
+    getStartedFree: string;
+    copyRights: string;
+    poweredBy: string;
+    learnMore: string;
 };
 
 const translations: Record<Language, TranslationKeys> = {
@@ -360,6 +384,30 @@ const translations: Record<Language, TranslationKeys> = {
         confirmDiscard: "Are you sure you want to DISCARD changes?",
         saveBeforeLeaving: "Do you want to SAVE them before leaving?",
         profileUpdated: "Profile updated successfully!",
+
+        // Landing Page
+        heroTitle: "Elite Performance Intelligence",
+        heroSubtitle: "Democratizing world-class human performance tracking and multimodal AI coaching for elite athletes.",
+        tagline: "The Future of Human Potential",
+        getStarted: "Get Started",
+        logIn: "Log In",
+        byCTEK: "by ChanceTEK Fitness",
+        multimodalTitle: "Multimodal AI Coaching",
+        multimodalDesc: "Talk, text, or share photos of your journey. GPT-5.4 mini analyzes your holistic performance.",
+        fastingStageTitle: "Metabolic IQ",
+        fastingStageDesc: "Track real-time physiological stages like Insulin Drop, Ketosis, and Autophagy.",
+        workoutIntelTitle: "Workout Intelligence",
+        workoutIntelDesc: "Automatic Fat Oxidation estimation and power profiling for every run.",
+        pricingTitle: "Premium Access",
+        freePlan: "Free Tier",
+        elitePlan: "Elite Membership",
+        pricingDesc: "Unlock full metabolic history and multimodal coaching.",
+        readyToTrain: "Ready to train smarter?",
+        joinAthletes: "Join thousands of athletes experiencing the future of autonomous AI coaching. Free to start.",
+        getStartedFree: "Get Started Free",
+        copyRights: "© 2026 StrideIQ Elite. All rights reserved.",
+        poweredBy: "Powered by gpt-5.4-mini Architecture",
+        learnMore: "Learn More",
     },
     es: {
         dashboard: "Tablero",
@@ -523,6 +571,30 @@ const translations: Record<Language, TranslationKeys> = {
         confirmDiscard: "¿Estás seguro de que quieres DESCARTAR los cambios?",
         saveBeforeLeaving: "¿Quieres GUARDARLOS antes de salir?",
         profileUpdated: "¡Perfil actualizado con éxito!",
+
+        // Landing Page
+        heroTitle: "Inteligencia de Alto Rendimiento",
+        heroSubtitle: "Democratizando el seguimiento de rendimiento humano de clase mundial y entrenamiento de IA multimodal.",
+        tagline: "El futuro del potencial humano",
+        getStarted: "Empezar",
+        logIn: "Iniciar Sesión",
+        byCTEK: "por ChanceTEK Fitness",
+        multimodalTitle: "Entrenamiento IA Multimodal",
+        multimodalDesc: "Habla, chatea o comparte fotos. GPT-5.4 mini analiza tu rendimiento holístico.",
+        fastingStageTitle: "Metabolic IQ",
+        fastingStageDesc: "Sigue las etapas fisiológicas en tiempo real como Ketosis y Autofagia.",
+        workoutIntelTitle: "Workout Intelligence",
+        workoutIntelDesc: "Estimación automática de oxidación de grasas y perfiles de potencia.",
+        pricingTitle: "Acceso Premium",
+        freePlan: "Nivel Gratuito",
+        elitePlan: "Membresía Elite",
+        pricingDesc: "Desbloquea el historial metabólico completo y coaching multimodal.",
+        readyToTrain: "¿Listo para entrenar mejor?",
+        joinAthletes: "Únete a miles de atletas que experimentan el futuro del coaching de IA autónomo.",
+        getStartedFree: "Empieza Gratis",
+        copyRights: "© 2026 StrideIQ Elite. Todos los derechos reservados.",
+        poweredBy: "Impulsado por la arquitectura gpt-5.4-mini",
+        learnMore: "Saber Más",
     },
     fr: {
         dashboard: "Tableau de Bord",
@@ -686,6 +758,30 @@ const translations: Record<Language, TranslationKeys> = {
         confirmDiscard: "Êtes-vous sûr de vouloir ABANDONNER les modifications ?",
         saveBeforeLeaving: "Voulez-vous les SAUVEGARDER avant de quitter ?",
         profileUpdated: "Profil mis à jour avec succès !",
+
+        // Landing Page
+        heroTitle: "Intelligence de Performance Élite",
+        heroSubtitle: "Démocratiser le suivi de performance humaine et le coaching d'IA multimodal pour les athlètes d'élite.",
+        tagline: "L'avenir du potentiel humain",
+        getStarted: "Commencer",
+        logIn: "Connexion",
+        byCTEK: "par ChanceTEK Fitness",
+        multimodalTitle: "Coaching d'IA Multimodal",
+        multimodalDesc: "Parlez, écrivez ou partagez des photos. GPT-5.4 mini analyse votre performance globale.",
+        fastingStageTitle: "IQ Métabolique",
+        fastingStageDesc: "Suivez en temps réel les étapes physiologiques comme la Cétose et l'Autophagie.",
+        workoutIntelTitle: "Intelligence d'Entraînement",
+        workoutIntelDesc: "Estimation automatique de l'oxydation des graisses pour chaque course.",
+        pricingTitle: "Accès Premium",
+        freePlan: "Offre Gratuite",
+        elitePlan: "Membre Élite",
+        pricingDesc: "Débloquez l'historique métabolique complet et le coaching multimodal.",
+        readyToTrain: "Prêt à mieux s'entraîner ?",
+        joinAthletes: "Rejoignez des milliers d'athlètes découvrant le futur du coaching IA autonome.",
+        getStartedFree: "Commencer Gratuitement",
+        copyRights: "© 2026 StrideIQ Élite. Tous droits réservés.",
+        poweredBy: "Propulsé par l'architecture gpt-5.4-mini",
+        learnMore: "En Savoir Plus",
     },
     zh: {
         dashboard: "仪表板",
@@ -847,8 +943,32 @@ const translations: Record<Language, TranslationKeys> = {
         unsavedChanges: "你有未保存的更改。",
         confirmDelete: "移至回收站？它将在 30 天内可恢复。",
         confirmDiscard: "确定要放弃更改吗？",
-        saveBeforeLeaving: "离开前要保存吗？",
+        saveBeforeLeaving: "你想在离开前保存吗？",
         profileUpdated: "个人资料更新成功！",
+
+        // Landing Page
+        heroTitle: "精英性能智能",
+        heroSubtitle: "为精英运动员民主化世界级的人类性能追踪和多模态 AI 教练。",
+        tagline: "人类潜力的未来",
+        getStarted: "开始使用",
+        logIn: "登录",
+        byCTEK: "由 ChanceTEK Fitness 提供",
+        multimodalTitle: "多模态 AI 教练",
+        multimodalDesc: "通过语音、文字或照片进行交流。GPT-5.4 mini 分析您的整体表现。",
+        fastingStageTitle: "代谢 IQ",
+        fastingStageDesc: "实时追踪生理阶段，如酮症和细胞自噬。",
+        workoutIntelTitle: "训练智能",
+        workoutIntelDesc: "自动估算每次跑步的脂肪氧化和功率概况。",
+        pricingTitle: "高级访问",
+        freePlan: "免费版",
+        elitePlan: "精英会员",
+        pricingDesc: "解锁完整的代谢历史和多模态教练。",
+        readyToTrain: "准备好更聪明地训练了吗？",
+        joinAthletes: "加入成千上万体验自主 AI 教练未来的运动员。",
+        getStartedFree: "免费开始",
+        copyRights: "© 2026 StrideIQ 精英版。保留所有权利。",
+        poweredBy: "由 gpt-5.4-mini 架构驱动",
+        learnMore: "了解更多",
     },
     ar: {
         dashboard: "لوحة القيادة",
@@ -1010,8 +1130,32 @@ const translations: Record<Language, TranslationKeys> = {
         unsavedChanges: "لديك تغييرات غير محفوظة.",
         confirmDelete: "نقل هذا إلى المهملات؟ سيكون قابلاً للاسترداد لمدة 30 يومًا.",
         confirmDiscard: "هل أنت متأكد أنك تريد تجاهل التغييرات؟",
-        saveBeforeLeaving: "هل تريد حفظها قبل المغادرة؟",
+        saveBeforeLeaving: "هل تريد حفظ التغييرات قبل المغادرة؟",
         profileUpdated: "تم تحديث الملف الشخصي بنجاح!",
+
+        // Landing Page
+        heroTitle: "ذكاء الأداء النخبوي",
+        heroSubtitle: "تسهيل تتبع الأداء البشري العالمي والتدريب الذكي متعدد الوسائط للرياضيين النخبة.",
+        tagline: "مستقبل الإمكانات البشرية",
+        getStarted: "ابدأ الآن",
+        logIn: "تسجيل الدخول",
+        byCTEK: "بواسطة ChanceTEK Fitness",
+        multimodalTitle: "تدريب AI متعدد الوسائط",
+        multimodalDesc: "تحدث أو اكتب أو شارك الصور. يقوم GPT-5.4 mini بتحليل أدائك الشامل.",
+        fastingStageTitle: "ذكاء الأيض",
+        fastingStageDesc: "تتبع المراحل الفسيولوجية في الوقت الفعلي مثل الكيتوزية والالتهام الذاتي.",
+        workoutIntelTitle: "ذكاء التمارين",
+        workoutIntelDesc: "تقدير تلقائي لأكسدة الدهون لمختلف التمارين.",
+        pricingTitle: "الوصول المميز",
+        freePlan: "المستوى المجاني",
+        elitePlan: "عضوية النخبة",
+        pricingDesc: "افتح تاريخ الأيض الكامل والتدريب متعدد الوسائط.",
+        readyToTrain: "هل أنت مستعد للتمرين بذكاء أكبر؟",
+        joinAthletes: "انضم إلى آلاف الرياضيين الذين يعيشون مستقبل التدريب الذكي الذاتي.",
+        getStartedFree: "ابدأ مجاناً",
+        copyRights: "© 2026 StrideIQ النخبة. جميع الحقوق محفوظة.",
+        poweredBy: "مدعوم بمعمارية gpt-5.4-mini",
+        learnMore: "تعرّف على المزيد",
     },
 };
 

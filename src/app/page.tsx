@@ -3,6 +3,7 @@
 import React, { useRef, useState } from "react";
 import Link from "next/link";
 import { useSettings } from "@/context/SettingsContext";
+import { t } from "@/lib/translations";
 import {
   Sun, Moon, Zap, Mic2, CloudSun, Music2, Activity, Home as HomeIcon, ArrowRight, ChevronDown
 } from "lucide-react";
@@ -78,7 +79,8 @@ const agents: Agent[] = [
 ];
 
 export default function Home() {
-  const { settings, toggleTheme } = useSettings();
+  const { settings, toggleTheme, updateSettings } = useSettings();
+  const lang = settings.language;
   const isDark = settings.theme === "dark";
   const [isMuted, setIsMuted] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -99,10 +101,10 @@ export default function Home() {
           position: "absolute",
           top: "-15%",
           left: "-10%",
-          width: "55vw",
-          height: "55vw",
-          background: `radial-gradient(circle, ${isDark ? "rgba(204,255,0,0.07)" : "rgba(139,186,0,0.06)"} 0%, transparent 70%)`,
-          animation: "orb-move 18s ease-in-out infinite",
+          width: "50vw",
+          height: "50vw",
+          background: `radial-gradient(circle, ${isDark ? "rgba(204,255,0,0.08)" : "rgba(163,204,0,0.06)"} 0%, transparent 70%)`,
+          animation: "orb-move 20s ease-in-out infinite",
           borderRadius: "50%",
         }} />
         <div style={{
@@ -149,7 +151,7 @@ export default function Home() {
             Stride<span className="text-gradient">IQ</span> <span style={{ fontSize: "14px", verticalAlign: "top", color: "var(--primary)" }}>ELITE</span>
           </h1>
           <span style={{ fontSize: "11px", color: "var(--foreground-muted)", fontWeight: 400, letterSpacing: "0.4px" }}>
-            by ChanceTEK Fitness
+            {t(lang, "byCTEK")}
           </span>
         </Link>
 
@@ -174,11 +176,38 @@ export default function Home() {
               (e.currentTarget as HTMLAnchorElement).style.background = "transparent";
             }}
           >
-            Log In
+            {t(lang, "logIn")}
           </Link>
           <Link href="/signup" className="btn-primary" style={{ padding: "10px 24px", fontSize: "14px" }}>
-            Get Started
+            {t(lang, "getStarted")}
           </Link>
+          <select
+            value={settings.language}
+            onChange={(e) => updateSettings({ language: e.target.value as any })}
+            style={{
+              background: "var(--surface-glass)",
+              color: "var(--foreground-muted)",
+              border: "1px solid var(--surface-glass-border)",
+              borderRadius: "var(--radius-full)",
+              padding: "8px 12px",
+              fontSize: "13px",
+              outline: "none",
+              cursor: "pointer",
+              transition: "all 0.2s"
+            }}
+          >
+            <option value="en">🇺🇸 EN</option>
+            <option value="es">🇪🇸 ES</option>
+            <option value="fr">🇫🇷 FR</option>
+            <option value="de">🇩🇪 DE</option>
+            <option value="it">🇮🇹 IT</option>
+            <option value="pt">🇵🇹 PT</option>
+            <option value="ar">🇸🇦 AR</option>
+            <option value="hi">🇮🇳 HI</option>
+            <option value="ja">🇯🇵 JA</option>
+            <option value="zh">🇨🇳 ZH</option>
+          </select>
+
           {/* Theme Toggle */}
           <button
             onClick={toggleTheme}
@@ -291,35 +320,29 @@ export default function Home() {
           {/* Pill label */}
           <div className="section-label anim-fade-up" style={{ animationDelay: "0s" }}>
             <Zap size={12} />
-            Powered by GPT-5.2 Architecture
+            {t(lang, "poweredBy")}
           </div>
 
           {/* Headline */}
-          <h1
-            className="anim-fade-up anim-fade-up-delay-1"
-            style={{
-              fontSize: "clamp(44px, 8vw, 86px)",
-              lineHeight: 1.05,
-              marginBottom: "24px",
-              maxWidth: "880px",
-            }}
-          >
-            Intelligent Movement.<br />
-            <span className="text-gradient">Agentic Performance.</span>
+          <h1 style={{
+            fontSize: "clamp(48px, 10vw, 100px)",
+            fontWeight: 900,
+            lineHeight: 0.9,
+            letterSpacing: "-0.04em",
+            marginBottom: "20px",
+          }}>
+            {t(lang, "heroTitle")}
           </h1>
 
           {/* Subheadline */}
-          <p
-            className="anim-fade-up anim-fade-up-delay-2"
-            style={{
-              fontSize: "clamp(17px, 2.5vw, 22px)",
-              color: "var(--foreground-muted)",
-              maxWidth: "640px",
-              lineHeight: 1.7,
-              marginBottom: "48px",
-            }}
-          >
-            The world's first native multimodal fitness platform. StrideIQ Elite leverages GPT-5.2 to perceive, adapt, and coach with human-level intelligence across all activity modes.
+          <p style={{
+            fontSize: "clamp(18px, 2.5vw, 24px)",
+            color: "var(--foreground-muted)",
+            maxWidth: "600px",
+            lineHeight: 1.4,
+            marginBottom: "40px",
+          }}>
+            {t(lang, "heroSubtitle")}
           </p>
 
           {/* CTAs */}
@@ -328,11 +351,11 @@ export default function Home() {
             style={{ display: "flex", gap: "16px", flexWrap: "wrap", justifyContent: "center", marginBottom: "72px" }}
           >
             <Link href="/signup" className="btn-primary" style={{ padding: "16px 40px", fontSize: "16px" }}>
-              Start Training
+              {t(lang, "getStarted")}
               <ArrowRight size={18} />
             </Link>
             <Link href="/learn-more" className="btn-ghost" style={{ padding: "16px 36px", fontSize: "16px" }}>
-              Learn More
+              {t(lang, "learnMore")}
             </Link>
           </div>
 
@@ -353,7 +376,7 @@ export default function Home() {
             ))}
             <div className="stat-badge" style={{ fontSize: "13px", color: "var(--primary)" }}>
               <span style={{ fontWeight: 700, fontSize: "15px" }}>✦</span>
-              Multimodal GPT-5.2
+              Multimodal gpt-5.4-mini
             </div>
           </div>
         </div>{/* end hero content wrapper */}
@@ -406,7 +429,7 @@ export default function Home() {
               marginBottom: "20px",
             }}
           >
-            6 Autonomous AI Agents
+            {t(lang, "multimodalTitle")}
           </h2>
           <p
             style={{
@@ -417,7 +440,7 @@ export default function Home() {
               lineHeight: 1.65,
             }}
           >
-            StrideIQ deploys a team of intelligent agents that work together to deliver a personalized, real-time coaching experience.
+            {t(lang, "multimodalDesc")}
           </p>
         </div>
 
@@ -494,13 +517,13 @@ export default function Home() {
           }}
         >
           <h2 style={{ fontSize: "clamp(28px, 4vw, 44px)", marginBottom: "16px" }}>
-            Ready to train smarter?
+            {t(lang, "readyToTrain")}
           </h2>
           <p style={{ color: "var(--foreground-muted)", fontSize: "17px", marginBottom: "36px", lineHeight: 1.65 }}>
-            Join thousands of athletes experiencing the future of autonomous AI coaching. Free to start.
+            {t(lang, "joinAthletes")}
           </p>
           <Link href="/signup" className="btn-primary" style={{ padding: "16px 48px", fontSize: "16px" }}>
-            Get Started Free
+            {t(lang, "getStartedFree")}
             <ArrowRight size={18} />
           </Link>
         </div>
@@ -524,7 +547,7 @@ export default function Home() {
           <span style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: "16px" }}>
             Stride<span className="text-gradient">IQ</span>
           </span>
-          <span style={{ fontSize: "11px", color: "var(--foreground-subtle)" }}>by ChanceTEK Fitness</span>
+          <span style={{ fontSize: "11px", color: "var(--foreground-subtle)" }}>{t(lang, "byCTEK")}</span>
         </div>
         <div style={{ display: "flex", gap: "24px", flexWrap: "wrap", fontSize: "13px" }}>
           <Link href="/terms" style={{ color: "var(--foreground-subtle)", textDecoration: "none" }} onMouseEnter={e => e.currentTarget.style.color = "#fff"} onMouseLeave={e => e.currentTarget.style.color = "var(--foreground-subtle)"}>Terms</Link>
@@ -533,10 +556,10 @@ export default function Home() {
           <Link href="/learn-more" style={{ color: "var(--foreground-subtle)", textDecoration: "none" }} onMouseEnter={e => e.currentTarget.style.color = "#fff"} onMouseLeave={e => e.currentTarget.style.color = "var(--foreground-subtle)"}>Features</Link>
         </div>
         <p style={{ fontSize: "13px", color: "var(--foreground-subtle)" }}>
-          © 2026 StrideIQ Elite. All rights reserved.
+          {t(lang, "copyRights")}
         </p>
         <p style={{ fontSize: "12px", color: "var(--foreground-subtle)", fontStyle: "italic" }}>
-          Intelligent Movement. Agentic Performance.
+          {t(lang, "tagline")}
         </p>
       </footer>
       <IQAssistant />

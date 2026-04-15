@@ -54,7 +54,7 @@ export default function ManualActivityModal({ isOpen, onClose }: Props) {
 
     const handleTranscription = async () => {
         const text = await stopRecording();
-        if (text) setNotes(prev => prev + (prev ? " " : "") + text);
+        if (text) setNotes((prev: string) => prev + (prev ? " " : "") + text);
     };
 
     if (!isOpen) return null;

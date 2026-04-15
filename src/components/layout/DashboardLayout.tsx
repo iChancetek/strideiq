@@ -169,9 +169,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         )}
 
-        {children}
-        <VoiceCommandOverlay />
-        <IQAssistant />
+        {settings.showFloatingControls && (
+          <>
+            <VoiceCommandOverlay />
+            <IQAssistant />
+          </>
+        )}
       </main>
 
 

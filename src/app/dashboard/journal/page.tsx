@@ -5,6 +5,8 @@ import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { getLocalJournals, saveLocalJournal } from "@/lib/utils/idb";
 import { authenticatedFetch } from "@/lib/api-client";
+import { useVoice } from "@/hooks/useVoice";
+import SpeechControls from "@/components/dashboard/SpeechControls";
 
 interface JournalEntry {
     id: string;
@@ -17,6 +19,7 @@ interface JournalEntry {
 
 export default function JournalDashboard() {
     const { user } = useAuth();
+    const { isPlaying, speak, stopSpeaking } = useVoice();
     const [entries, setEntries] = useState<JournalEntry[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
@@ -255,7 +258,16 @@ export default function JournalDashboard() {
                                         paddingTop: "12px",
                                         borderTop: "1px solid rgba(255,255,255,0.05)",
                                     }}>
-                                        <span style={{ fontSize: "12px", color: "var(--foreground-muted)" }}>📖 Read Entry</span>
+                                        <div onClick={(e) => { e.preventDefault(); e.stopPropagation(); }} style={{ display: "flex", alignItems: "center" }}>
+                                             <SpeechControls 
+                                                onSpeak={() => speak(`${entry.title}. ${entry.content}`)}
+                                                onStopSpeaking={stopSpeaking}
+                                                isPlaying={isPlaying}
+                                                showMic={false}
+                                                size={14}
+                                                label="Listen"
+                                            />
+                                        </div>
                                         <span style={{ fontSize: "16px", color: "var(--foreground-muted)" }}>→</span>
                                     </div>
                                 </article>

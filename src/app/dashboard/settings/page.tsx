@@ -28,7 +28,7 @@ export default function SettingsPage() {
     const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!user || !e.target.files || !e.target.files[0]) return;
         const file = e.target.files[0];
-        if (file.size > 2 * 1024 * 1024) { alert(t(lang, "photoTooLarge")); return; }
+        if (file.size > 25 * 1024 * 1024) { alert(t(lang, "photoTooLarge") + " (Max 25MB)"); return; }
         setUploading(true);
         try {
             const path = `${user.uid}`;
@@ -306,20 +306,23 @@ export default function SettingsPage() {
                     </div>
                 </div>
 
-                {/* Privacy Preferences */}
-                <div className="glass-panel" style={{ padding: "20px", borderRadius: "16px", marginBottom: "20px" }}>
-                    <h3 style={{ marginBottom: "15px", borderBottom: "1px solid rgba(255,255,255,0.1)", paddingBottom: "10px" }}>{t(lang, "privacy")}</h3>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
-                        <div>
-                            <span>{t(lang, "privateProfile")}</span>
-                            <div style={{ fontSize: "12px", color: "var(--foreground-muted)" }}>{t(lang, "privateProfileDesc")}</div>
-                        </div>
-                        <button onClick={() => updateSettings({ privateProfile: !settings.privateProfile })} style={toggleStyle(settings.privateProfile)}>
-                            <div style={toggleKnob(settings.privateProfile)} />
-                        </button>
                     </div>
                     <div style={{ fontSize: "12px", color: settings.privateProfile ? "var(--secondary)" : "var(--primary)", fontWeight: 600, marginTop: "8px" }}>
                         {settings.privateProfile ? `🔒 ${t(lang, "manualApproval")}` : `🔓 ${t(lang, "automaticApproval")}`}
+                    </div>
+                </div>
+
+                {/* Dashboard Cleanup — NEW */}
+                <div className="glass-panel" style={{ padding: "20px", borderRadius: "16px", marginBottom: "20px" }}>
+                    <h3 style={{ marginBottom: "15px", borderBottom: "1px solid rgba(255,255,255,0.1)", paddingBottom: "10px" }}>Dashboard Display</h3>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <div>
+                            <span>Clean Look (Floating Controls)</span>
+                            <div style={{ fontSize: "12px", color: "var(--foreground-muted)" }}>Hide the floating mic and IQ Assistant buttons for a minimal experience.</div>
+                        </div>
+                        <button onClick={() => updateSettings({ showFloatingControls: !settings.showFloatingControls })} style={toggleStyle(settings.showFloatingControls)}>
+                            <div style={toggleKnob(settings.showFloatingControls)} />
+                        </button>
                     </div>
                 </div>
 

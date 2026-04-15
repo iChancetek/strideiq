@@ -45,9 +45,9 @@ export async function POST(req: NextRequest) {
         const text = transcription.text;
         console.log("Transcribed:", text);
 
-        // 2. Determine Intent with GPT-4o
+        // 2. Determine Intent with GPT-5.4-Mini
         const completion = await openai.chat.completions.create({
-            model: "gpt-4o",
+            model: "gpt-5.4-mini",
             messages: [
                 {
                     role: "system",
@@ -68,10 +68,14 @@ export async function POST(req: NextRequest) {
                        - Paths: "/dashboard/journal", "/dashboard/settings", "/dashboard/activities"
                        - Message: A confirmation message like "Opening your Journal now."
 
-                    4. "logout": { "type": "logout", "params": { "message": "Logging you out. See you soon!" } }
+                    4. "update_settings": { "type": "update_settings", "params": { "language": "en" | "es" | "fr" | "de" | "it" | "pt" | "ar" | "hi" | "ja" | "zh", "message": string } }
+                       - Triggers: "switch to Spanish", "change language to French", "set language to English"
+                       - Message: A confirmation message in the TARGET language. E.g. "Cambiando a español ahora."
+                    
+                    5. "logout": { "type": "logout", "params": { "message": "Logging you out. See you soon!" } }
                        - Triggers: "log out", "sign out"
 
-                    5. "unknown": { "type": "unknown", "params": { "message": string } }
+                    6. "unknown": { "type": "unknown", "params": { "message": string } }
                        - Use this for conversational replies or if intent is unclear. 
 
 
@@ -81,6 +85,7 @@ export async function POST(req: NextRequest) {
             ],
             response_format: { type: "json_object" },
             temperature: 0,
+            max_completion_tokens: 500,
         });
 
         const actionJson = completion.choices[0].message.content;
