@@ -600,9 +600,8 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
 
             {showShareModal && (
                 <ShareActivityModal 
-                    isOpen={showShareModal}
                     onClose={() => setShowShareModal(false)}
-                    activityData={{
+                    activity={{
                         type: 'journal',
                         title: title || "My Journal Entry",
                         description: content || "Reflecting on my journey...",
@@ -610,6 +609,7 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
                     }}
                 />
             )}
+
         </div>
     );
 }

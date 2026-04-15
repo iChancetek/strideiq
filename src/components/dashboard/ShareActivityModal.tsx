@@ -5,12 +5,14 @@ import { useState } from "react";
 
 interface ShareActivityModalProps {
     activity: {
-        id: string;
+        id?: string;
         type: string;
-        distance: number;
-        duration: number;
-        date: any;
+        distance?: number;
+        duration?: number;
+        date?: any;
         steps?: number;
+        title?: string;
+        description?: string;
     };
     onClose: () => void;
 }
@@ -19,12 +21,14 @@ export default function ShareActivityModal({ activity, onClose }: ShareActivityM
     const [copied, setCopied] = useState(false);
 
     // Format metrics
-    const distanceStr = `${activity.distance.toFixed(2)} mi`;
-    const shareUrl = `${window.location.origin}/dashboard/activities/${activity.id}`; // In real app, might need a public share link if dashboard is private
-    // Using current URL for now, assuming user might screenshot or share to friends who also use app.
-    // Ideally, we'd have a publicOG image route.
+    const distanceStr = activity.distance ? `${activity.distance.toFixed(2)} mi` : "";
+    const shareUrl = typeof window !== "undefined" ? `${window.location.origin}/dashboard/activities/${activity.id || ""}` : "";
+    
+    const isJournal = activity.type.toLowerCase() === "journal";
+    const shareText = isJournal 
+        ? `Just wrote a new journal entry on StrideIQ: "${activity.title || "My Thoughts"}"`
+        : `I just ran ${distanceStr} on StrideIQ! 🏃‍♂️💨 Check out my stats.`;
 
-    const shareText = `I just ran ${distanceStr} on StrideIQ! 🏃‍♂️💨 Check out my stats.`;
 
     const handleCopy = () => {
         navigator.clipboard.writeText(`${shareText} ${shareUrl}`);
@@ -56,10 +60,13 @@ export default function ShareActivityModal({ activity, onClose }: ShareActivityM
 
                 {/* Preview Card */}
                 <div style={{ background: "linear-gradient(135deg, #222, #111)", padding: "20px", borderRadius: "16px", marginBottom: "30px", border: "1px solid rgba(255,255,255,0.1)", textAlign: "center" }}>
-                    <div style={{ fontSize: "48px", marginBottom: "10px" }}>🔥</div>
-                    <div style={{ fontSize: "24px", fontWeight: "bold" }}>{activity.distance.toFixed(2)} miles</div>
+                    <div style={{ fontSize: "48px", marginBottom: "10px" }}>{isJournal ? "📖" : "🔥"}</div>
+                    <div style={{ fontSize: isJournal ? "18px" : "24px", fontWeight: "bold" }}>
+                        {isJournal ? activity.title : `${activity.distance?.toFixed(2)} miles`}
+                    </div>
                     <div style={{ color: "var(--foreground-muted)" }}>{activity.type.toUpperCase()} • StrideIQ</div>
                 </div>
+
 
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "10px" }}>
                     {/* Native Share (Mobile) */}
