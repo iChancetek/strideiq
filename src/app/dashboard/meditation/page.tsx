@@ -4,7 +4,7 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useActivities } from "@/hooks/useActivities";
-import { Loader2, History, Info, Trash2, Share2, Edit2 } from "lucide-react";
+import { Loader2, History, Info, Trash2, Share2, Edit2, MessageSquare } from "lucide-react";
 import SpeechControls from "@/components/dashboard/SpeechControls";
 import ShareActivityModal from "@/components/dashboard/ShareActivityModal";
 import { useVoice } from "@/hooks/useVoice";
