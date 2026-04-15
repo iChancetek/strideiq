@@ -154,11 +154,24 @@ export default function AICoach() {
 
     const [voiceMode, setVoiceMode] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [thinkingDots, setThinkingDots] = useState("");
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     };
+
+    // Animate thinking dots
+    useEffect(() => {
+        if (!loading) {
+            setThinkingDots("");
+            return;
+        }
+        const interval = setInterval(() => {
+            setThinkingDots(prev => (prev.length >= 3 ? "" : prev + "."));
+        }, 400);
+        return () => clearInterval(interval);
+    }, [loading]);
 
     // Text-to-Speech wrapper
     const handleSpeak = (text: string) => {
