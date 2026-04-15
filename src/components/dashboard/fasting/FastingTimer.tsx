@@ -262,7 +262,8 @@ export default function FastingTimer() {
                 body: JSON.stringify({
                     action: "stop",
                     notes,
-                    media: mediaItems
+                    media: mediaItems,
+                    actualHours: Number((elapsed / 1000 / 3600).toFixed(2))
                 }),
             });
 
@@ -643,9 +644,12 @@ export default function FastingTimer() {
                     padding: "20px"
                 }}>
                     <div className="glass-panel" style={{ width: "100%", maxWidth: "400px", padding: "24px" }}>
-                        <h3 style={{ marginBottom: "16px" }}>Fast Completed!</h3>
-                        <p style={{ fontSize: "14px", color: "var(--foreground-muted)", marginBottom: "20px" }}>
-                            You fasted for {formatTime(elapsed)}. Add some details to your elite metabolic history.
+                        <h3 style={{ marginBottom: "16px", color: "var(--primary)" }}>Fast Completed!</h3>
+                        <p style={{ fontSize: "16px", fontWeight: 700, marginBottom: "8px" }}>
+                            Actual Fast: <span style={{ color: "var(--primary)" }}>{(elapsed / 1000 / 3600).toFixed(2)}h</span>
+                        </p>
+                        <p style={{ fontSize: "13px", color: "var(--foreground-muted)", marginBottom: "20px" }}>
+                            Goal: {goalHours}h • Keep logging your elite metabolic history.
                         </p>
                         
                         <label style={{ display: "block", fontSize: "12px", color: "var(--foreground-muted)", marginBottom: "8px" }}>NOTES</label>

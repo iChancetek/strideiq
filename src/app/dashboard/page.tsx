@@ -3,7 +3,7 @@
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import StatCard from "@/components/dashboard/StatCard";
 import AICoach from "@/components/dashboard/AICoach";
-import DailyAffirmation from "@/components/dashboard/DailyAffirmation";
+import EliteMindset from "@/components/dashboard/EliteMindset";
 import ManualActivityModal from "@/components/dashboard/ManualActivityModal";
 import { useActivities, Activity } from "@/hooks/useActivities";
 import { useTrainingPlan } from "@/hooks/useTrainingPlan";
@@ -122,8 +122,8 @@ export default function Dashboard() {
                         <AICoach />
                     </div>
 
-                    {/* Compact Daily Mindset */}
-                    <DailyAffirmation />
+                    {/* Elite Daily Mindset */}
+                    <EliteMindset />
                 </div>
 
                 {/* Right Column: Activity & Plan */}
