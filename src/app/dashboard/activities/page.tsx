@@ -89,8 +89,12 @@ export default function ActivitiesPage() {
 
     return (
         <div style={{ maxWidth: "640px", margin: "0 auto", paddingBottom: "40px" }}>
-            {/* Back Arrow */}
-            <div style={{ marginBottom: "12px" }}>
+            <div style={{ marginBottom: "16px", marginTop: "16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <Link href="/dashboard" style={{ textDecoration: "none", color: "inherit", display: "flex", alignItems: "baseline", gap: "10px" }}>
+                    <h1 style={{ fontSize: "22px", letterSpacing: "-0.5px", fontFamily: "var(--font-heading)", fontWeight: 800, margin: 0 }}>
+                        Stride<span className="text-gradient">IQ</span> <span style={{ fontSize: "14px", verticalAlign: "top", color: "var(--primary)" }}>ELITE</span>
+                    </h1>
+                </Link>
                 <Link href="/dashboard" style={{
                     display: "inline-flex",
                     alignItems: "center",
