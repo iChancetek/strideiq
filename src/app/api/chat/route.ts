@@ -81,6 +81,35 @@ const TOOLS = [
                 required: ["query"]
             }
         }
+    },
+    {
+        type: "function",
+        function: {
+            name: "get_health_stats",
+            description: "Retrieve the user's current health and biometric stats like Heart Rate, Blood Pressure, and Daily Steps. Use this when the user asks 'what is my heart rate', 'what are my steps', etc.",
+            parameters: {
+                type: "object",
+                properties: {},
+            }
+        }
+    },
+    {
+        type: "function",
+        function: {
+            name: "perform_ui_action",
+            description: "Perform an action in the application on behalf of the user. Navigate to specific screens or trigger flows. Use this whenever the user asks to 'start a walk', 'begin fasting', 'open journal', 'view history', etc.",
+            parameters: {
+                type: "object",
+                properties: {
+                    action: {
+                        type: "string",
+                        enum: ["start_run", "start_walk", "start_bike", "start_hike", "start_fast", "start_meditation", "open_journal", "open_training", "view_history"],
+                        description: "The specific action/navigation the user wants to take."
+                    }
+                },
+                required: ["action"]
+            }
+        }
     }
 ] as const;
 
@@ -140,6 +169,12 @@ export async function POST(req: Request) {
                         searchResult = await tavilySearch(args.query);
                     } else if (toolName === "tavily_search_youtube") {
                         searchResult = await tavilySearch(`${args.query} site:youtube.com`);
+                    } else if (toolName === "perform_ui_action") {
+                        searchResult = `UI action '${args.action}' executed successfully. Tell the user you are starting or opening it now.`;
+                    } else if (toolName === "get_health_stats") {
+                        // Simulate stats fetch. In a real app, these would come from the request context or agent core.
+                        // We will add the instruction for the client to parse this action as well.
+                        searchResult = `Command to fetch stats triggered.`;
                     }
 
                     return {
@@ -160,8 +195,17 @@ export async function POST(req: Request) {
                 max_completion_tokens: 3000,
             });
 
-            console.log(`[Chat] Final response generated with search context.`);
-            return NextResponse.json({ message: response2.choices[0].message });
+            const finalMessage = response2.choices[0].message as any;
+            
+            // Attach UI actions if present so the frontend can execute them
+            const uiActionCall = msg1.tool_calls.find(t => t.function.name === "perform_ui_action" || t.function.name === "get_health_stats");
+            if (uiActionCall) {
+                const args = JSON.parse(uiActionCall.function.arguments || "{}");
+                finalMessage.uiAction = uiActionCall.function.name === "get_health_stats" ? "get_health_stats" : args.action;
+            }
+
+            console.log(`[Chat] Final response generated with context.`);
+            return NextResponse.json({ message: finalMessage });
         }
 
         // Direct Response (no tools needed)

@@ -21,6 +21,8 @@ export const viewport = {
 };
 
 import { SettingsProvider } from "@/context/SettingsContext";
+import { ActivitiesProvider } from "@/context/ActivitiesContext";
+import { StepTrackerInit } from "@/components/dashboard/StepTrackerInit";
 
 export default function RootLayout({
   children,
@@ -38,7 +40,10 @@ export default function RootLayout({
       <body className={`${inter.variable} ${outfit.variable} ${playfair.variable}`} suppressHydrationWarning>
         <AuthContextProvider>
           <SettingsProvider>
-            {children}
+            <ActivitiesProvider>
+              <StepTrackerInit />
+              {children}
+            </ActivitiesProvider>
           </SettingsProvider>
         </AuthContextProvider>
       </body>

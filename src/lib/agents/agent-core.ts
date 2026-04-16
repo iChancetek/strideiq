@@ -235,6 +235,11 @@ export class AgentCore {
         return this.pulseAgent.getCurrentBpm();
     }
 
+    /** Get current blood pressure estimation from the pulse agent */
+    getBloodPressure(): { systolic: number; diastolic: number } {
+        return this.pulseAgent.getCurrentBP();
+    }
+
     /** Clean up */
     destroy(): void {
         this.voiceService.cancel();

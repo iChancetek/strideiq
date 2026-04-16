@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { PERSONAS, PersonaId } from "@/lib/ai/personas";
 import { useVoice } from "@/hooks/useVoice";
 import { Mic, Volume2 } from "lucide-react";
@@ -135,6 +136,7 @@ function RenderRichContent({ text }: { text: string }) {
 }
 
 export default function AICoach() {
+    const router = useRouter();
     const [currentPersonaId, setCurrentPersonaId] = useState<PersonaId>("onyx");
     const activePersona = PERSONAS[currentPersonaId];
 
@@ -229,8 +231,24 @@ export default function AICoach() {
                 if (voiceMode) handleSpeak(errorMsg);
             } else {
                 const reply = data.message.content;
-                setMessages(prev => [...prev, { role: "assistant", content: reply }]);
-                if (voiceMode) handleSpeak(reply);
+                if (reply) {
+                    setMessages(prev => [...prev, { role: "assistant", content: reply }]);
+                    if (voiceMode) handleSpeak(reply);
+                }
+
+                if (data.message.uiAction) {
+                    const action = data.message.uiAction;
+                    setTimeout(() => {
+                        if (action === "start_run") router.push("/dashboard/activities/new?type=run");
+                        else if (action === "start_walk") router.push("/dashboard/activities/new?type=walk");
+                        else if (action === "start_bike") router.push("/dashboard/activities/new?type=bike");
+                        else if (action === "start_hike") router.push("/dashboard/activities/new?type=hike");
+                        else if (action === "start_fast") router.push("/dashboard/fasting");
+                        else if (action === "start_meditation") router.push("/dashboard/meditation");
+                        else if (action === "open_journal") router.push("/dashboard/journal/new");
+                        else if (action === "open_training") router.push("/dashboard/training/onboarding");
+                    }, voiceMode ? 2000 : 0); // Give the AI time to speak before jumping
+                }
             }
         } catch (err) {
             console.error(err);

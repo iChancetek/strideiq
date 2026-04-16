@@ -88,6 +88,7 @@ export default function SessionTracker() {
     const [sessionRestoreData, setSessionRestoreData] = useState<any>(null); // orphaned session from prior page load
     const [isRestoring, setIsRestoring] = useState(false);
     const [heartRate, setHeartRate] = useState(0);
+    const [bloodPressure, setBloodPressure] = useState<{ systolic: number; diastolic: number }>({ systolic: 0, diastolic: 0 });
 
     const watchId = useRef<number | null>(null);
     const lastAcceptedPos = useRef<[number, number] | null>(null);
@@ -286,9 +287,10 @@ export default function SessionTracker() {
                 lastTickRef.current = now;
                 setElapsedTime(Math.floor(activeTimeRef.current));
                 
-                // Poll heart rate from agent core
+                // Poll heart rate & BP from agent core
                 if (agentCoreRef.current) {
                     setHeartRate(agentCoreRef.current.getHeartRate());
+                    setBloodPressure(agentCoreRef.current.getBloodPressure());
                 }
                 
                 persistSession(); // write snapshot every second
@@ -766,6 +768,18 @@ export default function SessionTracker() {
                             <div style={{ fontSize: "28px", fontWeight: "bold" }}>{steps.toLocaleString()}</div>
                         </div>
                     </div>
+                    
+                    <div style={{ display: "flex", gap: "24px", marginTop: "12px", background: "rgba(255,255,255,0.05)", padding: "16px 32px", borderRadius: "var(--radius-full)" }}>
+                        <div style={{ textAlign: "center" }}>
+                            <div style={{ fontSize: "11px", color: "var(--foreground-muted)", textTransform: "uppercase" }}>Pulse</div>
+                            <div style={{ fontSize: "24px", fontWeight: "bold", color: "var(--primary)" }}>{heartRate > 0 ? heartRate : "--"} <span style={{ fontSize: "12px", color: "var(--foreground-muted)" }}>bpm</span></div>
+                        </div>
+                        <div style={{ width: "1px", background: "rgba(255,255,255,0.1)" }} />
+                        <div style={{ textAlign: "center" }}>
+                            <div style={{ fontSize: "11px", color: "var(--foreground-muted)", textTransform: "uppercase" }}>Blood Pressure</div>
+                            <div style={{ fontSize: "24px", fontWeight: "bold", color: "#ff4444" }}>{bloodPressure.systolic > 0 ? `${bloodPressure.systolic}/${bloodPressure.diastolic}` : "--/--"} <span style={{ fontSize: "12px", color: "var(--foreground-muted)" }}>mmHg</span></div>
+                        </div>
+                    </div>
 
                     {mileSplits.length > 0 && (
                         <div style={{ width: "100%", maxWidth: "300px" }}>
@@ -905,6 +919,19 @@ export default function SessionTracker() {
                 <div>
                     <div style={{ fontSize: "11px", color: "var(--foreground-muted)" }}>{t(lang, "steps").toUpperCase()}</div>
                     <div style={{ fontSize: "20px", fontWeight: "bold" }}>{steps.toLocaleString()}</div>
+                </div>
+            </div>
+
+            {/* Biometrics Overlay */}
+            <div className="glass-panel" style={{ position: "absolute", top: 88, left: 20, zIndex: 400, padding: "10px 16px", display: "flex", gap: "16px", borderRadius: "var(--radius-full)", background: "rgba(0,0,0,0.6)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <span style={{ fontSize: "16px", animation: heartRate > 0 ? "pulse 1s infinite" : "none" }}>❤️</span>
+                    <span style={{ fontSize: "18px", fontWeight: "bold", color: "var(--primary)" }}>{heartRate > 0 ? heartRate : "--"}</span>
+                </div>
+                <div style={{ width: "1px", background: "rgba(255,255,255,0.2)" }} />
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <span style={{ fontSize: "16px" }}>🩸</span>
+                    <span style={{ fontSize: "18px", fontWeight: "bold", color: "#ff4444" }}>{bloodPressure.systolic > 0 ? `${bloodPressure.systolic}/${bloodPressure.diastolic}` : "--/--"}</span>
                 </div>
             </div>
 

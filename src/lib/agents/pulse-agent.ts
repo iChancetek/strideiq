@@ -136,6 +136,22 @@ export class PulseAgent {
         return this.lastBpm;
     }
 
+    // Estimated BP based on HR correlation and typical adult baselines
+    getCurrentBP(): { systolic: number; diastolic: number } {
+        if (this.lastBpm === 0) return { systolic: 0, diastolic: 0 };
+        
+        // Basic heuristic: BP rises with HR. 
+        // Baseline: 110/70. Every 10 BPM over 60 adds roughly 5 sys and 3 dia points.
+        const hrDelta = Math.max(0, this.lastBpm - 60);
+        const systolic = 110 + (hrDelta * 0.5);
+        const diastolic = 70 + (hrDelta * 0.3);
+        
+        return {
+            systolic: Math.round(systolic),
+            diastolic: Math.round(diastolic)
+        };
+    }
+
     getIsRunning(): boolean {
         return this.isRunning;
     }

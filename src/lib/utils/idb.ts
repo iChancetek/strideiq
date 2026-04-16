@@ -78,11 +78,30 @@ export const getDB = () => {
         if (!db.objectStoreNames.contains('sync_queue')) {
           db.createObjectStore('sync_queue', { keyPath: 'id', autoIncrement: true });
         }
+
+        // Daily Steps
+        if (!db.objectStoreNames.contains('daily_steps')) {
+          db.createObjectStore('daily_steps', { keyPath: 'date' });
+        }
       },
     });
   }
   return dbPromise;
 };
+
+// --- Daily Steps Helpers ---
+export async function saveDailySteps(date: string, steps: number) {
+  const db = await getDB();
+  if (!db) return;
+  return db.put('daily_steps', { date, steps, lastUpdated: new Date().toISOString() });
+}
+
+export async function getDailySteps(date: string): Promise<number> {
+  const db = await getDB();
+  if (!db) return 0;
+  const entry = await db.get('daily_steps', date);
+  return entry?.steps || 0;
+}
 
 // --- Journal Helpers ---
 export async function saveLocalJournal(entry: JournalDraft) {
