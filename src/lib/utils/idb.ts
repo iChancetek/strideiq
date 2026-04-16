@@ -26,6 +26,10 @@ export type ActiveSession =
         mode: string;
         environment: string;
         path?: [number, number][]; // Persist the coordinates trace
+        mileSplits?: any[];
+        lastMileActiveTime?: number;
+        lastMileCompleted?: number;
+        heartRate?: number;
       }; 
       lastHeartbeat: string;
     }

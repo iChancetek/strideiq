@@ -215,6 +215,7 @@ export default function SessionTracker() {
                     mileSplits: agentCoreRef.current?.getMileSplits() || [],
                     lastMileActiveTime: (agentCoreRef.current as any)?.lastMileActiveTime || 0,
                     lastMileCompleted: (agentCoreRef.current as any)?.lastMileCompleted || 0,
+                    heartRate,
                 }
             });
         } catch (e) { /* ignore storage errors */ }
