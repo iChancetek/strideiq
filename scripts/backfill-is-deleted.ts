@@ -39,3 +39,5 @@ backfill().catch(err => {
     console.error('Backfill failed:', err);
     process.exit(1);
 });
+
+export {};

@@ -56,3 +56,5 @@ recalculate().catch(err => {
     console.error('Recalculation failed:', err);
     process.exit(1);
 });
+
+export {};
