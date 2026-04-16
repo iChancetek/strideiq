@@ -405,3 +405,45 @@ function TimelineStage({ time, title, desc, isPrimary, isHighlight, isElite }: {
         </div>
     );
 }
+
+
+function Badge({ label }: { label: string }) {
+    return (
+        <span style={{ padding: "4px 10px", borderRadius: "10px", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", fontSize: "11px", fontWeight: 700, color: "var(--foreground-muted)" }}>
+            {label}
+        </span>
+    );
+}
+
+function ScanBar({ label, progress, active }: { label: string, progress: number, active?: boolean }) {
+    return (
+        <div style={{ fontSize: "13px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
+                <span style={{ color: active ? "#fff" : "var(--foreground-muted)" }}>{label}</span>
+                <span style={{ color: active ? "var(--primary)" : "var(--foreground-muted)" }}>{progress}%</span>
+            </div>
+            <div style={{ height: "4px", background: "rgba(255,255,255,0.05)", borderRadius: "2px", overflow: "hidden" }}>
+                <div style={{ height: "100%", width: `${progress}%`, background: active ? "var(--primary)" : "rgba(255,255,255,0.2)", transition: "width 0.5s ease" }} />
+            </div>
+        </div>
+    );
+}
+
+function CommandCard({ icon, title, commands, onPlay }: { icon: string, title: string, commands: string[], onPlay: (c: string) => void }) {
+    return (
+        <div className="glass-panel" style={{ padding: "30px", borderRadius: "24px" }}>
+            <div style={{ fontSize: "32px", marginBottom: "16px" }}>{icon}</div>
+            <h3 style={{ fontSize: "20px", marginBottom: "20px" }}>{title}</h3>
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                {commands.map((c, i) => (
+                    <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", background: "rgba(255,255,255,0.03)", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.05)" }}>
+                        <code style={{ fontSize: "13px", color: "var(--primary)" }}>"{c}"</code>
+                        <button onClick={() => onPlay(c)} style={{ background: "none", border: "none", color: "var(--foreground-muted)", cursor: "pointer", display: "flex", alignItems: "center" }}>
+                            <Volume2 size={14} />
+                        </button>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
