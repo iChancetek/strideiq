@@ -22,7 +22,7 @@ export default function ManualActivityModal({ isOpen, onClose }: Props) {
     const [loading, setLoading] = useState(false);
 
     const [title, setTitle] = useState("");
-    const [type, setType] = useState<"Run" | "Walk" | "Bike" | "Hike" | "HIIT" | "Meditation" | "Fasting" | "Journal" | "Daily Steps">("Run");
+    const [type, setType] = useState<"Run" | "Walk" | "Bike" | "Hike" | "HIIT" | "Meditation" | "Fasting" | "Journal" | "Daily Steps" | "Weight Training" | "Yoga" | "Aerobics">("Run");
     const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
     const [time, setTime] = useState("12:00");
     const [distance, setDistance] = useState("0");
@@ -415,6 +415,9 @@ export default function ManualActivityModal({ isOpen, onClose }: Props) {
                                 <option value="HIIT">HIIT Workout</option>
                                 <option value="Journal">Journal Entry</option>
                                 <option value="Daily Steps">Daily Steps Finalize</option>
+                                <option value="Weight Training">Weight Training</option>
+                                <option value="Yoga">Yoga</option>
+                                <option value="Aerobics">Aerobics</option>
                             </select>
                         </div>
                         <div style={{ flex: 1 }}>

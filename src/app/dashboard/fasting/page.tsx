@@ -200,7 +200,7 @@ export default function FastingPage() {
                                             <div style={{ fontWeight: 700, fontSize: "14px" }}>
                                                 {new Date(log.date).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
                                             </div>
-                                            <div style={{ fontSize: "10px", color: "var(--foreground-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>{log.mode || "Custom"}</div>
+                                            <div style={{ fontSize: "10px", color: "var(--foreground-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>{log.mode || ""}</div>
                                         </div>
                                     </div>
                                     <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
@@ -258,7 +258,7 @@ function FastHistoryDetailModal({ item, onClose, onDelete }: { item: any, onClos
 
     const handleSpeak = () => {
         const hours = (Number(item.duration) / 3600).toFixed(1);
-        speak(`Fasting session completed on ${new Date(item.date).toLocaleDateString()}. Total duration: ${hours} hours. Metabolic stage: ${item.mode || "Custom"}. Notes: ${item.notes || "No notes recorded."}`);
+        speak(`Fasting session completed on ${new Date(item.date).toLocaleDateString()}. Total duration: ${hours} hours. Metabolic stage: ${item.mode || ""}. Notes: ${item.notes || "No notes recorded."}`);
     };
 
     const handleTranscription = async () => {

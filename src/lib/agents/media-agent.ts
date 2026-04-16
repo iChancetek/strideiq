@@ -13,6 +13,9 @@ const BPM_RECOMMENDATIONS: Record<ActivityMode, { min: number; max: number; labe
     hiit: { min: 140, max: 170, label: "Intense HIIT power beats" },
     journal: { min: 50, max: 70, label: "Chill acoustic journaling" },
     steps: { min: 90, max: 110, label: "Steady walking rhythm" },
+    weights: { min: 120, max: 140, label: "Intense power lifting beats" },
+    yoga: { min: 60, max: 80, label: "Relaxing flow and balance" },
+    aerobics: { min: 130, max: 150, label: "Upbeat rhythmic cardio" },
 };
 
 export class MediaAgent {

@@ -429,7 +429,7 @@ export default function MeditationPage() {
                 <section style={{ marginTop: "80px", textAlign: "left", maxWidth: "600px", margin: "80px auto 0" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "20px" }}>
                         <History size={20} color="var(--primary)" />
-                        <h2 style={{ fontSize: "20px", fontWeight: 700 }}>Recovery History</h2>
+                        <h2 style={{ fontSize: "20px", fontWeight: 700 }}>Recent Meditation Sessions</h2>
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                         {activities.filter(a => a.type === "Meditation").slice(0, 10).map(m => (

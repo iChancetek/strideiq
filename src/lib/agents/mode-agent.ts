@@ -76,6 +76,30 @@ const MODE_CONFIGS: Record<ActivityMode, ModeConfig> = {
         coachingStyle: "wellness",
         caloriesPerMile: 0,
     },
+    weights: {
+        mode: "weights",
+        speedThresholdMph: 0,
+        autoPauseSensitivity: "low",
+        displayMetric: "min/mile",
+        coachingStyle: "performance",
+        caloriesPerMile: 0, // Duration based, typically ~300-500/hr depending on intensity
+    },
+    yoga: {
+        mode: "yoga",
+        speedThresholdMph: 0,
+        autoPauseSensitivity: "low",
+        displayMetric: "min/mile",
+        coachingStyle: "wellness",
+        caloriesPerMile: 0,
+    },
+    aerobics: {
+        mode: "aerobics",
+        speedThresholdMph: 0,
+        autoPauseSensitivity: "low",
+        displayMetric: "min/mile",
+        coachingStyle: "endurance",
+        caloriesPerMile: 0,
+    },
 };
 
 // Sensitivity overrides — how many consecutive "slow" readings before auto-pause triggers
@@ -104,10 +128,13 @@ export function getActivityLabel(mode: ActivityMode): string {
         case "hiit": return "HIIT";
         case "journal": return "Journal";
         case "steps": return "Daily Steps";
+        case "weights": return "Weight Training";
+        case "yoga": return "Yoga";
+        case "aerobics": return "Aerobics";
     }
 }
 
-export function getActivityType(mode: ActivityMode): "Run" | "Walk" | "Bike" | "Hike" | "Meditation" | "Fasting" | "HIIT" | "Journal" | "Daily Steps" {
+export function getActivityType(mode: ActivityMode): "Run" | "Walk" | "Bike" | "Hike" | "Meditation" | "Fasting" | "HIIT" | "Journal" | "Daily Steps" | "Weight Training" | "Yoga" | "Aerobics" {
     switch (mode) {
         case "run": return "Run";
         case "walk": return "Walk";
@@ -118,5 +145,8 @@ export function getActivityType(mode: ActivityMode): "Run" | "Walk" | "Bike" | "
         case "hiit": return "HIIT";
         case "journal": return "Journal";
         case "steps": return "Daily Steps";
+        case "weights": return "Weight Training";
+        case "yoga": return "Yoga";
+        case "aerobics": return "Aerobics";
     }
 }

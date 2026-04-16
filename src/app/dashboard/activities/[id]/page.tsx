@@ -47,7 +47,7 @@ export default function ActivityDetailPage() {
     const [editDurationSec, setEditDurationSec] = useState("");
     const [editCalories, setEditCalories] = useState("");
     const [editNotes, setEditNotes] = useState("");
-    const [editType, setEditType] = useState<"Run" | "Walk" | "Bike" | "Hike" | "HIIT" | "Fasting" | "Meditation" | "Journal" | "Daily Steps">("Run");
+    const [editType, setEditType] = useState<"Run" | "Walk" | "Bike" | "Hike" | "HIIT" | "Fasting" | "Meditation" | "Journal" | "Daily Steps" | "Weight Training" | "Yoga" | "Aerobics">("Run");
 
     const [editStartTime, setEditStartTime] = useState("");
     const [editEndTime, setEditEndTime] = useState("");

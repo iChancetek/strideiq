@@ -1,7 +1,7 @@
 import { openDB, IDBPDatabase } from 'idb';
 
 const DB_NAME = 'strideiq_local_db';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 export interface JournalDraft {
   id: string; // Temporary or actual ID

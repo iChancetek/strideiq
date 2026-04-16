@@ -4,11 +4,12 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 import { useAuth } from "@/context/AuthContext";
 import { Language } from "@/lib/translations";
 import { authenticatedFetch } from "@/lib/api-client";
+import { ActivityMode } from "@/lib/agents/types";
 
 interface Settings {
     theme: "light" | "dark";
     units: "imperial" | "metric";
-    activityMode: "run" | "walk" | "bike" | "hike" | "meditation" | "fasting";
+    activityMode: ActivityMode;
     environment: "outdoor" | "indoor";
     voiceCoaching: boolean;
     weatherAnnouncements: boolean;

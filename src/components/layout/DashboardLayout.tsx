@@ -21,6 +21,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router = useRouter();
   const pathname = usePathname();
   const greetingTriggered = useRef(false);
+  const mainRef = useRef<HTMLElement>(null);
+
+  // Scroll to top on route change
+  useEffect(() => {
+    if (mainRef.current) mainRef.current.scrollTop = 0;
+    window.scrollTo(0, 0);
+  }, [pathname]);
 
   useEffect(() => {
     if (!loading) {
@@ -121,6 +128,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <div style={{ display: "flex", minHeight: "100svh" }}>
       <Sidebar onLogout={handleLogout} />
       <main
+        ref={mainRef}
         style={{
           flex: 1,
           marginLeft: "0",
@@ -134,7 +142,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         className="main-content"
       >
 
-        {/* Global Back Button */}
+        {/* Global Logo and Back Button */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "20px" }}>
+          <Link href="/dashboard" style={{ textDecoration: "none", color: "inherit", display: "flex", alignItems: "baseline", gap: "10px" }}>
+            <h1 style={{ fontSize: "22px", letterSpacing: "-0.5px", fontFamily: "var(--font-heading)", fontWeight: 800 }}>
+              Stride<span className="text-gradient">IQ</span> <span style={{ fontSize: "14px", verticalAlign: "top", color: "var(--primary)" }}>ELITE</span>
+            </h1>
+            <span style={{ fontSize: "11px", color: "var(--foreground-muted)", fontWeight: 400, letterSpacing: "0.4px" }}>
+              {t(lang, "byCTEK")}
+            </span>
+          </Link>
+        </div>
+
         {showBackButton && (
           <div className="back-button-wrapper">
             <button

@@ -32,10 +32,13 @@ export default function RunPage() {
         { id: "run", label: "Run", icon: "🏃", color: "var(--primary)", desc: "Track pace & distance" },
         { id: "walk", label: "Walk", icon: "🚶", color: "#00E5FF", desc: "Count steps & relax" },
         { id: "bike", label: "Bike", icon: "🚴", color: "#FF9100", desc: "Speed & elevation" },
-        { id: "hike", label: "Hike", icon: "🥾", color: "#4CAF50", desc: "Trail & elevation" }
+        { id: "hike", label: "Hike", icon: "🥾", color: "#4CAF50", desc: "Trail & elevation" },
+        { id: "weights", label: "Weights", icon: "🏋️", color: "#FF3366", desc: "Strength & power" },
+        { id: "yoga", label: "Yoga", icon: "🧘‍♀️", color: "#9D4EDD", desc: "Flow & balance" },
+        { id: "aerobics", label: "Aerobics", icon: "🤸", color: "#E040FB", desc: "Upbeat cardio" }
     ];
 
-    const handleSelect = (mode: "run" | "walk" | "bike" | "hike") => {
+    const handleSelect = (mode: "run" | "walk" | "bike" | "hike" | "weights" | "yoga" | "aerobics") => {
         updateSettings({ activityMode: mode });
         setView("tracker");
     };
