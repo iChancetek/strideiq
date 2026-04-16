@@ -2,7 +2,7 @@ const dotenv = require('dotenv');
 dotenv.config({ path: '.env.local' });
 dotenv.config();
 
-const { adminDb } = require('../lib/firebase/admin');
+const { adminDb } = require('../src/lib/firebase/admin');
 
 async function backfill() {
     console.log('--- BACKFILL isDeleted START ---');

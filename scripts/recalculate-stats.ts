@@ -2,8 +2,8 @@ const dotenv = require('dotenv');
 dotenv.config({ path: '.env.local' });
 dotenv.config();
 
-const { adminDb } = require('../lib/firebase/admin');
-const { updateUserStats } = require('../lib/server/activity-service');
+const { adminDb } = require('../src/lib/firebase/admin');
+const { updateUserStats } = require('../src/lib/server/activity-service');
 
 async function recalculate() {
     console.log('--- RECALCULATE STATS START ---');
