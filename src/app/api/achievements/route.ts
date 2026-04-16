@@ -37,7 +37,7 @@ export async function GET(req: Request) {
                     ...data,
                     date: data.date?.toDate ? data.date.toDate() : new Date(data.date)
                 };
-            }).sort((a, b) => a.date.getTime() - b.date.getTime());
+            }).sort((a, b) => a.date.getTime() - b.date.getTime()) as any[];
 
             if (activities.length > 0) {
                let totalMiles = 0;
