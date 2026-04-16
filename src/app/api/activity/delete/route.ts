@@ -45,33 +45,11 @@ export async function DELETE(req: Request) {
         });
 
         // ────────────────────────────────────────────────────────────
-        // Decrement aggregated stats (Maintenance)
+        // Decrement aggregated stats (Centralized)
         // ────────────────────────────────────────────────────────────
-        try {
-            const dateObj = new Date(activity.date.toDate ? activity.date.toDate() : activity.date);
-            const monthKey = `${dateObj.getFullYear()}-${(dateObj.getMonth() + 1).toString().padStart(2, "0")}`;
+        const { decrementUserStats } = await import("@/lib/server/activity-service");
+        await decrementUserStats(userId, activity);
 
-            const userDocRef = adminDb.collection("users").doc(userId);
-            const allTimeRef = userDocRef.collection("stats").doc("allTime");
-            const monthlyRef = userDocRef.collection("stats").doc(monthKey);
-
-            await Promise.all([
-                allTimeRef.set({
-                    totalMiles: FieldValue.increment(-(activity.distance || 0)),
-                    totalRuns: FieldValue.increment(-1),
-                    totalTime: FieldValue.increment(-(activity.duration || 0)),
-                    lastUpdated: FieldValue.serverTimestamp(),
-                }, { merge: true }),
-                monthlyRef.set({
-                    totalMiles: FieldValue.increment(-(activity.distance || 0)),
-                    totalRuns: FieldValue.increment(-1),
-                    totalTime: FieldValue.increment(-(activity.duration || 0)),
-                    lastUpdated: FieldValue.serverTimestamp(),
-                }, { merge: true })
-            ]);
-        } catch (statsErr) {
-            console.error("Stats decrement failed (non-fatal):", statsErr);
-        }
 
         return NextResponse.json({ success: true });
     } catch (error: any) {

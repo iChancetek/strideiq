@@ -79,6 +79,30 @@ export async function PUT(req: Request) {
 
         await entryRef.update(finalUpdates);
 
+        // ────────────────────────────────────────────────────────────
+        // Synchronize aggregated stats if critical fields changed
+        // ────────────────────────────────────────────────────────────
+        const criticalFieldsChanged = 
+            updates.distance !== undefined || 
+            updates.duration !== undefined || 
+            updates.type !== undefined ||
+            updates.date !== undefined;
+
+        if (criticalFieldsChanged) {
+            const { updateUserStats, decrementUserStats } = await import("@/lib/server/activity-service");
+            // 1. Decrement old stats
+            await decrementUserStats(userId, data);
+            
+            // 2. Increment new stats with merged data
+            const mergedActivity = {
+                ...data,
+                ...finalUpdates,
+                id: activityId,
+                date: finalUpdates.date ? new Date(finalUpdates.date) : (data.date.toDate ? data.date.toDate() : new Date(data.date))
+            };
+            await updateUserStats(userId, mergedActivity);
+        }
+
         return NextResponse.json({ success: true });
 
     } catch (error: any) {

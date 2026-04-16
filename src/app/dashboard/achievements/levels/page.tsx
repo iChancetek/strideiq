@@ -57,8 +57,8 @@ function LevelsContent() {
 
                 {/* Hero */}
                 <div style={{ marginBottom: "60px" }}>
-                    <div style={{ width: "120px", height: "140px", margin: "0 auto 30px" }}>
-                        <AchievementBadge type="level" variant={currentLevel.variant as any} label="" count={type === "Run" ? "RUN" : type[0]} />
+                    <div style={{ width: "120px", margin: "0 auto 30px" }}>
+                        <AchievementBadge type="level" size="lg" variant={currentLevel.variant as any} label="" count={type === "Run" ? "RUN" : type[0]} />
                     </div>
                     <p style={{ fontSize: "16px", fontWeight: 600 }}>Keep it up! Every mile counts!</p>
                 </div>
@@ -74,8 +74,8 @@ function LevelsContent() {
                             borderBottom: "1px solid rgba(255,255,255,0.05)",
                             opacity: miles >= l.min ? 1 : 0.3
                         }}>
-                            <div style={{ width: "50px", height: "60px" }}>
-                                <AchievementBadge type="level" variant={l.variant as any} label="" count={type === "Run" ? "RUN" : type[0]} />
+                            <div style={{ width: "50px" }}>
+                                <AchievementBadge type="level" size="sm" variant={l.variant as any} label="" count={type === "Run" ? "RUN" : type[0]} />
                             </div>
                             <div>
                                 <div style={{ fontWeight: 800, fontSize: "18px" }}>{l.label}</div>

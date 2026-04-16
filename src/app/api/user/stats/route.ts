@@ -10,8 +10,8 @@ export async function GET(req: Request) {
         const decodedToken = await adminAuth.verifyIdToken(idToken);
         const userId = decodedToken.uid;
 
-        const doc = await adminDb.collection("users").doc(userId).get();
-        return NextResponse.json(doc.data()?.stats || {});
+        const statsSnap = await adminDb.collection("users").doc(userId).collection("stats").doc("allTime").get();
+        return NextResponse.json(statsSnap.data() || {});
     } catch (e: any) {
         console.error("[STATS_ERROR]:", e);
         return NextResponse.json({ error: e.message || "Internal Error" }, { status: 500 });

@@ -44,6 +44,7 @@ export async function POST(req: Request) {
                 userId,
                 date: Timestamp.fromDate(activityDate),
                 createdAt: Timestamp.now(),
+                isDeleted: false,
                 pace: paceStr,
                 type: activityData.type || "Run", // Default to Run if missing
             });
