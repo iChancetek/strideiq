@@ -74,7 +74,7 @@ if (!admin.apps.length) {
 // Failsafe getters to prevent server crashes during module evaluation
 export const getAdminDb = () => {
     if (!admin.apps.length) throw new Error("Firebase Admin not initialized. Check server logs.");
-    return getFirestore(admin.app(), "default");
+    return getFirestore(admin.app());
 };
 
 export const getAdminAuth = () => {
@@ -86,7 +86,7 @@ export const getAdminAuth = () => {
 // because the proxy forwards property access to a live getFirestore() call at runtime.
 export const adminDb = new Proxy({} as ReturnType<typeof getFirestore>, {
     get(_target, prop) {
-        const db = getFirestore(admin.app(), "default");
+        const db = getFirestore(admin.app());
         const val = (db as any)[prop];
         return typeof val === "function" ? val.bind(db) : val;
     }

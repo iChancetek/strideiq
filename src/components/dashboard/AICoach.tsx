@@ -391,6 +391,58 @@ export default function AICoach() {
                 <div ref={messagesEndRef} />
             </div>
 
+            {/* Intelligence Action Bar */}
+            <div style={{
+                padding: "0 20px 10px 20px",
+                display: "flex",
+                gap: "8px",
+                flexWrap: "wrap"
+            }}>
+                <IntelligenceChip 
+                    icon="🧬" 
+                    label="Current Status" 
+                    onClick={() => sendMessage("Analyze my current metabolic state and physiological readiness based on my recent sessions.")}
+                />
+                <IntelligenceChip 
+                    icon="📜" 
+                    label="Mindset Archive" 
+                    onClick={() => sendMessage("Retrieve my recent Daily Mindsets and provide a deep dive into the neurological trends.")}
+                />
+                <IntelligenceChip 
+                    icon="🎙️" 
+                    label="Performance Brief" 
+                    onClick={() => {
+                        setVoiceMode(true);
+                        sendMessage("Generate a high-level performance brief of my progress this week and read it out loud.");
+                    }}
+                />
+                <IntelligenceChip 
+                    icon="👥" 
+                    label="Social Pulse" 
+                    onClick={() => sendMessage("Compare my current metabolic and athletic standings with the local community leaderboards. Where can I gain a competitive edge?")}
+                />
+                <button
+                    onClick={() => {
+                        if (confirm("Clear chat history?")) {
+                            setMessages([{ role: "assistant", content: `Clarity restored. How can I help you now, ${activePersona.name.split(" ")[0]}?` }]);
+                        }
+                    }}
+                    style={{
+                        background: "rgba(255,50,50,0.1)",
+                        color: "#ff5555",
+                        border: "1px solid rgba(255,50,50,0.2)",
+                        padding: "6px 12px",
+                        borderRadius: "var(--radius-full)",
+                        fontSize: "11px",
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        transition: "all 0.2s"
+                    }}
+                >
+                    🗑️ Clear
+                </button>
+            </div>
+
             {/* Input Area */}
             <div style={{
                 padding: "15px 20px",
@@ -464,5 +516,40 @@ export default function AICoach() {
                 }
             `}</style>
         </div>
+    );
+}
+
+function IntelligenceChip({ icon, label, onClick }: { icon: string, label: string, onClick: () => void }) {
+    return (
+        <button
+            onClick={onClick}
+            style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                padding: "6px 12px",
+                borderRadius: "var(--radius-full)",
+                background: "rgba(255,255,255,0.05)",
+                border: "1px solid rgba(255,255,255,0.1)",
+                color: "var(--foreground-muted)",
+                fontSize: "11px",
+                fontWeight: 600,
+                cursor: "pointer",
+                transition: "all 0.2s ease",
+                whiteSpace: "nowrap"
+            }}
+            onMouseEnter={(e) => {
+                e.currentTarget.style.background = "rgba(255,255,255,0.1)";
+                e.currentTarget.style.borderColor = "var(--primary)";
+                e.currentTarget.style.color = "#fff";
+            }}
+            onMouseLeave={(e) => {
+                e.currentTarget.style.background = "rgba(255,255,255,0.05)";
+                e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)";
+                e.currentTarget.style.color = "var(--foreground-muted)";
+            }}
+        >
+            <span>{icon}</span> {label}
+        </button>
     );
 }

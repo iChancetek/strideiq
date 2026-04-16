@@ -102,4 +102,8 @@ export class MovementAgent {
         this.pauseStartTime = null;
         this.totalPausedMs = 0;
     }
+
+    restorePausedDuration(seconds: number): void {
+        this.totalPausedMs = seconds * 1000;
+    }
 }

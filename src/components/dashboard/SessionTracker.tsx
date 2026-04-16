@@ -87,6 +87,7 @@ export default function SessionTracker() {
     const [mapVisible, setMapVisible] = useState(settings.showMap);
     const [sessionRestoreData, setSessionRestoreData] = useState<any>(null); // orphaned session from prior page load
     const [isRestoring, setIsRestoring] = useState(false);
+    const [heartRate, setHeartRate] = useState(0);
 
     const watchId = useRef<number | null>(null);
     const lastAcceptedPos = useRef<[number, number] | null>(null);
@@ -111,26 +112,90 @@ export default function SessionTracker() {
     useEffect(() => { isPausedRef.current = isPaused; }, [isPaused]);
     useEffect(() => { isTrackingRef.current = isTracking; }, [isTracking]);
 
-    // ── Check for orphaned session from IndexedDB ────────────────────
+    // ── Check for orphaned session from IndexedDB (Auto-Resume) ───────────
     useEffect(() => {
         async function checkRestore() {
             try {
                 const saved = await getActiveSession('run');
                 if (saved && saved.data) {
                     const startTs = new Date(saved.startTime).getTime();
-                    // Restore if < 2 hours old
+                    // Auto-restore if < 2 hours old
                     if ((Date.now() - startTs) < 2 * 3600 * 1000) {
-                        console.log("[AUTH_SESSION_RESTORE] Found IDB session:", saved);
-                        setSessionRestoreData({ ...saved.data, startTs });
+                        console.log("[AUTH_SESSION_RESTORE] Resuming recently active session:", saved);
+                        await handleRestoreSession(saved);
                     } else {
                         await clearActiveSession('run');
                     }
                 }
-            } catch (e) { /* ignore */ }
+            } catch (e) { console.error("[RESTORE_FAILED]", e); }
         }
         checkRestore();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    const handleRestoreSession = async (saved: any) => {
+        setIsRestoring(true);
+        const data = saved.data;
+        const startTs = new Date(saved.startTime).getTime();
+        
+        // 1. Calculate elapsed time correctly (now - start - paused)
+        const totalPaused = data.totalPausedMs || 0;
+        const elapsed = Math.round((Date.now() - startTs - totalPaused) / 1000);
+        
+        // 2. Hydrate refs
+        sessionStartTsRef.current = startTs;
+        totalPausedMsRef.current = totalPaused;
+        activeTimeRef.current = elapsed;
+        distanceRef.current = data.distanceKm || 0;
+        stepsRef.current = data.steps || 0;
+        
+        // 3. Set States
+        setElapsedTime(elapsed);
+        setDistance(data.distanceKm || 0);
+        setSteps(data.steps || 0);
+        const restoredPath = data.path || [];
+        setPath(restoredPath);
+        pathRef.current = restoredPath;
+
+        if (restoredPath.length > 0) {
+            const last = restoredPath[restoredPath.length - 1];
+            lastAcceptedPos.current = last;
+            setCurrentPos(last);
+        }
+
+        // 4. Initialize and hydrate AgentCore
+        const core = new AgentCore({
+            mode: data.mode || mode,
+            environment: data.environment || environment,
+            autoPause: settings.autoPause,
+            autoPauseSensitivity: settings.autoPauseSensitivity,
+            voiceCoaching: settings.voiceCoaching,
+            weatherAnnouncements: settings.weatherAnnouncements,
+        });
+
+        core.restoreSession({
+            startTime: startTs,
+            lastMileCompleted: data.lastMileCompleted || 0,
+            lastMileActiveTime: data.lastMileActiveTime || 0,
+            mileSplits: data.mileSplits || [],
+            totalPausedSeconds: Math.floor(totalPaused / 1000)
+        });
+
+        core.on(handleAgentEvent);
+        agentCoreRef.current = core;
+
+        // 5. Restart GPS tracking if outdoor
+        if (data.environment === "outdoor" && navigator.geolocation) {
+            watchId.current = navigator.geolocation.watchPosition(
+                handlePosition,
+                (err) => console.error("GPS Error:", err),
+                { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
+            );
+        }
+
+        setIsTracking(true);
+        setIsRestoring(false);
+    };
 
     // ── Persist session state to IndexedDB on each tick ─────────────────
     const persistSession = useCallback(async () => {
@@ -146,7 +211,10 @@ export default function SessionTracker() {
                     steps: stepsRef.current,
                     mode,
                     environment,
-                    path: pathRef.current, // Save the coordinate trace
+                    path: pathRef.current,
+                    mileSplits: agentCoreRef.current?.getMileSplits() || [],
+                    lastMileActiveTime: (agentCoreRef.current as any)?.lastMileActiveTime || 0,
+                    lastMileCompleted: (agentCoreRef.current as any)?.lastMileCompleted || 0,
                 }
             });
         } catch (e) { /* ignore storage errors */ }
@@ -212,10 +280,15 @@ export default function SessionTracker() {
                 if (isPausedRef.current || !isTrackingRef.current) return;
                 const now = Date.now();
                 // Wall-clock delta — survives iOS/Android PWA backgrounding
-                const delta = Math.round((now - lastTickRef.current) / 1000);
                 activeTimeRef.current += delta;
                 lastTickRef.current = now;
                 setElapsedTime(activeTimeRef.current);
+                
+                // Poll heart rate from agent core
+                if (agentCoreRef.current) {
+                    setHeartRate(agentCoreRef.current.getHeartRate());
+                }
+                
                 persistSession(); // write snapshot every second
             }, 1000);
         }
@@ -656,59 +729,11 @@ export default function SessionTracker() {
                     </div>
                 )}
 
-                {/* Session Restore Banner */}
-                {sessionRestoreData && !isTracking && (
-                    <div style={{
-                        position: "absolute", top: 0, left: 0, right: 0, zIndex: 600,
-                        background: "rgba(204,255,0,0.12)", borderBottom: "1px solid rgba(204,255,0,0.3)",
-                        padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px",
-                    }}>
-                        <div>
-                            <div style={{ fontWeight: 700, fontSize: "14px" }}>⚡ Restore previous session?</div>
-                            <div style={{ fontSize: "12px", color: "var(--foreground-muted)" }}>
-                                {/* How long ago */}
-                                {sessionRestoreData.mode} · {((Date.now() - sessionRestoreData.startTs) / 60000).toFixed(0)} min ago
-                            </div>
-                        </div>
-                        <div style={{ display: "flex", gap: "8px" }}>
-                            <button
-                                onClick={() => {
-                                    // Restore elapsed time from wall clock
-                                    const elapsed = Math.round((Date.now() - sessionRestoreData.startTs - (sessionRestoreData.totalPausedMs || 0)) / 1000);
-                                    sessionStartTsRef.current = sessionRestoreData.startTs;
-                                    totalPausedMsRef.current = sessionRestoreData.totalPausedMs || 0;
-                                    activeTimeRef.current = elapsed;
-                                    distanceRef.current = sessionRestoreData.distanceKm || 0;
-                                    stepsRef.current = sessionRestoreData.steps || 0;
-                                    setElapsedTime(elapsed);
-                                    setDistance(sessionRestoreData.distanceKm || 0);
-                                    setSteps(sessionRestoreData.steps || 0);
-                                    
-                                    // Restore path and refs
-                                    const restoredPath = sessionRestoreData.path || [];
-                                    setPath(restoredPath);
-                                    pathRef.current = restoredPath;
-                                    if (restoredPath.length > 0) {
-                                        const last = restoredPath[restoredPath.length - 1];
-                                        lastAcceptedPos.current = last;
-                                        setCurrentPos(last);
-                                    }
-
-                                    setSessionRestoreData(null);
-                                    setIsTracking(true);
-                                    console.log("[AUTH_SESSION_RESTORE] Session restored with " + restoredPath.length + " points. elapsed=" + elapsed + "s");
-                                }}
-                                style={{ padding: "8px 16px", background: "var(--primary)", color: "#000", border: "none", borderRadius: "20px", fontWeight: 700, cursor: "pointer", fontSize: "13px" }}
-                            >
-                                Restore
-                            </button>
-                            <button
-                                onClick={async () => { await clearActiveSession('run'); setSessionRestoreData(null); }}
-                                style={{ padding: "8px 12px", background: "rgba(255,255,255,0.08)", color: "var(--foreground-muted)", border: "none", borderRadius: "20px", cursor: "pointer", fontSize: "13px" }}
-                            >
-                                Dismiss
-                            </button>
-                        </div>
+                {/* Restore Loading Bridge */}
+                {isRestoring && (
+                    <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.8)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: "12px" }}>
+                        <div className="skeleton" style={{ width: "40px", height: "40px", borderRadius: "50%" }}></div>
+                        <div style={{ color: "var(--primary)", fontWeight: 700 }}>Resuming Elite Session...</div>
                     </div>
                 )}
 
@@ -725,13 +750,13 @@ export default function SessionTracker() {
 
                     <div style={{ fontSize: "64px", fontWeight: "bold" }}>{formatTime(elapsedTime)}</div>
 
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "20px", textAlign: "center" }}>
-                        <div>
-                            <div style={{ fontSize: "12px", color: "var(--foreground-muted)" }}>{t(lang, "distance").toUpperCase()}</div>
-                            <div style={{ fontSize: "28px", fontWeight: "bold" }}>{(distance * 0.621371).toFixed(2)} <span style={{ fontSize: "14px" }}>{settings.units === "imperial" ? "mi" : "km"}</span></div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", width: "100%", maxWidth: "400px" }}>
+                        <div className="glass-panel" style={{ padding: "20px", textAlign: "center", borderRadius: "16px" }}>
+                            <div style={{ fontSize: "12px", color: "var(--foreground-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>{t(lang, "distance")}</div>
+                            <div style={{ fontSize: "28px", fontWeight: "bold" }}>{(distance * 0.621371).toFixed(2)} <span style={{ fontSize: "14px", color: "var(--foreground-muted)" }}>{settings.units === "imperial" ? "mi" : "km"}</span></div>
                         </div>
-                        <div>
-                            <div style={{ fontSize: "12px", color: "var(--foreground-muted)" }}>{modeConfig.displayMetric === "mph" ? t(lang, "speed").toUpperCase() : t(lang, "pace").toUpperCase()}</div>
+                        <div className="glass-panel" style={{ padding: "20px", textAlign: "center", borderRadius: "16px" }}>
+                            <div style={{ fontSize: "12px", color: "var(--foreground-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>{modeConfig.displayMetric === "mph" ? t(lang, "speed") : t(lang, "pace")}</div>
                             <div style={{ fontSize: "28px", fontWeight: "bold" }}>{displayMetric()}</div>
                         </div>
                         <div>

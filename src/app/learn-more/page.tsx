@@ -98,7 +98,7 @@ export default function LearnMorePage() {
                 >
                     <FeatureCard icon="⏳" title="Fasting Stage Tracking" desc="Real-time tracking of Insulin levels, Ketosis, and Autophagy cycles as you fast." />
                     <FeatureCard icon="🧬" title="Physiological Insights" desc="Understand what's happening to your body (cellular cleanup, HGH boost) at every hour." />
-                    <FeatureCard icon="🔥" title="Metabolic Analysis" desc="Automatic fat oxidation and cardiovascular stress estimation for all workouts." />
+                    <FeatureCard icon="❤️" title="IQ Pulse Sync" desc="New: Monitor your heart rate directly through your mobile camera while holding your phone." />
                 </Section>
 
 
@@ -142,6 +142,92 @@ export default function LearnMorePage() {
                     <FeatureCard icon="🌓" title="Dark & Light Mode" desc="Beautifully designed themes that adapt to your environment and preference." />
                     <FeatureCard icon="📱" title="Installable PWA" desc="Install StrideIQ directly to your home screen on iOS, Android, and Desktop." />
                 </Section>
+
+                {/* 8. Metabolic Intelligence Timeline */}
+                <section style={{ marginTop: "40px" }}>
+                    <div style={{ textAlign: "center", marginBottom: "60px" }}>
+                        <h2 style={{ fontSize: "48px", marginBottom: "16px" }}>The 5 Stages of Metabolic Mastery</h2>
+                        <p style={{ color: "var(--foreground-muted)", fontSize: "20px", maxWidth: "700px", margin: "0 auto" }}>
+                            StrideIQ tracks your body's physiological shifts in real-time. Understand the science behind every mile.
+                        </p>
+                    </div>
+
+                    <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+                        <TimelineStage 
+                            time="0-4 Hours" 
+                            title="Insulin Drop" 
+                            desc="Your body begins to lower blood sugar and insulin levels, signaling the start of the fat-burning transition."
+                            isPrimary
+                        />
+                        <TimelineStage 
+                            time="4-12 Hours" 
+                            title="Sugar Burning" 
+                            desc="Liver glycogen is used as the primary fuel source. Growth hormone starts to rise significantly."
+                        />
+                        <TimelineStage 
+                            time="12-18 Hours" 
+                            title="Glycogen Depletion" 
+                            desc="Fat oxidation increases as glycogen stores run low. You enter the early stages of ketosis."
+                        />
+                        <TimelineStage 
+                            time="18-24 Hours" 
+                            title="The Ketosis Zone" 
+                            desc="Ketones become a major fuel source for your brain and muscles. Fat burning reaches peak efficiency."
+                            isHighlight
+                        />
+                        <TimelineStage 
+                            time="24+ Hours" 
+                            title="Peak Autophagy" 
+                            desc="Cellular cleanup begins. Old cells are recycled, and inflammation drops to its lowest levels."
+                            isElite
+                        />
+                    </div>
+                </section>
+
+                {/* 9. Fleet Scan Showcase */}
+                <section style={{ marginTop: "100px" }}>
+                    <div className="glass-panel" style={{ padding: "60px", borderRadius: "32px", display: "flex", flexWrap: "wrap", gap: "40px", alignItems: "center", background: "linear-gradient(135deg, rgba(255,255,255,0.05), transparent)" }}>
+                        <div style={{ flex: "1 1 400px" }}>
+                            <div style={{ display: "inline-block", padding: "6px 12px", borderRadius: "20px", background: "rgba(204, 255, 0, 0.1)", color: "#CCFF00", marginBottom: "20px", fontSize: "12px", fontWeight: 800, letterSpacing: "1px" }}>ELITE INGESTION</div>
+                            <h2 style={{ fontSize: "40px", marginBottom: "20px", lineHeight: 1.2 }}>High-Volume <br/><span className="text-gradient">Fleet Scanning</span></h2>
+                            <p style={{ color: "var(--foreground-muted)", fontSize: "18px", lineHeight: 1.6, marginBottom: "30px" }}>
+                                Batch process up to 20 activities at once. Whether it's Nike Running, Strava JSON, or high-res PDFs, our multimodal vision engine decodes your athletic history in seconds.
+                            </p>
+                            <div style={{ display: "flex", gap: "10px" }}>
+                                <Badge label="Nike+ JSON" />
+                                <Badge label="Strava" />
+                                <Badge label="PDF Raster" />
+                                <Badge label="OCR Vision" />
+                            </div>
+                        </div>
+                        <div style={{ flex: "1 1 300px", padding: "30px", background: "rgba(0,0,0,0.3)", borderRadius: "24px", border: "1px solid rgba(255,255,255,0.1)" }}>
+                            <div style={{ fontSize: "12px", color: "var(--foreground-muted)", marginBottom: "16px" }}>SCANNING QUEUE (MULTIMODAL)</div>
+                            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                                <ScanBar label="nike_export_2026.json" progress={100} />
+                                <ScanBar label="strava_marathon_summary.csv" progress={100} />
+                                <ScanBar label="training_report_may.pdf" progress={65} active />
+                                <ScanBar label="IMG_4452.png" progress={0} />
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                {/* 10. Verbal Directives Library */}
+                <section style={{ marginTop: "100px" }}>
+                    <div style={{ textAlign: "center", marginBottom: "60px" }}>
+                        <h2 style={{ fontSize: "48px", marginBottom: "16px" }}>IQ Verbal Directives</h2>
+                        <p style={{ color: "var(--foreground-muted)", fontSize: "20px", maxWidth: "700px", margin: "0 auto" }}>
+                            Master the verbal syntax. IQ Assistant understands natural language commands for every aspect of your performance journey.
+                        </p>
+                    </div>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "20px" }}>
+                        <CommandCard icon="🏃" title="Activity Control" commands={["Start 5k run", "Pause tracking", "Finish hike"]} onPlay={(c) => speak(`Example command: ${c}`)} />
+                        <CommandCard icon="💧" title="Physiology" commands={["Log 32oz water", "Current metabolic stage", "Check heart rate"]} onPlay={(c) => speak(`Example command: ${c}`)} />
+                        <CommandCard icon="🧠" title="Cognitive Hub" commands={["Open journal", "Analyze week", "Social standing"]} onPlay={(c) => speak(`Example command: ${c}`)} />
+                        <CommandCard icon="⚙️" title="System Management" commands={["Enable voice coaching", "Switch to Onyx persona", "Clear history"]} onPlay={(c) => speak(`Example command: ${c}`)} />
+                    </div>
+                </section>
 
             </div>
 
@@ -286,6 +372,36 @@ function FeatureCard({ icon, title, desc }: { icon: string, title: string, desc:
             <div style={{ fontSize: "40px", marginBottom: "20px" }}>{icon}</div>
             <h3 style={{ fontSize: "24px", marginBottom: "10px" }}>{title}</h3>
             <p style={{ color: "var(--foreground-muted)", lineHeight: 1.6 }}>{desc}</p>
+        </div>
+    );
+}
+
+function TimelineStage({ time, title, desc, isPrimary, isHighlight, isElite }: { time: string, title: string, desc: string, isPrimary?: boolean, isHighlight?: boolean, isElite?: boolean }) {
+    const borderColor = isPrimary ? "var(--primary)" : isHighlight ? "var(--secondary)" : isElite ? "#CCFF00" : "rgba(255,255,255,0.1)";
+    const bg = isElite ? "linear-gradient(90deg, rgba(204, 255, 0, 0.1), transparent)" : "transparent";
+
+    return (
+        <div className="glass-panel" style={{ 
+            display: "flex", 
+            padding: "24px", 
+            borderRadius: "20px", 
+            gap: "30px", 
+            alignItems: "center",
+            borderLeft: `6px solid ${borderColor}`,
+            background: bg,
+            transition: "transform 0.3s ease",
+            cursor: "default"
+        }}
+        onMouseEnter={(e) => e.currentTarget.style.transform = "translateX(10px)"}
+        onMouseLeave={(e) => e.currentTarget.style.transform = "translateX(0)"}
+        >
+            <div style={{ width: "120px", flexShrink: 0 }}>
+                <div style={{ fontSize: "14px", fontWeight: 800, color: borderColor, letterSpacing: "1px" }}>{time}</div>
+            </div>
+            <div>
+                <h4 style={{ fontSize: "22px", marginBottom: "4px" }}>{title}</h4>
+                <p style={{ fontSize: "15px", color: "var(--foreground-muted)", lineHeight: 1.5 }}>{desc}</p>
+            </div>
         </div>
     );
 }

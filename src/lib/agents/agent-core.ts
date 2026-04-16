@@ -17,12 +17,14 @@ import { CoachingAgent } from "./coaching-agent";
 import { EnvironmentAgent } from "./environment-agent";
 import { MediaAgent } from "./media-agent";
 import { VoiceService } from "./voice-service";
+import { PulseAgent } from "./pulse-agent";
 
 export class AgentCore {
     private movementAgent: MovementAgent;
     private coachingAgent: CoachingAgent;
     private environmentAgent = new EnvironmentAgent();
     private mediaAgent = new MediaAgent();
+    private pulseAgent = new PulseAgent();
     private voiceService: VoiceService;
 
     private listeners: AgentEventListener[] = [];
@@ -90,9 +92,13 @@ export class AgentCore {
         this.sessionStartTime = Date.now();
         this.lastMileActiveTime = 0;
         this.totalDistanceMiles = 0;
-        this.mileSplits = [];
         this.lastMileCompleted = 0;
         this.weatherAnnounced = false;
+        
+        // Start Pulse Agent (Optical HR)
+        if (this.voiceEnabled) {
+            this.pulseAgent.start().catch(e => console.error("PulseAgent start failed:", e));
+        }
 
         // Announce start
         this.emit({
@@ -111,6 +117,33 @@ export class AgentCore {
                 this.weatherAnnounced = true;
             }
         }
+    }
+
+    /**
+     * Resumes a session from a saved state (IndexedDB/crash recovery).
+     */
+    restoreSession(data: {
+        startTime: number;
+        lastMileCompleted: number;
+        lastMileActiveTime: number;
+        mileSplits: MileSplit[];
+        totalPausedSeconds: number;
+        weather?: WeatherData | null;
+    }) {
+        this.sessionStartTime = data.startTime;
+        this.lastMileCompleted = data.lastMileCompleted;
+        this.lastMileActiveTime = data.lastMileActiveTime;
+        this.mileSplits = [...data.mileSplits];
+        this.weather = data.weather || null;
+        this.weatherAnnounced = !!data.weather;
+        
+        // Update movement agent's paused duration
+        this.movementAgent.restorePausedDuration(data.totalPausedSeconds);
+
+        console.log("[AGENT_CORE_RESTORE] Core state re-hydrated.", {
+            splits: this.mileSplits.length,
+            lastMile: this.lastMileCompleted
+        });
     }
 
     /**
@@ -149,7 +182,8 @@ export class AgentCore {
             const coachEvents = this.coachingAgent.onMileCompleted(
                 this.mileSplits,
                 totalElapsed,
-                currentDistanceMiles
+                currentDistanceMiles,
+                this.pulseAgent.getCurrentBpm()
             );
             coachEvents.forEach((e) => this.emit(e));
         }
@@ -192,9 +226,15 @@ export class AgentCore {
         return this.mediaAgent;
     }
 
+    /** Get current pulse from the pulse agent */
+    getHeartRate(): number {
+        return this.pulseAgent.getCurrentBpm();
+    }
+
     /** Clean up */
     destroy(): void {
         this.voiceService.cancel();
+        this.pulseAgent.stop();
         this.listeners = [];
         this.movementAgent.reset();
     }

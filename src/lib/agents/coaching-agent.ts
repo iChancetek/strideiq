@@ -63,7 +63,8 @@ export class CoachingAgent {
     onMileCompleted(
         splits: MileSplit[],
         totalElapsedSeconds: number,
-        totalDistanceMiles: number
+        totalDistanceMiles: number,
+        heartRate: number = 0
     ): AgentEvent[] {
         const events: AgentEvent[] = [];
         const currentSplit = splits[splits.length - 1];
@@ -78,7 +79,13 @@ export class CoachingAgent {
         const encouragement = this.pickEncouragement(trend);
 
         // Build mile announcement
-        const announcement = `Fantastic job! You completed mile ${mileNumber} in ${splitTime}. Total time is ${totalTime}. ${encouragement}`;
+        let announcement = `Fantastic job! You completed mile ${mileNumber} in ${splitTime}. Total time is ${totalTime}.`;
+        
+        if (heartRate > 40) {
+            announcement += ` Your heart rate is ${heartRate} beats per minute.`;
+        }
+        
+        announcement += ` ${encouragement}`;
 
         events.push({
             type: "coaching:mile",
