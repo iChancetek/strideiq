@@ -280,10 +280,11 @@ export default function SessionTracker() {
             timerRef.current = setInterval(() => {
                 if (isPausedRef.current || !isTrackingRef.current) return;
                 const now = Date.now();
+                const delta = (now - lastTickRef.current) / 1000;
                 // Wall-clock delta — survives iOS/Android PWA backgrounding
                 activeTimeRef.current += delta;
                 lastTickRef.current = now;
-                setElapsedTime(activeTimeRef.current);
+                setElapsedTime(Math.floor(activeTimeRef.current));
                 
                 // Poll heart rate from agent core
                 if (agentCoreRef.current) {
