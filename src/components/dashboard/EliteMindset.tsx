@@ -14,7 +14,6 @@ import {
     getDocs, 
     setDoc,
     getDoc,
-    timestamp,
     Timestamp,
     writeBatch
 } from "firebase/firestore";
