@@ -213,8 +213,8 @@ export default function SessionTracker() {
                     environment,
                     path: pathRef.current,
                     mileSplits: agentCoreRef.current?.getMileSplits() || [],
-                    lastMileActiveTime: (agentCoreRef.current as any)?.lastMileActiveTime || 0,
-                    lastMileCompleted: (agentCoreRef.current as any)?.lastMileCompleted || 0,
+                    lastMileActiveTime: agentCoreRef.current?.getLastMileActiveTime() || 0,
+                    lastMileCompleted: agentCoreRef.current?.getLastMileCompleted() || 0,
                     heartRate,
                 }
             });

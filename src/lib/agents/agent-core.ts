@@ -216,6 +216,10 @@ export class AgentCore {
         return [...this.mileSplits];
     }
 
+    /** Last mile stats for session recovery */
+    getLastMileCompleted(): number { return this.lastMileCompleted; }
+    getLastMileActiveTime(): number { return this.lastMileActiveTime; }
+
     /** Get fetched weather data */
     getWeather(): WeatherData | null {
         return this.weather;
