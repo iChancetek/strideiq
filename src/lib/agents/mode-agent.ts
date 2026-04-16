@@ -52,6 +52,30 @@ const MODE_CONFIGS: Record<ActivityMode, ModeConfig> = {
         coachingStyle: "wellness",
         caloriesPerMile: 0,
     },
+    hiit: {
+        mode: "hiit",
+        speedThresholdMph: 0,
+        autoPauseSensitivity: "low",
+        displayMetric: "min/mile",
+        coachingStyle: "performance",
+        caloriesPerMile: 400, // per hour average
+    },
+    journal: {
+        mode: "journal",
+        speedThresholdMph: 0,
+        autoPauseSensitivity: "low",
+        displayMetric: "min/mile",
+        coachingStyle: "wellness",
+        caloriesPerMile: 0,
+    },
+    steps: {
+        mode: "steps",
+        speedThresholdMph: 0,
+        autoPauseSensitivity: "low",
+        displayMetric: "min/mile",
+        coachingStyle: "wellness",
+        caloriesPerMile: 0,
+    },
 };
 
 // Sensitivity overrides — how many consecutive "slow" readings before auto-pause triggers
@@ -77,10 +101,13 @@ export function getActivityLabel(mode: ActivityMode): string {
         case "hike": return "Hike";
         case "meditation": return "Meditation";
         case "fasting": return "Fasting";
+        case "hiit": return "HIIT";
+        case "journal": return "Journal";
+        case "steps": return "Daily Steps";
     }
 }
 
-export function getActivityType(mode: ActivityMode): "Run" | "Walk" | "Bike" | "Hike" | "Meditation" | "Fasting" {
+export function getActivityType(mode: ActivityMode): "Run" | "Walk" | "Bike" | "Hike" | "Meditation" | "Fasting" | "HIIT" | "Journal" | "Daily Steps" {
     switch (mode) {
         case "run": return "Run";
         case "walk": return "Walk";
@@ -88,5 +115,8 @@ export function getActivityType(mode: ActivityMode): "Run" | "Walk" | "Bike" | "
         case "hike": return "Hike";
         case "meditation": return "Meditation";
         case "fasting": return "Fasting";
+        case "hiit": return "HIIT";
+        case "journal": return "Journal";
+        case "steps": return "Daily Steps";
     }
 }
