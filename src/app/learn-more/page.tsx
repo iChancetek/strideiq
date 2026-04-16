@@ -26,7 +26,8 @@ export default function LearnMorePage() {
             "Social Community: Connect, compete, and share with a global network of athletes.",
             "IQ Voice Assistant: Hands-free elite coaching with our conversational verbal assistant.",
             "Environmental Awareness: Your AI team watches the conditions so you can stay safe.",
-            "Platform Experience: A premium, app-like experience with dynamic media coordination."
+            "Platform Experience: A premium, app-like experience with dynamic media coordination.",
+            "Total Health Tracking: Always-on step counting like a smart-ring, and live PPG blood pressure estimations."
         ];
 
         const fullText = `${heroTitle}. ${heroDesc}. ${features.join(". ")}`;
@@ -97,8 +98,8 @@ export default function LearnMorePage() {
                     desc={t(lang, "fastingStageDesc")}
                 >
                     <FeatureCard icon="⏳" title="Fasting Stage Tracking" desc="Real-time tracking of Insulin levels, Ketosis, and Autophagy cycles as you fast." />
-                    <FeatureCard icon="🧬" title="Physiological Insights" desc="Understand what's happening to your body (cellular cleanup, HGH boost) at every hour." />
-                    <FeatureCard icon="❤️" title="IQ Pulse Sync" desc="New: Monitor your heart rate directly through your mobile camera while holding your phone." />
+                    <FeatureCard icon="❤️" title="IQ Pulse & BP Sync" desc="New: Monitor your heart rate and estimated Blood Pressure directly through your mobile camera." />
+                    <FeatureCard icon="👣" title="Background Step Agent" desc="Acts like a smart-ring, persisting your daily steps in the background whether the app is open or not." />
                 </Section>
 
 
@@ -141,6 +142,21 @@ export default function LearnMorePage() {
                     <FeatureCard icon="🎵" title="Media Coordination" desc="BPM-matched music suggestions and smart audio ducking during coaching prompts." />
                     <FeatureCard icon="🌓" title="Dark & Light Mode" desc="Beautifully designed themes that adapt to your environment and preference." />
                     <FeatureCard icon="📱" title="Installable PWA" desc="Install StrideIQ directly to your home screen on iOS, Android, and Desktop." />
+                    <FeatureCard icon="⚡" title="Global Data Sync" desc="The moment you finish an activity, your dashboard, stats, and history instantly update across the whole app." />
+                </Section>
+
+                {/* Agentic Architecture */}
+                <Section
+                    title="Agentic Architecture"
+                    desc="A swarm of dedicated, real-time background agents working in harmony."
+                >
+                    <FeatureCard icon="🧠" title="AgentCore" desc="The master orchestrator that receives raw sensor data and coordinates the specialized agents." />
+                    <FeatureCard icon="🏃‍♂️" title="MovementAgent" desc="Analyzes GPS coordinates to auto-pause workouts based on traffic and red lights." />
+                    <FeatureCard icon="📢" title="CoachingAgent" desc="Tracks splits against historical personal bests to trigger contextual motivation." />
+                    <FeatureCard icon="⛅" title="EnvironmentAgent" desc="Scans geolocation for real-time extreme weather anomalies and UV conditions." />
+                    <FeatureCard icon="🎧" title="MediaAgent" desc="Monitors exercise intensity to automatically queue BPM-matched YouTube playlists." />
+                    <FeatureCard icon="❤️" title="PulseAgent" desc="Captures optical PPG waveforms through your camera to estimate Heart Rate and Blood Pressure." />
+                    <FeatureCard icon="👣" title="StepAgent" desc="A stealth background pedometer using device accelerometers to silently log daily movement." />
                 </Section>
 
                 {/* 8. Metabolic Intelligence Timeline */}

@@ -198,10 +198,10 @@ export async function POST(req: Request) {
             const finalMessage = response2.choices[0].message as any;
             
             // Attach UI actions if present so the frontend can execute them
-            const uiActionCall = msg1.tool_calls.find(t => t.function.name === "perform_ui_action" || t.function.name === "get_health_stats");
+            const uiActionCall = msg1.tool_calls.find((t: any) => t.function?.name === "perform_ui_action" || t.function?.name === "get_health_stats");
             if (uiActionCall) {
-                const args = JSON.parse(uiActionCall.function.arguments || "{}");
-                finalMessage.uiAction = uiActionCall.function.name === "get_health_stats" ? "get_health_stats" : args.action;
+                const args = JSON.parse(uiActionCall.function?.arguments || "{}");
+                finalMessage.uiAction = uiActionCall.function?.name === "get_health_stats" ? "get_health_stats" : args.action;
             }
 
             console.log(`[Chat] Final response generated with context.`);
