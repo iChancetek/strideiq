@@ -10,6 +10,9 @@ const BPM_RECOMMENDATIONS: Record<ActivityMode, { min: number; max: number; labe
     hike: { min: 110, max: 130, label: "Scenic trail hiking tunes" },
     fasting: { min: 60, max: 80, label: "Calm fasting focus" },
     meditation: { min: 40, max: 60, label: "Deep meditation soundscapes" },
+    hiit: { min: 140, max: 170, label: "Intense HIIT power beats" },
+    journal: { min: 50, max: 70, label: "Chill acoustic journaling" },
+    steps: { min: 90, max: 110, label: "Steady walking rhythm" },
 };
 
 export class MediaAgent {
