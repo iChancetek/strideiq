@@ -1,5 +1,5 @@
 import * as admin from "firebase-admin";
-import { getFirestore } from "firebase-admin/firestore";
+import { getFirestore, Firestore } from "firebase-admin/firestore";
 
 let adminInitialized = false;
 
@@ -71,11 +71,23 @@ if (!admin.apps.length) {
     adminInitialized = true;
 }
 
-// Failsafe getters to prevent server crashes during module evaluation
-export const getAdminDb = () => {
-    if (!admin.apps.length) throw new Error("Firebase Admin not initialized. Check server logs.");
-    return getFirestore(admin.app());
+// Cache the Firestore instance — target the named "default" database where production data lives.
+let _firestoreInstance: Firestore | null = null;
+const getDb = (): Firestore => {
+    if (!admin.apps.length) throw new Error("Firebase Admin not initialized.");
+    if (!_firestoreInstance) {
+        _firestoreInstance = getFirestore(admin.app(), "default");
+        try {
+            _firestoreInstance.settings({ preferRest: true, ignoreUndefinedProperties: true });
+        } catch {
+            // settings() can only be called once; ignore if already set.
+        }
+    }
+    return _firestoreInstance;
 };
+
+// Failsafe getters to prevent server crashes during module evaluation
+export const getAdminDb = () => getDb();
 
 export const getAdminAuth = () => {
     if (!admin.apps.length) throw new Error("Firebase Admin not initialized. Check server logs.");
@@ -83,10 +95,10 @@ export const getAdminAuth = () => {
 };
 
 // Safe lazy proxy for adminDb — all routes using `adminDb.collection(...)` will work correctly
-// because the proxy forwards property access to a live getFirestore() call at runtime.
-export const adminDb = new Proxy({} as ReturnType<typeof getFirestore>, {
+// because the proxy forwards property access to a live Firestore instance.
+export const adminDb = new Proxy({} as Firestore, {
     get(_target, prop) {
-        const db = getFirestore(admin.app());
+        const db = getDb();
         const val = (db as any)[prop];
         return typeof val === "function" ? val.bind(db) : val;
     }

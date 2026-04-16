@@ -55,18 +55,20 @@ export default function FastingTimer() {
 
         const fetchStatus = async () => {
              try {
-                 // 1. First check IndexedDB (Fastest recovery)
+                 // 1. First check IndexedDB (Fastest recovery for UI)
                  const local = await getActiveSession('fasting');
+                 let localActive = false;
                  if (local && local.type === 'fasting' && local.status === 'active') {
-                     console.log("[FASTING_RESTORE] Found local session:", local);
-                     setStartTime(new Date(local.startTime).getTime());
-                     setGoalHours(local.goal || 16);
-                     setIsFasting(true);
-                     setLoading(false);
-                     return;
+                     const ts = new Date(local.startTime).getTime();
+                     if (!isNaN(ts) && ts > 0) {
+                        setStartTime(ts);
+                        setGoalHours(local.goal || 16);
+                        setIsFasting(true);
+                        localActive = true;
+                     }
                  }
 
-                 // 2. Fallback to API
+                 // 2. Fetch Remote State (Single Source of Truth)
                  const token = await user.getIdToken();
                  const res = await fetch(`/api/fasting/status`, {
                     headers: { 'Authorization': `Bearer ${token}` }
@@ -74,22 +76,29 @@ export default function FastingTimer() {
                  if (res.ok) {
                      const { activeSession } = await res.json();
                      if (activeSession) {
-                         setStartTime(new Date(activeSession.startTime).getTime());
-                         setGoalHours(activeSession.goal || 16);
-                         setIsFasting(true);
-                         
-                         // Sync to local IDB if missing
-                         await saveActiveSession({
-                             type: 'fasting',
-                             startTime: activeSession.startTime,
-                             status: 'active',
-                             goal: activeSession.goal
-                         });
+                         const remoteStart = new Date(activeSession.startTime).getTime();
+                         if (!isNaN(remoteStart) && remoteStart > 0) {
+                            setStartTime(remoteStart);
+                            setGoalHours(activeSession.goal || 16);
+                            setIsFasting(true);
+                            
+                            // Keep local IDB in sync
+                            await saveActiveSession({
+                                type: 'fasting',
+                                startTime: activeSession.startTime,
+                                status: 'active',
+                                goal: activeSession.goal
+                            });
+                         }
                      } else {
-                         setIsFasting(false);
-                         setStartTime(null);
-                         setElapsed(0);
-                         await clearActiveSession('fasting');
+                         // Remote says there is NO active fast
+                         if (localActive) {
+                             console.log("[FASTING_SYNC] Remote session ended on another device. Clearing local ghost state.");
+                             setIsFasting(false);
+                             setStartTime(null);
+                             setElapsed(0);
+                             await clearActiveSession('fasting');
+                         }
                      }
                  }
              } catch (err) {
