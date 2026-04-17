@@ -1,312 +1,260 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useActivities } from "@/hooks/useActivities";
+import Link from "next/link";
+import { useStepAgent } from "@/lib/agents/hooks/useStepAgent"; // We'll assume a hook or just use context
 
-// ─── Types ───────────────────────────────────────────────────────────────────
-type Period = "hour" | "day" | "week" | "month" | "year";
-
-interface BucketData {
-    label: string;
-    steps: number;
-}
-
-const DAILY_GOAL = 10000;
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-function getHourLabel(h: number) {
-    const ampm = h >= 12 ? "PM" : "AM";
-    const hr = h % 12 || 12;
-    return `${hr}${ampm}`;
-}
-
-function getDayLabel(d: Date) {
-    return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
-}
-
-function getWeekLabel(d: Date) {
-    const start = new Date(d);
-    start.setDate(d.getDate() - d.getDay() + (d.getDay() === 0 ? -6 : 1)); // Mon
-    const end = new Date(start);
-    end.setDate(start.getDate() + 6); // Sun
-    return `${start.toLocaleDateString("en-US", { month: "short", day: "numeric" })} - ${end.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
-}
-
-function getMonthLabel(m: number, y: number) {
-    return new Date(y, m).toLocaleDateString("en-US", { month: "short", year: "numeric" });
-}
-
-// ─── Component ───────────────────────────────────────────────────────────────
 export default function StepsPage() {
     const { activities, loading } = useActivities();
-    const [period, setPeriod] = useState<Period>("day");
 
-    const { buckets, totalSteps, dailyAvg } = useMemo(() => {
+    const { todaySteps, yesterdaySteps, weekAvg, lastWeekAvg, monthAvg, lastMonthAvg, yearAvg, lastYearAvg, hourBuckets, weeklyBuckets } = useMemo(() => {
         const now = new Date();
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const startOfYesterday = new Date(startOfToday.getTime() - 86400000);
+        
         let filtered = activities.filter((a) => (a.steps ?? 0) > 0);
-        const bucketMap = new Map<string, number>();
-        let rangeStart: Date;
 
-        switch (period) {
-            case "hour": {
-                // Last 24 hours, bucket by hour
-                rangeStart = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-                filtered = filtered.filter((a) => a.date >= rangeStart);
-                for (let h = 0; h < 24; h++) {
-                    const d = new Date(rangeStart.getTime() + h * 60 * 60 * 1000);
-                    bucketMap.set(getHourLabel(d.getHours()), 0);
-                }
-                filtered.forEach((a) => {
-                    const key = getHourLabel(a.date.getHours());
-                    bucketMap.set(key, (bucketMap.get(key) || 0) + (a.steps ?? 0));
-                });
-                break;
-            }
-            case "day": {
-                // Last 7 days, bucket by day
-                rangeStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-                filtered = filtered.filter((a) => a.date >= rangeStart);
-                for (let d = 0; d < 7; d++) {
-                    const date = new Date(rangeStart.getTime() + d * 24 * 60 * 60 * 1000);
-                    bucketMap.set(getDayLabel(date), 0);
-                }
-                filtered.forEach((a) => {
-                    const key = getDayLabel(a.date);
-                    bucketMap.set(key, (bucketMap.get(key) || 0) + (a.steps ?? 0));
-                });
-                break;
-            }
-            case "week": {
-                // Last 12 weeks, bucket by week
-                rangeStart = new Date(now);
-                rangeStart.setDate(rangeStart.getDate() - 12 * 7);
-                filtered = filtered.filter((a) => a.date >= rangeStart);
-                for (let w = 0; w < 12; w++) {
-                    const date = new Date(rangeStart);
-                    date.setDate(date.getDate() + w * 7);
-                    bucketMap.set(getWeekLabel(date), 0);
-                }
-                filtered.forEach((a) => {
-                    const key = getWeekLabel(a.date);
-                    if (bucketMap.has(key)) {
-                        bucketMap.set(key, (bucketMap.get(key) || 0) + (a.steps ?? 0));
-                    }
-                });
-                break;
-            }
-            case "month": {
-                // Last 12 months
-                for (let i = 11; i >= 0; i--) {
-                    const m = new Date(now.getFullYear(), now.getMonth() - i, 1);
-                    bucketMap.set(getMonthLabel(m.getMonth(), m.getFullYear()), 0);
-                }
-                filtered.forEach((a) => {
-                    const key = getMonthLabel(a.date.getMonth(), a.date.getFullYear());
-                    if (bucketMap.has(key)) {
-                        bucketMap.set(key, (bucketMap.get(key) || 0) + (a.steps ?? 0));
-                    }
-                });
-                break;
-            }
-            case "year": {
-                // All years present
-                const years = new Set(activities.map((a) => a.date.getFullYear()));
-                const minYear = Math.min(...Array.from(years), now.getFullYear());
-                for (let y = minYear; y <= now.getFullYear(); y++) bucketMap.set(String(y), 0);
-                filtered.forEach((a) => {
-                    const key = String(a.date.getFullYear());
-                    if (bucketMap.has(key)) bucketMap.set(key, (bucketMap.get(key) || 0) + (a.steps ?? 0));
-                });
-                break;
-            }
-        }
+        // Daily
+        const todayActivities = filtered.filter(a => a.date >= startOfToday);
+        const yesterdayActivities = filtered.filter(a => a.date >= startOfYesterday && a.date < startOfToday);
+        const todaySteps = todayActivities.reduce((sum, a) => sum + (a.steps || 0), 0);
+        const yesterdaySteps = yesterdayActivities.reduce((sum, a) => sum + (a.steps || 0), 0);
+        
+        // Hourly for today
+        const hourBuckets = new Array(24).fill(0);
+        todayActivities.forEach(a => {
+            hourBuckets[a.date.getHours()] += (a.steps || 0);
+        });
 
-        const buckets: BucketData[] = Array.from(bucketMap.entries()).map(([label, steps]) => ({ label, steps }));
-        const totalSteps = buckets.reduce((sum, b) => sum + b.steps, 0);
-        const numDays = period === "hour" ? 1 : period === "day" ? 7 : period === "week" ? 84 : period === "month" ? 365 : 365 * 2;
-        const dailyAvg = Math.round(totalSteps / Math.max(numDays, 1));
+        // Weekly
+        const startOfThisWeek = new Date(now.getTime() - 7 * 86400000);
+        const startOfLastWeek = new Date(startOfThisWeek.getTime() - 7 * 86400000);
+        const thisWeekActivities = filtered.filter(a => a.date >= startOfThisWeek);
+        const lastWeekActivities = filtered.filter(a => a.date >= startOfLastWeek && a.date < startOfThisWeek);
+        
+        const weekTotal = thisWeekActivities.reduce((sum, a) => sum + (a.steps || 0), 0);
+        const lastWeekTotal = lastWeekActivities.reduce((sum, a) => sum + (a.steps || 0), 0);
+        const weekAvg = Math.round(weekTotal / 7);
+        const lastWeekAvg = Math.round(lastWeekTotal / 7);
 
-        return { buckets, totalSteps, dailyAvg };
-    }, [activities, period]);
+        // Weekly buckets (last 7 days individually)
+        const weeklyBuckets = new Array(7).fill(0);
+        thisWeekActivities.forEach(a => {
+            const daysAgo = Math.floor((now.getTime() - a.date.getTime()) / 86400000);
+            if (daysAgo >= 0 && daysAgo < 7) {
+                 weeklyBuckets[6 - daysAgo] += (a.steps || 0);
+            }
+        });
 
-    const maxSteps = Math.max(...buckets.map((b) => b.steps), 1);
+        // Monthly
+        const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const thisMonthActivities = filtered.filter(a => a.date >= startOfThisMonth);
+        const lastMonthActivities = filtered.filter(a => a.date >= startOfLastMonth && a.date < startOfThisMonth);
+        
+        const monthTotal = thisMonthActivities.reduce((sum, a) => sum + (a.steps || 0), 0);
+        const lastMonthTotal = lastMonthActivities.reduce((sum, a) => sum + (a.steps || 0), 0);
+        const monthAvg = Math.round(monthTotal / now.getDate()) || 0;
+        const lastMonthDays = new Date(now.getFullYear(), now.getMonth(), 0).getDate();
+        const lastMonthAvg = Math.round(lastMonthTotal / lastMonthDays) || 0;
 
-    // Goal ring math
-    const todaySteps = useMemo(() => {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        return activities.filter((a) => a.date >= today).reduce((sum, a) => sum + (a.steps ?? 0), 0);
+        // Yearly
+        const startOfThisYear = new Date(now.getFullYear(), 0, 1);
+        const startOfLastYear = new Date(now.getFullYear() - 1, 0, 1);
+        const thisYearActivities = filtered.filter(a => a.date >= startOfThisYear);
+        const lastYearActivities = filtered.filter(a => a.date >= startOfLastYear && a.date < startOfThisYear);
+        
+        const yearTotal = thisYearActivities.reduce((sum, a) => sum + (a.steps || 0), 0);
+        const lastYearTotal = lastYearActivities.reduce((sum, a) => sum + (a.steps || 0), 0);
+        
+        const dayOfYear = Math.floor((now.getTime() - startOfThisYear.getTime()) / 86400000) + 1;
+        const yearAvg = Math.round(yearTotal / dayOfYear) || 0;
+        const lastYearAvg = Math.round(lastYearTotal / 365) || 0;
+
+        return { 
+            todaySteps, yesterdaySteps, 
+            weekAvg, lastWeekAvg, 
+            monthAvg, lastMonthAvg, 
+            yearAvg, lastYearAvg, 
+            hourBuckets, weeklyBuckets
+        };
     }, [activities]);
-    const goalPct = Math.min(todaySteps / DAILY_GOAL, 1);
-    const circumference = 2 * Math.PI * 54;
-    const dashOffset = circumference * (1 - goalPct);
 
-    const periods: { key: Period; label: string }[] = [
-        { key: "hour", label: "Hour" },
-        { key: "day", label: "Day" },
-        { key: "week", label: "Week" },
-        { key: "month", label: "Month" },
-        { key: "year", label: "Year" },
-    ];
+    const maxHourSteps = Math.max(...hourBuckets, 100);
+    const maxWeekSteps = Math.max(...weeklyBuckets, weekAvg, 100);
 
     return (
         <DashboardLayout>
-            <div style={{ maxWidth: "900px", margin: "0 auto", padding: "20px" }}>
-                <header style={{ marginBottom: "30px", textAlign: "center" }}>
-                    <h1 style={{ fontSize: "32px", fontWeight: "bold", marginBottom: "8px" }}>
-                        👟 Steps <span className="text-gradient">Tracker</span>
-                    </h1>
-                    <p style={{ color: "var(--foreground-muted)" }}>Track your steps across hours, days, weeks, months, and years</p>
+            <div style={{ maxWidth: "640px", margin: "0 auto", paddingBottom: "40px" }}>
+                <header style={{ marginBottom: "20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <Link href="/dashboard" style={{ color: "var(--primary)", textDecoration: "none", fontSize: "16px", fontWeight: "600", display: "flex", alignItems: "center", gap: "6px" }}>
+                        <span>‹</span> All Health Data
+                    </Link>
+                    <h1 style={{ fontSize: "16px", fontWeight: "600", margin: 0 }}>Steps</h1>
+                    <button style={{ color: "var(--primary)", background: "none", border: "none", fontSize: "16px", fontWeight: "500", cursor: "pointer" }}>Add Data</button>
                 </header>
 
-                {/* Period Tabs */}
-                <div style={{ display: "flex", justifyContent: "center", marginBottom: "30px" }}>
-                    <div style={{ display: "inline-flex", background: "var(--background-secondary)", padding: "5px", borderRadius: "var(--radius-full)" }}>
-                        {periods.map((p) => (
-                            <button
-                                key={p.key}
-                                onClick={() => setPeriod(p.key)}
-                                style={{
-                                    padding: "8px 24px",
-                                    borderRadius: "var(--radius-full)",
-                                    background: period === p.key ? "var(--primary)" : "transparent",
-                                    color: period === p.key ? "var(--background)" : "var(--foreground)",
-                                    border: "none",
-                                    cursor: "pointer",
-                                    fontWeight: "bold",
-                                    transition: "var(--transition-fast)",
-                                }}
-                            >
-                                {p.label}
-                            </button>
+                <div style={{ marginBottom: "30px" }}>
+                    <h2 style={{ fontSize: "36px", fontWeight: "800", margin: "0 0 4px 0", lineHeight: "1.1" }}>
+                        {todaySteps.toLocaleString()} <span style={{ fontSize: "20px", color: "var(--foreground-muted)", fontWeight: "600" }}>steps</span>
+                    </h2>
+                    <div style={{ fontSize: "14px", color: "var(--foreground-muted)", fontWeight: "500" }}>Today</div>
+                </div>
+
+                {/* Main Graph */}
+                <div style={{ height: "200px", marginBottom: "30px", position: "relative", borderBottom: "1px solid rgba(255,255,255,0.1)", display: "flex", alignItems: "flex-end", gap: "4px" }}>
+                    {/* Y-Axis lines */}
+                    {[0, 0.33, 0.66, 1].map((pct, i) => (
+                        <div key={i} style={{ position: "absolute", bottom: `${pct * 100}%`, left: 0, right: 0, borderBottom: "1px dashed rgba(255,255,255,0.1)", zIndex: 0 }}>
+                            <span style={{ position: "absolute", right: 0, bottom: "4px", fontSize: "10px", color: "var(--foreground-muted)" }}>
+                                {Math.round(maxHourSteps * pct).toLocaleString()}
+                            </span>
+                        </div>
+                    ))}
+                    
+                    {/* Hourly Bars */}
+                    {hourBuckets.map((steps, h) => (
+                        <div key={h} style={{ flex: 1, zIndex: 1, display: "flex", justifyContent: "center", height: "100%", alignItems: "flex-end" }}>
+                            <div style={{
+                                width: "60%",
+                                height: `${(steps / maxHourSteps) * 100}%`,
+                                background: "var(--primary)",
+                                borderRadius: "2px 2px 0 0",
+                                minHeight: steps > 0 ? "2px" : "0"
+                            }} />
+                        </div>
+                    ))}
+                    
+                    {/* X-Axis labels */}
+                    <div style={{ position: "absolute", bottom: "-24px", left: 0, right: 0, display: "flex", justifyContent: "space-between", fontSize: "12px", color: "var(--foreground-muted)" }}>
+                        <span>12 AM</span>
+                        <span>6 AM</span>
+                        <span>12 PM</span>
+                        <span>6 PM</span>
+                        <span>12 AM</span>
+                    </div>
+                </div>
+
+                <div style={{ marginTop: "40px", marginBottom: "20px", display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+                    <h2 style={{ fontSize: "22px", fontWeight: "700", margin: 0 }}>Highlights</h2>
+                    <button style={{ color: "var(--primary)", background: "none", border: "none", fontSize: "14px", cursor: "pointer" }}>Show All</button>
+                </div>
+
+                {/* Daily Highlight */}
+                <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: "16px", padding: "20px", marginBottom: "16px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "var(--primary)", fontWeight: "600", fontSize: "14px", marginBottom: "12px" }}>
+                        <span style={{ fontSize: "16px" }}>🔥</span> Steps
+                    </div>
+                    <h3 style={{ fontSize: "16px", fontWeight: "600", margin: "0 0 20px 0", lineHeight: "1.4" }}>
+                        {todaySteps > yesterdaySteps 
+                            ? "You're taking more steps today than you did yesterday."
+                            : "So far, you're taking fewer steps than you normally do."}
+                    </h3>
+                    <div style={{ display: "flex", gap: "40px", marginBottom: "20px" }}>
+                        <div>
+                            <div style={{ fontSize: "12px", color: "var(--primary)", fontWeight: "600", marginBottom: "4px" }}>● Today</div>
+                            <div style={{ fontSize: "24px", fontWeight: "700", color: "var(--primary)" }}>{todaySteps.toLocaleString()} <span style={{ fontSize: "12px", fontWeight: "500" }}>steps</span></div>
+                        </div>
+                        <div>
+                            <div style={{ fontSize: "12px", color: "var(--foreground-muted)", fontWeight: "600", marginBottom: "4px" }}>● Average</div>
+                            <div style={{ fontSize: "24px", fontWeight: "700", color: "white" }}>{weekAvg.toLocaleString()} <span style={{ fontSize: "12px", color: "var(--foreground-muted)", fontWeight: "500" }}>steps</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Weekly Highlight */}
+                <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: "16px", padding: "20px", marginBottom: "16px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "var(--primary)", fontWeight: "600", fontSize: "14px", marginBottom: "12px" }}>
+                        <span style={{ fontSize: "16px" }}>🔥</span> Steps
+                    </div>
+                    <h3 style={{ fontSize: "16px", fontWeight: "600", margin: "0 0 20px 0", lineHeight: "1.4" }}>
+                        You averaged {weekAvg.toLocaleString()} steps a day over the last 7 days.
+                    </h3>
+                    
+                    <div style={{ height: "120px", position: "relative", display: "flex", alignItems: "flex-end", gap: "10px", marginTop: "30px" }}>
+                        {/* Avg Line */}
+                        <div style={{ 
+                            position: "absolute", 
+                            top: `${100 - (weekAvg / maxWeekSteps) * 100}%`, 
+                            left: 0, right: 0, 
+                            borderTop: "2px solid var(--primary)", 
+                            zIndex: 0 
+                        }}>
+                            <div style={{ position: "absolute", top: "-24px", left: "0", fontSize: "12px", fontWeight: "600", color: "var(--foreground-muted)" }}>
+                                Average Steps
+                            </div>
+                        </div>
+
+                        {weeklyBuckets.map((steps, i) => (
+                            <div key={i} style={{ flex: 1, zIndex: 1, display: "flex", justifyContent: "center", height: "100%", alignItems: "flex-end" }}>
+                                <div style={{
+                                    width: "80%",
+                                    height: `${(steps / maxWeekSteps) * 100}%`,
+                                    background: "rgba(255,255,255,0.2)",
+                                    borderRadius: "4px 4px 0 0"
+                                }} />
+                            </div>
                         ))}
                     </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginTop: "12px", fontSize: "12px", color: "var(--foreground-muted)" }}>
+                        {["M","T","W","T","F","S","S"].map((d, i) => <span key={i} style={{ flex: 1, textAlign: "center" }}>{d}</span>)}
+                    </div>
                 </div>
 
-                {/* Top row: Goal ring + Summary */}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "20px", marginBottom: "30px" }}>
-                    {/* Goal Ring */}
-                    <div className="glass-panel" style={{ padding: "24px", borderRadius: "var(--radius-lg)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-                        <svg width="130" height="130" viewBox="0 0 120 120">
-                            <circle cx="60" cy="60" r="54" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="10" />
-                            <circle
-                                cx="60" cy="60" r="54" fill="none"
-                                stroke={goalPct >= 1 ? "#00e676" : "var(--primary)"}
-                                strokeWidth="10"
-                                strokeDasharray={circumference}
-                                strokeDashoffset={dashOffset}
-                                strokeLinecap="round"
-                                transform="rotate(-90 60 60)"
-                                style={{ transition: "stroke-dashoffset 0.6s ease, stroke 0.3s ease" }}
-                            />
-                            <text x="60" y="55" textAnchor="middle" fill="white" fontSize="22" fontWeight="bold">
-                                {todaySteps.toLocaleString()}
-                            </text>
-                            <text x="60" y="73" textAnchor="middle" fill="var(--foreground-muted)" fontSize="11">
-                                / {DAILY_GOAL.toLocaleString()}
-                            </text>
-                        </svg>
-                        <div style={{ fontSize: "12px", color: "var(--foreground-muted)", marginTop: "8px" }}>Today&apos;s Goal</div>
+                {/* Monthly Highlight */}
+                <h2 style={{ fontSize: "20px", fontWeight: "700", marginTop: "30px", marginBottom: "16px" }}>Monthly Highlights</h2>
+                <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: "16px", padding: "20px", marginBottom: "16px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "var(--primary)", fontWeight: "600", fontSize: "14px", marginBottom: "12px" }}>
+                        <span style={{ fontSize: "16px" }}>🔥</span> Steps
                     </div>
-
-                    {/* Total Steps */}
-                    <div className="glass-panel" style={{ padding: "24px", borderRadius: "var(--radius-lg)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-                        <div style={{ fontSize: "14px", color: "var(--foreground-muted)", marginBottom: "8px", textTransform: "uppercase", letterSpacing: "1px" }}>Total Steps</div>
-                        <div style={{ fontSize: "36px", fontWeight: "bold", color: "var(--primary)" }}>{totalSteps.toLocaleString()}</div>
-                        <div style={{ fontSize: "12px", color: "var(--foreground-muted)", marginTop: "4px" }}>
-                            {period === "hour" ? "Last 24h" : period === "day" ? "Last 7 days" : period === "week" ? "Last 12 weeks" : period === "month" ? "Last 12 months" : "All time"}
+                    <h3 style={{ fontSize: "16px", fontWeight: "600", margin: "0 0 24px 0", lineHeight: "1.4" }}>
+                        {monthAvg > lastMonthAvg 
+                            ? `You're averaging ${(monthAvg - lastMonthAvg).toLocaleString()} more steps this month than last month.` 
+                            : `You're averaging ${(lastMonthAvg - monthAvg).toLocaleString()} fewer steps this month than last month.`}
+                    </h3>
+                    
+                    <div style={{ marginBottom: "20px" }}>
+                        <div style={{ fontSize: "20px", fontWeight: "700", marginBottom: "8px" }}>{monthAvg.toLocaleString()} <span style={{ fontSize: "12px", color: "var(--foreground-muted)" }}>steps/day</span></div>
+                        <div style={{ width: "80%", background: "var(--primary)", color: "black", padding: "4px 12px", fontSize: "14px", fontWeight: "700", borderRadius: "4px" }}>
+                            {new Date().toLocaleString('default', { month: 'long' })}
                         </div>
                     </div>
-
-                    {/* Daily Average */}
-                    <div className="glass-panel" style={{ padding: "24px", borderRadius: "var(--radius-lg)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-                        <div style={{ fontSize: "14px", color: "var(--foreground-muted)", marginBottom: "8px", textTransform: "uppercase", letterSpacing: "1px" }}>Daily Avg</div>
-                        <div style={{ fontSize: "36px", fontWeight: "bold" }}>{dailyAvg.toLocaleString()}</div>
-                        <div style={{ fontSize: "12px", color: "var(--foreground-muted)", marginTop: "4px" }}>steps/day</div>
+                    <div>
+                        <div style={{ fontSize: "20px", fontWeight: "700", marginBottom: "8px", color: "white" }}>{lastMonthAvg.toLocaleString()} <span style={{ fontSize: "12px", color: "var(--foreground-muted)" }}>steps/day</span></div>
+                        <div style={{ width: "100%", background: "rgba(255,255,255,0.1)", color: "var(--foreground-muted)", padding: "4px 12px", fontSize: "14px", fontWeight: "700", borderRadius: "4px" }}>
+                            {new Date(new Date().setMonth(new Date().getMonth()-1)).toLocaleString('default', { month: 'long' })}
+                        </div>
                     </div>
                 </div>
 
-                {/* Bar Chart */}
-                <div className="glass-panel" style={{ padding: "24px", borderRadius: "var(--radius-lg)", marginBottom: "30px" }}>
-                    <h3 style={{ marginBottom: "20px", fontSize: "16px" }}>Steps Breakdown</h3>
-                    {loading ? (
-                        <p style={{ color: "var(--foreground-muted)" }}>Loading...</p>
-                    ) : (
-                        <div style={{ display: "flex", alignItems: "flex-end", gap: "6px", height: "180px", padding: "0 4px" }}>
-                            {buckets.map((b) => (
-                                <div key={b.label} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", height: "100%" }}>
-                                    <div style={{ flex: 1, width: "100%", display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
-                                        <div
-                                            style={{
-                                                width: "100%",
-                                                maxWidth: "40px",
-                                                height: `${Math.max((b.steps / maxSteps) * 100, 2)}%`,
-                                                background: b.steps > 0
-                                                    ? "linear-gradient(to top, var(--primary), rgba(204,255,0,0.6))"
-                                                    : "rgba(255,255,255,0.05)",
-                                                borderRadius: "4px 4px 0 0",
-                                                transition: "height 0.4s ease",
-                                                position: "relative",
-                                            }}
-                                            title={`${b.label}: ${b.steps.toLocaleString()} steps`}
-                                        >
-                                            {b.steps > 0 && (
-                                                <div style={{
-                                                    position: "absolute",
-                                                    top: "-20px",
-                                                    left: "50%",
-                                                    transform: "translateX(-50%)",
-                                                    fontSize: "9px",
-                                                    color: "var(--foreground-muted)",
-                                                    whiteSpace: "nowrap",
-                                                }}>
-                                                    {b.steps >= 1000 ? `${(b.steps / 1000).toFixed(1)}k` : b.steps}
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                    <div style={{
-                                        fontSize: "9px",
-                                        color: "var(--foreground-muted)",
-                                        marginTop: "6px",
-                                        textAlign: "center",
-                                        whiteSpace: "nowrap",
-                                        overflow: "hidden",
-                                        textOverflow: "ellipsis",
-                                        maxWidth: "50px",
-                                    }}>
-                                        {b.label}
-                                    </div>
-                                </div>
-                            ))}
+                {/* Yearly Highlight */}
+                <h2 style={{ fontSize: "20px", fontWeight: "700", marginTop: "30px", marginBottom: "16px" }}>Yearly Highlights</h2>
+                <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: "16px", padding: "20px", marginBottom: "16px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "var(--primary)", fontWeight: "600", fontSize: "14px", marginBottom: "12px" }}>
+                        <span style={{ fontSize: "16px" }}>🔥</span> Steps
+                    </div>
+                    <h3 style={{ fontSize: "16px", fontWeight: "600", margin: "0 0 24px 0", lineHeight: "1.4" }}>
+                        {yearAvg > lastYearAvg 
+                            ? `This year, you're walking more on average than you did in ${new Date().getFullYear()-1}.` 
+                            : `This year, you're walking less on average than you did in ${new Date().getFullYear()-1}.`}
+                    </h3>
+                    
+                    <div style={{ marginBottom: "20px" }}>
+                        <div style={{ fontSize: "20px", fontWeight: "700", marginBottom: "8px" }}>{yearAvg.toLocaleString()} <span style={{ fontSize: "12px", color: "var(--foreground-muted)" }}>steps/day</span></div>
+                        <div style={{ width: "80%", background: "var(--primary)", color: "black", padding: "4px 12px", fontSize: "14px", fontWeight: "700", borderRadius: "4px" }}>
+                            {new Date().getFullYear()}
                         </div>
-                    )}
+                    </div>
+                    <div>
+                        <div style={{ fontSize: "20px", fontWeight: "700", marginBottom: "8px", color: "white" }}>{lastYearAvg.toLocaleString()} <span style={{ fontSize: "12px", color: "var(--foreground-muted)" }}>steps/day</span></div>
+                        <div style={{ width: "100%", background: "rgba(255,255,255,0.1)", color: "var(--foreground-muted)", padding: "4px 12px", fontSize: "14px", fontWeight: "700", borderRadius: "4px" }}>
+                            {new Date().getFullYear()-1}
+                        </div>
+                    </div>
                 </div>
 
-                {/* Breakdown Table */}
-                <div className="glass-panel" style={{ borderRadius: "var(--radius-lg)", overflow: "hidden" }}>
-                    <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                        <thead>
-                            <tr style={{ background: "rgba(255,255,255,0.05)", borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
-                                <th style={{ padding: "12px 16px", textAlign: "left", fontSize: "12px", textTransform: "uppercase", color: "var(--foreground-muted)" }}>Period</th>
-                                <th style={{ padding: "12px 16px", textAlign: "right", fontSize: "12px", textTransform: "uppercase", color: "var(--foreground-muted)" }}>Steps</th>
-                                <th style={{ padding: "12px 16px", textAlign: "right", fontSize: "12px", textTransform: "uppercase", color: "var(--foreground-muted)" }}>% of Total</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {buckets.map((b) => (
-                                <tr key={b.label} style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
-                                    <td style={{ padding: "12px 16px", fontWeight: 500 }}>{b.label}</td>
-                                    <td style={{ padding: "12px 16px", textAlign: "right", fontWeight: 600 }}>{b.steps.toLocaleString()}</td>
-                                    <td style={{ padding: "12px 16px", textAlign: "right", color: "var(--foreground-muted)" }}>
-                                        {totalSteps > 0 ? `${((b.steps / totalSteps) * 100).toFixed(1)}%` : "—"}
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
             </div>
         </DashboardLayout>
     );

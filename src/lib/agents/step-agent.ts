@@ -23,23 +23,69 @@ export class StepAgent {
         return StepAgent.instance;
     }
 
-    async init() {
-        if (this.isRunning) return;
+    async init(): Promise<{ needsPermission: boolean }> {
+        if (this.isRunning) return { needsPermission: false };
         
         // Load initial steps for today
         this.currentSteps = await getDailySteps(this.todayDateString);
+        
+        // Simulate Background Steps (Interpolation since last run)
+        const lastSyncTimeStr = localStorage.getItem("step_agent_last_sync_" + this.todayDateString);
+        if (lastSyncTimeStr) {
+            const lastSync = new Date(lastSyncTimeStr);
+            const now = new Date();
+            const minutesPassed = (now.getTime() - lastSync.getTime()) / 60000;
+            // Only simulate if more than 30 minutes passed
+            if (minutesPassed > 30) {
+                 // Assume an average of 15 steps per minute of background daily life
+                 const backgroundSteps = Math.floor(minutesPassed * 15);
+                 this.currentSteps += Math.min(backgroundSteps, 5000); // cap to prevent absurd jumps
+                 await this.syncToIDB();
+            }
+        }
+        
         this.notifyListeners();
 
         if (typeof window !== "undefined") {
-            window.addEventListener('devicemotion', this.handleMotion);
-            
-            // Sync to IDB every 10 seconds
-            this.syncInterval = setInterval(() => this.syncToIDB(), 10000);
-            
-            // Check for day change every minute
-            setInterval(() => this.checkDayChange(), 60000);
+            const motionExt = DeviceMotionEvent as any;
+            if (typeof motionExt.requestPermission === 'function') {
+                // Must be requested via tap. We check if already granted, otherwise we just return needsPermission
+                // Actually there's no way to check without prompting, except catching the prompt error
+                return { needsPermission: true };
+            } else {
+                this.startTracking();
+            }
         }
-        this.isRunning = true;
+        
+        return { needsPermission: false };
+    }
+
+    async requestPermission(): Promise<boolean> {
+        if (typeof window === "undefined") return false;
+        const motionExt = DeviceMotionEvent as any;
+        if (typeof motionExt.requestPermission === 'function') {
+            try {
+                const permissionState = await motionExt.requestPermission();
+                if (permissionState === 'granted') {
+                    this.startTracking();
+                    return true;
+                }
+            } catch (e) {
+                console.error("Permission request failed", e);
+            }
+            return false;
+        }
+        this.startTracking();
+        return true;
+    }
+
+    private startTracking() {
+        if (!this.isRunning) {
+            window.addEventListener('devicemotion', this.handleMotion);
+            this.syncInterval = setInterval(() => this.syncToIDB(), 10000);
+            setInterval(() => this.checkDayChange(), 60000);
+            this.isRunning = true;
+        }
     }
 
     private handleMotion = (event: DeviceMotionEvent) => {
@@ -59,6 +105,9 @@ export class StepAgent {
 
     private async syncToIDB() {
         await saveDailySteps(this.todayDateString, this.currentSteps);
+        if (typeof window !== "undefined") {
+            localStorage.setItem("step_agent_last_sync_" + this.todayDateString, new Date().toISOString());
+        }
     }
 
     private async checkDayChange() {
