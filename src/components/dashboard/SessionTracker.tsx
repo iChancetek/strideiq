@@ -576,7 +576,10 @@ export default function SessionTracker() {
         }
 
         // Show the PostSessionModal with session data
+        // Generate a single idempotency key NOW — it will be reused across any retries
+        // to prevent duplicate Firestore entries.
         setPendingSessionData({
+            idempotencyKey: crypto.randomUUID(),
             distanceMiles: parseFloat(miles.toFixed(2)),
             durationSeconds: parseFloat(durationSeconds.toFixed(0)),
             calories: Math.round(miles * modeConfig.caloriesPerMile),
@@ -620,6 +623,7 @@ export default function SessionTracker() {
             // Upload media files to Firebase Storage
             const mediaItems = await uploadMediaFiles(data.mediaFiles, user.uid);
 
+            // The same idempotencyKey is used across all retries to prevent duplicates
             const { activityId } = await retryAsync(() => addActivity({
                 type: getActivityType(mode),
                 distance: pendingSessionData.distanceMiles,
@@ -634,6 +638,7 @@ export default function SessionTracker() {
                 environment: pendingSessionData.environment,
                 mileSplits: pendingSessionData.mileSplits,
                 pausedDuration: pendingSessionData.pausedDuration,
+                idempotencyKey: pendingSessionData.idempotencyKey,
                 ...(pendingSessionData.weatherSnapshot ? { weatherSnapshot: pendingSessionData.weatherSnapshot } : {}),
                 ...(mediaItems.length > 0 ? { media: mediaItems } : {}),
             }), 3);

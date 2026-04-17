@@ -56,7 +56,7 @@ interface ActivitiesContextValue {
     activities: Activity[];
     loading: boolean;
     error: string;
-    addActivity: (activity: Omit<Activity, "id" | "date" | "pace"> & { date: Date }) => Promise<{ activityId: string }>;
+    addActivity: (activity: Omit<Activity, "id" | "date" | "pace"> & { date: Date; idempotencyKey?: string }) => Promise<{ activityId: string }>;
     updateActivity: (activityId: string, updates: Partial<Activity>) => Promise<any>;
     deleteActivity: (activityId: string) => Promise<any>;
     refreshActivities: () => Promise<void>;
@@ -115,9 +115,12 @@ export function ActivitiesProvider({ children }: { children: React.ReactNode }) 
         fetchActivities();
     }, [user, authLoading, fetchActivities]);
 
-    const addActivity = async (activity: Omit<Activity, "id" | "date" | "pace"> & { date: Date }) => {
+    const addActivity = async (activity: Omit<Activity, "id" | "date" | "pace"> & { date: Date; idempotencyKey?: string }) => {
         if (!user) throw new Error("User not authenticated");
 
+        // Use a caller-provided idempotency key or generate one.
+        // The SAME key must be reused across retries so the server can deduplicate.
+        const idempotencyKey = activity.idempotencyKey || crypto.randomUUID();
         const tempId = crypto.randomUUID();
         const optimisticActivity: Activity = {
             ...activity,
@@ -125,13 +128,18 @@ export function ActivitiesProvider({ children }: { children: React.ReactNode }) 
             pace: "0'00\"/mi", // Placeholder
         };
 
-        setActivities(prev => [optimisticActivity, ...prev]);
+        // Only add optimistic entry if we don't already have one from a prior retry
+        setActivities(prev => {
+            const alreadyExists = prev.some(a => (a as any).idempotencyKey === idempotencyKey);
+            if (alreadyExists) return prev;
+            return [{ ...optimisticActivity, idempotencyKey } as any, ...prev];
+        });
 
         try {
+            const { idempotencyKey: _dropped, ...activityWithoutKey } = activity;
             const payload = {
-                ...activity,
-                id: tempId,
-                userId: user.uid,
+                ...activityWithoutKey,
+                idempotencyKey,
                 date: activity.date.toISOString(),
             };
 
@@ -145,16 +153,19 @@ export function ActivitiesProvider({ children }: { children: React.ReactNode }) 
                 body: JSON.stringify(payload),
             });
 
-            if (!response.ok) throw new Error("Failed to save activity");
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                throw new Error(errData.error || "Failed to save activity");
+            }
             
             const data = await response.json();
             
-            // Re-fetch to ensure exact server time/formats are matched, or just rely on optimistic
+            // Re-fetch to ensure exact server time/formats are matched
             fetchActivities();
             
             return { activityId: data.activityId };
         } catch (err) {
-            setActivities(prev => prev.filter(a => a.id !== tempId));
+            setActivities(prev => prev.filter(a => a.id !== tempId && (a as any).idempotencyKey !== idempotencyKey));
             throw err;
         }
     };

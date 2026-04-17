@@ -17,6 +17,9 @@ export async function POST(req: Request) {
 
         const body = await req.json();
 
+        // Extract optional idempotency key (client-generated UUID to prevent duplicate saves on retry)
+        const idempotencyKey = body.idempotencyKey as string | undefined;
+
         // Validate
         const validation = createActivitySchema.safeParse(body);
         if (!validation.success) {
@@ -25,6 +28,20 @@ export async function POST(req: Request) {
 
         const activityData = validation.data;
         const activityDate = new Date(activityData.date);
+
+        // ── Idempotency check: if this key was already used, return the existing doc ──
+        if (idempotencyKey) {
+            const existing = await adminDb.collection("entries")
+                .where("userId", "==", userId)
+                .where("idempotencyKey", "==", idempotencyKey)
+                .limit(1)
+                .get();
+            if (!existing.empty) {
+                const existingId = existing.docs[0].id;
+                console.log(`[IDEMPOTENT_HIT] Returning existing activity ${existingId} for key ${idempotencyKey}`);
+                return NextResponse.json({ success: true, activityId: existingId, deduplicated: true });
+            }
+        }
 
         // Calculate pace (seconds per mile)
         const pace = activityData.distance > 0
@@ -46,14 +63,21 @@ export async function POST(req: Request) {
                 createdAt: Timestamp.now(),
                 isDeleted: false,
                 pace: paceStr,
-                type: activityData.type || "Run", // Default to Run if missing
+                type: activityData.type || "Run",
+                ...(idempotencyKey ? { idempotencyKey } : {}),
             });
 
-        // Update aggregate stats
-        await updateUserStats(userId, {
-            ...activityData,
-            date: activityDate,
-        });
+        // Update aggregate stats (non-fatal: activity is already saved)
+        try {
+            await updateUserStats(userId, {
+                ...activityData,
+                date: activityDate,
+            });
+        } catch (statsErr: any) {
+            // Stats update failed but the activity was created — do NOT fail the request.
+            // Stats can be recalculated; losing the user's activity data cannot be recovered.
+            console.error(`[STATS_UPDATE_FAILED] Activity ${docRef.id} saved, but stats update failed:`, statsErr.message);
+        }
 
         return NextResponse.json({ success: true, activityId: docRef.id });
 
