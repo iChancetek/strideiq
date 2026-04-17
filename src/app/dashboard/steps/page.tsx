@@ -4,7 +4,6 @@ import { useMemo } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useActivities } from "@/hooks/useActivities";
 import Link from "next/link";
-import { useStepAgent } from "@/lib/agents/hooks/useStepAgent"; // We'll assume a hook or just use context
 
 export default function StepsPage() {
     const { activities, loading } = useActivities();
