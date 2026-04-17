@@ -58,6 +58,20 @@ export default function Sidebar({ onLogout }: SidebarProps) {
 
     return (
         <>
+            {isOpen && (
+                <div 
+                    onClick={() => setIsOpen(false)}
+                    style={{
+                        position: "fixed",
+                        inset: 0,
+                        background: "rgba(0,0,0,0.5)",
+                        zIndex: 999, // Just below sidebar
+                        backdropFilter: "blur(2px)",
+                        animation: "fadeIn 0.2s ease"
+                    }}
+                />
+            )}
+
             {/* Desktop Hover Trigger Zone (Invisible bar at far left) */}
             <div 
                 className="sidebar-trigger"
@@ -73,7 +87,37 @@ export default function Sidebar({ onLogout }: SidebarProps) {
                 }}
             />
 
+            {/* Persistent Top-Left Desktop Toggle Button */}
+            <button
+                className="desktop-toggle"
+                onClick={() => setIsOpen(!isOpen)}
+                style={{
+                    position: 'fixed',
+                    top: '20px',
+                    left: '20px',
+                    zIndex: 998, // Below sidebar so it's covered when open
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '50%',
+                    background: 'var(--surface, rgba(255,255,255,0.05))',
+                    backdropFilter: 'blur(10px)',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    color: 'var(--foreground)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    fontSize: '18px',
+                    transition: 'opacity 0.2s',
+                    opacity: isOpen || isHovered ? 0 : 1 // Hide when sidebar is visible
+                }}
+                aria-label="Toggle Menu"
+            >
+                ☰
+            </button>
 
+
+            {/* Mobile Bottom-Right Toggle Button */}
             <button
                 className="mobile-toggle btn-primary"
                 onClick={() => setIsOpen(!isOpen)}
@@ -333,7 +377,7 @@ export default function Sidebar({ onLogout }: SidebarProps) {
             transform: translateX(-110%);
             box-shadow: none;
           }
-          .sidebar.hovered {
+          .sidebar.hovered, .sidebar.open {
             transform: translateX(0);
             box-shadow: 0 10px 40px rgba(0,0,0,0.5);
           }
@@ -344,6 +388,9 @@ export default function Sidebar({ onLogout }: SidebarProps) {
 
         @media (max-width: 768px) {
           .sidebar-trigger {
+            display: none !important;
+          }
+          .desktop-toggle {
             display: none !important;
           }
           .sidebar {
