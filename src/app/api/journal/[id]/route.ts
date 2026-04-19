@@ -29,10 +29,12 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
         }
 
         return NextResponse.json({
-            id: docSnapshot.id,
-            ...data,
-            createdAt: data?.createdAt?.toDate?.()?.toISOString(),
-            updatedAt: data?.updatedAt?.toDate?.()?.toISOString()
+            entry: {
+                id: docSnapshot.id,
+                ...data,
+                createdAt: data?.createdAt?.toDate?.()?.toISOString(),
+                updatedAt: data?.updatedAt?.toDate?.()?.toISOString()
+            }
         });
 
     } catch (error: any) {

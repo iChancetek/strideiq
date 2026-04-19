@@ -28,7 +28,7 @@ export default function SettingsPage() {
     const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!user || !e.target.files || !e.target.files[0]) return;
         const file = e.target.files[0];
-        if (file.size > 25 * 1024 * 1024) { alert(t(lang, "photoTooLarge") + " (Max 25MB)"); return; }
+        if (file.size > 100 * 1024 * 1024) { alert(t(lang, "photoTooLarge") + " (Max 100MB)"); return; }
         setUploading(true);
         try {
             const path = `${user.uid}`;
