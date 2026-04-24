@@ -233,7 +233,6 @@ export default function PostSessionModal({ session, onSave, onDiscard }: Props) 
                             ref={fileInputRef}
                             type="file"
                             accept="image/*,video/*"
-                            capture="environment"
                             multiple
                             onChange={handleAddMedia}
                             style={{ display: "none" }}

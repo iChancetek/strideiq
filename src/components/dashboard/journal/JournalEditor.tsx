@@ -468,7 +468,7 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
                         opacity: uploading ? 0.5 : 1
                     }}>
                         {uploading ? <Loader2 size={12} className="animate-spin" /> : "🎤 Voice"}
-                        <input type="file" accept="audio/*" capture="user" style={{ display: "none" }} onChange={e => handleMediaUpload(e, "audio")} disabled={uploading} />
+                        <input type="file" accept="audio/*" style={{ display: "none" }} onChange={e => handleMediaUpload(e, "audio")} disabled={uploading} />
                     </label>
 
                     <label style={{
@@ -477,7 +477,7 @@ export default function JournalEditor({ initialData, isNew = false }: JournalEdi
                         opacity: uploading ? 0.5 : 1
                     }}>
                         {uploading ? <Loader2 size={12} className="animate-spin" /> : "📹 Video"}
-                        <input type="file" accept="video/*" capture="environment" style={{ display: "none" }} onChange={e => handleMediaUpload(e, "video")} disabled={uploading} />
+                        <input type="file" accept="video/*" style={{ display: "none" }} onChange={e => handleMediaUpload(e, "video")} disabled={uploading} />
                     </label>
                 </div>
 

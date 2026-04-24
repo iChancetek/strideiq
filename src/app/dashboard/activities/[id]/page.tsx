@@ -425,7 +425,7 @@ export default function ActivityDetailPage() {
                                         fontSize: "13px", color: "var(--primary)", fontWeight: 600,
                                     }}>
                                         {uploadingMedia ? "Uploading…" : "+ Add Media"}
-                                        <input type="file" accept="image/*,video/*" capture="environment" style={{ display: "none" }} onChange={handleMediaUpload} disabled={uploadingMedia} />
+                                        <input type="file" accept="image/*,video/*" style={{ display: "none" }} onChange={handleMediaUpload} disabled={uploadingMedia} />
                                     </label>
                                 </div>
 
