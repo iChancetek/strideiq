@@ -13,7 +13,7 @@ import {
 } from "recharts";
 import { Activity } from "@/hooks/useActivities";
 
-type Period = "daily" | "weekly" | "monthly" | "yearly";
+type Period = "all" | "daily" | "weekly" | "monthly" | "yearly";
 
 interface Props {
     activities: Activity[];
@@ -26,7 +26,21 @@ export default function ActivityCharts({ activities, period, activeYear = new Da
     const chartData = useMemo(() => {
         const data: { name: string; value: number; label: string }[] = [];
         
-        if (period === "daily") {
+        if (period === "all") {
+            // Group by year (last 5 years)
+            const currentYear = new Date().getFullYear();
+            for (let i = currentYear - 4; i <= currentYear; i++) {
+                data.push({ name: i.toString(), label: i.toString(), value: 0 });
+            }
+            activities.forEach(a => {
+                const year = a.date.getFullYear();
+                const index = data.findIndex(d => d.name === year.toString());
+                if (index !== -1) {
+                    data[index].value += (Number(a.distance) || 0);
+                }
+            });
+        }
+        else if (period === "daily") {
             // Hourly: 0-23
             for (let i = 0; i < 24; i++) {
                 data.push({ 
