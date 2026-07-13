@@ -55,7 +55,7 @@ export async function GET(req: Request) {
             })
             .filter((a: any) => a.isDeleted !== true);
         
-        activities.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        activities.sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
         
         return NextResponse.json({ 
             activities,
