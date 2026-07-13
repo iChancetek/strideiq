@@ -75,22 +75,34 @@ export function ActivitiesProvider({ children }: { children: React.ReactNode }) 
         setLoading(true);
         try {
             const token = await user.getIdToken();
-            const res = await fetch(`/api/activity/list?limit=50`, {
+            const res = await fetch(`/api/activity/list?limit=500`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (!res.ok) throw new Error("Failed to fetch");
             const data = await res.json();
             
             const parsed = data.activities.map((a: any) => {
-                const toDate = (val: any) => {
+                /**
+                 * Parse a date value that may be:
+                 *  - an ISO string (from the fixed API)
+                 *  - a Firestore-shaped object `{ _seconds }`
+                 *  - a numeric epoch
+                 *  - null / undefined
+                 * Never silently falls back to `new Date()` — that was causing
+                 * old activities to show "Just now".
+                 */
+                const toDate = (val: any): Date | undefined => {
                     if (!val) return undefined;
                     if (val._seconds) return new Date(val._seconds * 1000);
-                    return new Date(val);
+                    const d = new Date(val);
+                    return isNaN(d.getTime()) ? undefined : d;
                 };
+
+                const parsedDate = toDate(a.date);
 
                 return {
                     ...a,
-                    date: toDate(a.date) || new Date(),
+                    date: parsedDate || new Date(0), // epoch fallback — clearly old, never "just now"
                     startTime: toDate(a.startTime),
                     endTime: toDate(a.endTime),
                 };

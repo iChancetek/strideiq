@@ -9,16 +9,17 @@ import { useState, useMemo } from "react";
 import ManualActivityModal from "@/components/dashboard/ManualActivityModal";
 import { formatDuration } from "@/lib/utils";
 
-type Period = "daily" | "weekly" | "monthly" | "yearly";
+type Period = "all" | "daily" | "weekly" | "monthly" | "yearly";
 
 export default function ActivitiesPage() {
     const { user } = useAuth();
     const { activities, loading } = useActivities();
     const [isManualModalOpen, setIsManualModalOpen] = useState(false);
-    const [activePeriod, setActivePeriod] = useState<Period>("weekly");
+    const [activePeriod, setActivePeriod] = useState<Period>("all");
     const [activeYear, setActiveYear] = useState(new Date().getFullYear());
 
     const periods: { key: Period; label: string }[] = [
+        { key: "all", label: "All" },
         { key: "daily", label: "Daily" },
         { key: "weekly", label: "Weekly" },
         { key: "monthly", label: "Monthly" },
@@ -27,6 +28,12 @@ export default function ActivitiesPage() {
 
     // Filter activities based on the selected period and year
     const filteredActivities = useMemo(() => {
+        const sorted = [...activities].sort((a, b) => b.date.getTime() - a.date.getTime());
+
+        if (activePeriod === "all") {
+            return sorted;
+        }
+
         const now = new Date();
         const start = new Date();
         start.setHours(0, 0, 0, 0);
@@ -44,14 +51,10 @@ export default function ActivitiesPage() {
             // Entire selected year
             const startOfYear = new Date(activeYear, 0, 1);
             const endOfYear = new Date(activeYear, 11, 31, 23, 59, 59);
-            return activities
-                .filter(a => a.date >= startOfYear && a.date <= endOfYear)
-                .sort((a, b) => b.date.getTime() - a.date.getTime());
+            return sorted.filter(a => a.date >= startOfYear && a.date <= endOfYear);
         }
 
-        return activities
-            .filter(a => a.date >= start)
-            .sort((a, b) => b.date.getTime() - a.date.getTime());
+        return sorted.filter(a => a.date >= start);
     }, [activities, activePeriod, activeYear]);
 
     const stats = useMemo(() => {
@@ -158,7 +161,7 @@ export default function ActivitiesPage() {
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                         <div style={{ fontSize: "13px", color: "var(--foreground-muted)", textTransform: "uppercase", letterSpacing: "1px" }}>
-                            {activePeriod === "daily" ? "Today" : activePeriod === "yearly" ? `Year ${activeYear}` : `This ${activePeriod.replace("ly", "")}`}
+                            {activePeriod === "all" ? "All Time" : activePeriod === "daily" ? "Today" : activePeriod === "yearly" ? `Year ${activeYear}` : `This ${activePeriod.replace("ly", "")}`}
                         </div>
                         {activePeriod === "yearly" && (
                             <select 
