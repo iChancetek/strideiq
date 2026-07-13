@@ -29,10 +29,13 @@ The Supervisor is the reasoning core of StrideIQ. When a task is initiated, the 
 4. Delegates sub-tasks to the Workers and synthesizes their findings into the final output.
 
 #### The Worker Agents (The Tool Nodes)
-Worker agents are specialized nodes designed to execute precise tasks delegated by the Supervisor. They are the "hands" of our system:
-- **Search Workers**: Utilize tools like Tavily to fetch real-time internet information and current events.
-- **Knowledge Workers**: Query our RAG & Pinecone Vector DB to extract specific context from vast amounts of platform data.
-- **MCP (Model Context Protocol) Workers**: Modular, structured tools designed to dynamically access external data sources and capabilities securely.
+Worker agents are specialized nodes designed to execute precise tasks delegated by the Supervisor or the Agent Core orchestrator. In StrideIQ, our specific worker agents include:
+- **Movement Agent**: Processes GPS position updates and handles auto-pause/resume logic.
+- **Coaching Agent**: Tracks mile splits, analyzes pace against historical bests, and delivers audio encouragement and performance updates.
+- **Environment Agent**: Fetches real-time weather data for outdoor sessions and generates context-aware announcements.
+- **Pulse Agent**: Estimates heart rate (Optical HR) and blood pressure during sessions.
+- **Media Agent**: Recommends media and playlists optimized for your current activity and pace.
+- **Step Agent**: Tracks and calculates step cadence during your activities.
 
 ### How Everything Works Together (The Autonomous Loop)
 1. **Perception**: The Supervisor receives a complex prompt and understands the user's intent.
